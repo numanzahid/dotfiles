@@ -1,0 +1,22 @@
+# Secrets and credentials
+**/auth.json
+**/hosts.yml
+**/.env
+**/.env.*
+**/id_*
+**/id_*.pub
+**/known_hosts
+**/known_hosts.old
+**/authorized_keys
+
+# Runtime / generated
+**/node_modules/
+**/.DS_Store
+**/*.log
+**/.netrwhist
+**/.viminfo
+**/.bash_history
+
+# Local install state (never commit from a live machine)
+home/.tmux/plugins/
+home/.fzf/

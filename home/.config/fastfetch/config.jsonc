@@ -1,0 +1,104 @@
+{
+  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+  "logo": {
+    "type": "file",
+    "source": "~/.config/fastfetch/logo.txt",
+    "padding": {
+      "top": 2,
+      "left": 3,
+      "right": 2
+    }
+  },
+  "modules": [
+    "break",
+    {
+      "type": "custom",
+      "format": "\u001b[90m┌────────────────────────Hardware──────────────────────────┐"
+    },
+    {
+      "type": "host",
+      "key": " PC",
+      "keyColor": "green"
+    },
+    {
+      "type": "cpu",
+      "key": "│ ├",
+      "keyColor": "green"
+    },
+    {
+      "type": "memory",
+      "key": "│ ├󰍛",
+      "keyColor": "green"
+    },
+    {
+      "type": "disk",
+      "key": "└ └",
+      "keyColor": "green"
+    },
+    {
+      "type": "custom",
+      "format": "\u001b[90m└──────────────────────────────────────────────────────────┘"
+    },
+
+    "break",
+    {
+      "type": "custom",
+      "format": "\u001b[90m┌─────────────────────────Software─────────────────────────┐"
+    },
+    {
+      "type": "os",
+      "key": " OS",
+      "keyColor": "yellow"
+    },
+    {
+      "type": "kernel",
+      "key": "│ ├",
+      "keyColor": "yellow"
+    },
+    {
+      "type": "shell",
+      "key": "│ ├",
+      "keyColor": "yellow"
+    },
+    {
+      "type": "terminal",
+      "key": "└ └",
+      "keyColor": "yellow"
+    },
+    {
+      "type": "custom",
+      "format": "\u001b[90m└──────────────────────────────────────────────────────────┘"
+    },
+
+    "break",
+    {
+      "type": "custom",
+      "format": "\u001b[90m┌──────────────────────Uptime / DT─────────────────────────┐"
+    },
+    {
+      "type": "uptime",
+      "key": "  Uptime ",
+      "keyColor": "magenta"
+    },
+    {
+      "type": "datetime",
+      "key": "  DateTime ",
+      "keyColor": "magenta"
+    },
+    {
+      "type": "localip",
+      "key": "  Local IP ",
+      "keyColor": "magenta"
+    },
+    {
+      "type": "custom",
+      "format": "\u001b[90m└──────────────────────────────────────────────────────────┘"
+    },
+
+    {
+      "type": "colors",
+      "paddingLeft": 2,
+      "symbol": "circle"
+    }
+  ]
+}

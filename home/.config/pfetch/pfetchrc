@@ -1,0 +1,15 @@
+# pfetch config (sourced via PF_SOURCE)
+# Docs: https://github.com/dylanaraps/pfetch
+
+PF_INFO="ascii title os host kernel uptime pkgs memory"
+PF_COLOR=1
+
+# Optional color overrides (uncomment to customize):
+# PF_COL1=4
+# PF_COL2=9
+# PF_COL3=1
+
+# Optional logo override (uncomment one):
+# PF_ASCII="linux"
+# PF_ASCII="debian"
+# PF_ASCII="ubuntu"
