@@ -28,7 +28,7 @@ Plain `./install.sh` only symlinks configs into `$HOME`.
 | Flag | Action |
 |------|--------|
 | `--deps` | Base apt packages |
-| `--tools` | bat, fd, zoxide, eza, chafa |
+| `--tools` | bat, fd, zoxide, eza |
 | `--lazygit` / `--gh` | lazygit, GitHub CLI |
 | `--neovim` | Neovim from GitHub release |
 | `--fastfetch` / `--pfetch` | Optional fetch tools |

@@ -10,7 +10,6 @@ TOOLS=(
   fd-install-update.sh
   zoxide-install-update.sh
   eza-install-update.sh
-  chafa-install-update.sh
 )
 
 usage() {
@@ -18,7 +17,7 @@ usage() {
 Usage: ./install-tools.sh [options]
 
 Install or upgrade from upstream releases:
-  bat, fd, zoxide, eza, chafa
+  bat, fd, zoxide, eza
 
 Fastfetch and lazygit are separate:
   ./scripts/fastfetch-install-update.sh

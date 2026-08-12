@@ -24,7 +24,7 @@ Usage: ./install.sh [options]
 
 Options:
   --deps       Run install-deps.sh (base apt packages)
-  --tools      Install bat, fd, zoxide, eza, chafa from upstream releases
+  --tools      Install bat, fd, zoxide, eza from upstream releases
   --lazygit    Run scripts/lazygit-install-update.sh (GitHub release)
   --gh         Run scripts/gh-install-update.sh (GitHub release)
   --neovim     Run scripts/neovim-install-update.sh (GitHub release, not apt)

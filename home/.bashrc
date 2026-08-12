@@ -91,7 +91,7 @@ fi
 ##### Interactive-only customizations ###################################
 
 # Load visual/terminal-only customizations.
-# This includes aliases, fzf, zoxide, eza, chafa, pfetch config, etc.
+# This includes aliases, fzf, zoxide, eza, pfetch config, etc.
 if [[ $- == *i* ]] && [ -t 1 ] && [ "${TERM:-}" != "dumb" ]; then
   [ -f ~/.shell_aliases_interactive.sh ] && source ~/.shell_aliases_interactive.sh
 fi

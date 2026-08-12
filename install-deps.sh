@@ -35,7 +35,7 @@ sudo apt-get update
 echo "Installing packages..."
 sudo apt-get install -y "${PACKAGES[@]}"
 
-echo "Done. CLI tools (bat, fd, zoxide, eza, chafa): ./install-tools.sh"
+echo "Done. CLI tools (bat, fd, zoxide, eza): ./install-tools.sh"
 echo "Lazygit:   ./scripts/lazygit-install-update.sh"
 echo "Gh:        ./scripts/gh-install-update.sh"
 echo "Fzf:       ./install.sh --fzf  (git install, recommended)"
