@@ -92,7 +92,7 @@ installed_tree_sitter_version() {
 release_asset_name() {
   case "$TREE_SITTER_SELECTED_FORMAT" in
     zip) printf 'tree-sitter-cli-%s.zip' "$LAZYVIM_ARCH_LABEL" ;;
-    gz) printf 'tree-sitter-linux-%s.gz' "$LAZYVIM_ARCH_LABEL" ;;
+    gz) printf 'tree-sitter-linux-%s.gz' "$LAZYVIM_ARCH" ;;
     *) die "unknown tree-sitter archive format: $TREE_SITTER_SELECTED_FORMAT" ;;
   esac
 }
@@ -119,7 +119,7 @@ install_tree_sitter_binary() {
   tmpdir="$(mktemp -d)"
   archive="${tmpdir}/${asset}"
   extract_dir="${tmpdir}/extract"
-  trap 'rm -rf "$tmpdir"' EXIT
+  trap '[[ -n "${tmpdir:-}" ]] && rm -rf "$tmpdir"' EXIT
 
   mkdir -p "${HOME}/.local/bin"
   mkdir -p "$extract_dir"
