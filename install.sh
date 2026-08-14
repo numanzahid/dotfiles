@@ -66,6 +66,36 @@ run() {
   fi
 }
 
+needs_privileged_install() {
+  [[ "$INSTALL_DEPS" -eq 1 ||
+    "$INSTALL_TOOLS" -eq 1 ||
+    "$INSTALL_LAZYGIT" -eq 1 ||
+    "$INSTALL_GH" -eq 1 ||
+    "$INSTALL_NEOVIM" -eq 1 ||
+    "$INSTALL_FASTFETCH" -eq 1 ||
+    "$INSTALL_PFETCH" -eq 1 ]]
+}
+
+ensure_sudo_for_install() {
+  # shellcheck source=scripts/lib/privilege.sh
+  source "$SCRIPTS_DIR/lib/privilege.sh"
+
+  if df_need_cmd sudo; then
+    return 0
+  fi
+
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    if df_is_root; then
+      log "sudo missing; would prompt to install"
+    else
+      log "sudo missing; install would fail for non-root user"
+    fi
+    return 0
+  fi
+
+  df_ensure_sudo
+}
+
 link_path() {
   local src="$1"
   local dest="$2"
@@ -254,6 +284,10 @@ while [[ $# -gt 0 ]]; do
   esac
   shift
 done
+
+if needs_privileged_install; then
+  ensure_sudo_for_install
+fi
 
 install_dotfiles
 

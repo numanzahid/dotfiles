@@ -3,10 +3,16 @@
 # Neovim, bat, fd, fzf, lazygit, fastfetch, pfetch, etc. use scripts/ instead.
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/lib/privilege.sh
+source "$SCRIPT_DIR/scripts/lib/privilege.sh"
+
 if ! command -v apt-get >/dev/null 2>&1; then
   echo "install-deps.sh supports apt-based systems only." >&2
   exit 1
 fi
+
+df_ensure_sudo
 
 PACKAGES=(
   bash
@@ -25,10 +31,10 @@ PACKAGES=(
 )
 
 echo "Updating package lists..."
-sudo apt-get update
+df_run_privileged apt-get update
 
 echo "Installing packages..."
-sudo apt-get install -y "${PACKAGES[@]}"
+df_run_privileged apt-get install -y "${PACKAGES[@]}"
 
 echo "Done. CLI tools (bat, fd, zoxide, eza): ./install-tools.sh"
 echo "Lazygit:   ./scripts/lazygit-install-update.sh"
