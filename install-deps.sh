@@ -16,7 +16,6 @@ df_ensure_sudo
 
 PACKAGES=(
   bash
-  btop
   ca-certificates
   curl
   git
@@ -54,6 +53,9 @@ setup_utf8_locale() {
 
 echo "Configuring UTF-8 locale..."
 setup_utf8_locale
+
+echo "Installing btop from upstream release..."
+bash "$SCRIPT_DIR/scripts/btop-install-update.sh"
 
 echo "Done. CLI tools (bat, fd, zoxide, eza): ./install-tools.sh"
 echo "Lazygit:   ./scripts/lazygit-install-update.sh"
