@@ -11,7 +11,7 @@ usage() {
 Usage: ./install-lazyvim.sh [options]
 
 Install LazyVim extras (not part of ./install.sh --all):
-  - apt packages for nvim plugins (pip, sqlite3, trash-cli, xdg-utils)
+  - apt packages for nvim plugins (build-essential, pip, sqlite3, trash-cli, xdg-utils)
   - tree-sitter CLI (built from source on older glibc)
   - LazyVim plugin sync + tree-sitter parsers
 

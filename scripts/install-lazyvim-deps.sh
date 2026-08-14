@@ -8,6 +8,7 @@ if ! command -v apt-get >/dev/null 2>&1; then
 fi
 
 PACKAGES=(
+  build-essential
   python3-pip
   sqlite3
   trash-cli

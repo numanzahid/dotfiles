@@ -67,7 +67,7 @@ install_from_source() {
   ensure_rust
 
   if ! command -v cc >/dev/null 2>&1; then
-    echo "ERROR: C compiler (cc/gcc) not found. Run ./install-deps.sh first." >&2
+    echo "ERROR: C compiler (cc/gcc) not found. Run ./install-lazyvim.sh first." >&2
     exit 1
   fi
 

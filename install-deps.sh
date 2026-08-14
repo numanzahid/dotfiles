@@ -11,22 +11,17 @@ fi
 PACKAGES=(
   bash
   btop
-  build-essential
-  bzip2
   ca-certificates
   curl
   git
   gzip
   jq
   less
-  pkg-config
   ripgrep
   sudo
   tar
   tmux
-  unzip
   wget
-  xz-utils
 )
 
 echo "Updating package lists..."
