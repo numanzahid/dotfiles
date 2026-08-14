@@ -34,9 +34,19 @@ run() {
 }
 
 load_install_conf() {
+  # Environment variables set on the command line win over install.conf.
+  local env_allow_root="${LAZYVIM_ALLOW_ROOT+set}"
+  local env_allow_root_val="${LAZYVIM_ALLOW_ROOT:-}"
+
   if [[ -f "$INSTALL_CONF" ]]; then
     # shellcheck disable=SC1090
     source "$INSTALL_CONF"
+  fi
+
+  if [[ -n "$env_allow_root" ]]; then
+    LAZYVIM_ALLOW_ROOT="$env_allow_root_val"
+  else
+    : "${LAZYVIM_ALLOW_ROOT:=false}"
   fi
 
   : "${ENABLE_DOCKER:=true}"
@@ -46,7 +56,6 @@ load_install_conf() {
   : "${ENABLE_ASTRO:=false}"
   : "${ENABLE_ANGULAR:=false}"
   : "${REQUIRE_NODE:=true}"
-  : "${LAZYVIM_ALLOW_ROOT:=false}"
   : "${APT_CLEAN_AFTER_INSTALL:=true}"
 }
 
@@ -77,7 +86,7 @@ check_not_root_for_user_phase() {
   fi
 
   if [[ "$(id -u)" -eq 0 ]] && ! truthy "$LAZYVIM_ALLOW_ROOT"; then
-    die "run as your normal user, not root. For root-only hosts: LAZYVIM_ALLOW_ROOT=true $0"
+    die "run as your normal user, not root. For root-only hosts: LAZYVIM_ALLOW_ROOT=true $0 (or set LAZYVIM_ALLOW_ROOT=true in lazyvim/install.conf)"
   fi
 
   if [[ "$(id -u)" -eq 0 ]]; then
