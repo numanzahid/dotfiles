@@ -8,6 +8,14 @@
 # for ssh logins, install and configure the libpam-umask package.
 #umask 022
 
+# UTF-8 locale (minimal Debian/CT images often default to C/POSIX).
+if [ -z "${LANG:-}" ] || [ "$LANG" = "C" ] || [ "$LANG" = "POSIX" ]; then
+  if locale -a 2>/dev/null | grep -qE 'en_US\.(utf8|UTF-8)'; then
+    export LANG=en_US.UTF-8
+    export LC_ALL=en_US.UTF-8
+  fi
+fi
+
 # if running bash
 if [ -n "$BASH_VERSION" ]; then
     # include .bashrc if it exists

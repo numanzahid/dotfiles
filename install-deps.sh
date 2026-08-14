@@ -23,6 +23,7 @@ PACKAGES=(
   gzip
   jq
   less
+  locales
   ripgrep
   sudo
   tar
@@ -35,6 +36,24 @@ df_run_privileged apt-get update
 
 echo "Installing packages..."
 df_run_privileged apt-get install -y "${PACKAGES[@]}"
+
+setup_utf8_locale() {
+  if [[ ! -f /etc/locale.gen ]]; then
+    return 0
+  fi
+
+  if grep -qE '^[[:space:]]*#?[[:space:]]*en_US\.UTF-8[[:space:]]+UTF-8' /etc/locale.gen; then
+    df_run_privileged sed -i 's/^[[:space:]]*#\([[:space:]]*en_US\.UTF-8[[:space:]]\+UTF-8\)/\1/' /etc/locale.gen
+  else
+    echo "en_US.UTF-8 UTF-8" | df_run_privileged tee -a /etc/locale.gen >/dev/null
+  fi
+
+  df_run_privileged locale-gen en_US.UTF-8
+  df_run_privileged update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
+}
+
+echo "Configuring UTF-8 locale..."
+setup_utf8_locale
 
 echo "Done. CLI tools (bat, fd, zoxide, eza): ./install-tools.sh"
 echo "Lazygit:   ./scripts/lazygit-install-update.sh"
