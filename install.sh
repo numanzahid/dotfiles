@@ -41,7 +41,7 @@ Options:
   -h, --help   Show this help
 
 LazyVim extras (optional, not part of --all):
-  ./install-lazyvim.sh
+  ./lazyvim/install-lazyvim.sh
 
 Tmux fetch banners (optional, not enabled by default):
   ./scripts/setup-tmux-fetch.sh              # interactive prompt
@@ -188,11 +188,11 @@ install_dotfiles() {
   copy_if_missing "$SOURCE_DIR/.ssh/config.example" "$TARGET_HOME/.ssh/config"
   run chmod 600 "$TARGET_HOME/.ssh/config" 2>/dev/null || true
 
-  # Default nvim to minimal (no LazyVim) until install-lazyvim.sh runs.
+  # Default nvim to minimal (no LazyVim) until lazyvim/install-lazyvim.sh runs.
   # shellcheck disable=SC1091
   source "$DOTFILES_DIR/scripts/nvim-profile.sh"
   ensure_nvim_profile_default
-  log "nvim profile: $(get_nvim_profile) (run ./install-lazyvim.sh for LazyVim)"
+  log "nvim profile: $(get_nvim_profile) (run ./lazyvim/install-lazyvim.sh for LazyVim)"
 }
 
 install_tpm() {
@@ -386,7 +386,7 @@ Next steps:
   1. Copy SSH private keys into ~/.ssh/ manually (never commit keys).
   2. Open tmux and press prefix + Shift + I to install tmux plugins.
   3. Optional LazyVim setup (enables LazyVim profile + plugins):
-       ./install-lazyvim.sh
+       ./lazyvim/install-lazyvim.sh
      Without it, nvim uses a minimal config with no plugin downloads.
   4. Tmux fetch banner: chosen during install, or run:
        ./scripts/setup-tmux-fetch.sh

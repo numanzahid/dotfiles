@@ -1,33 +1,23 @@
 #!/usr/bin/env bash
-# Neovim config profile: minimal (default) or lazyvim.
+# Compatibility wrapper. Profile logic lives in lazyvim/lib/nvim-profile.sh.
 set -euo pipefail
 
-nvim_profile_file() {
-  printf '%s/dotfiles/nvim-profile' "${XDG_DATA_HOME:-$HOME/.local/share}"
-}
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../lazyvim/lib/nvim-profile.sh
+source "$SCRIPT_DIR/../lazyvim/lib/nvim-profile.sh"
 
-get_nvim_profile() {
-  local file
-  file="$(nvim_profile_file)"
-  if [[ -f "$file" ]]; then
-    tr -d '[:space:]' <"$file"
-  else
-    echo "minimal"
-  fi
-}
-
-set_nvim_profile() {
-  local profile="$1"
-  local file
-  file="$(nvim_profile_file)"
-  mkdir -p "$(dirname "$file")"
-  printf '%s\n' "$profile" >"$file"
-}
-
-ensure_nvim_profile_default() {
-  local file
-  file="$(nvim_profile_file)"
-  if [[ ! -f "$file" ]]; then
-    set_nvim_profile "minimal"
-  fi
-}
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  case "${1:-}" in
+    minimal | lazyvim)
+      set_nvim_profile "$1"
+      echo "nvim profile: $1"
+      ;;
+    status)
+      echo "nvim profile: $(get_nvim_profile)"
+      ;;
+    *)
+      echo "Usage: $(basename "$0") {minimal|lazyvim|status}" >&2
+      exit 1
+      ;;
+  esac
+fi

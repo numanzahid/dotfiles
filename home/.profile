@@ -33,5 +33,5 @@ fi
 if [ -d "$HOME/.local/bin" ] ; then
     PATH="$HOME/.local/bin:$PATH"
 fi
-# Optional Rust/cargo (installed by install-lazyvim.sh / tree-sitter-cli-install.sh).
+# Optional Rust/cargo (not installed by dotfiles by default).
 [ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"

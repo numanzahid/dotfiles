@@ -1,4 +1,4 @@
--- Load LazyVim only after ./install-lazyvim.sh sets the profile.
+-- Load LazyVim only after ./lazyvim/install-lazyvim.sh sets the profile.
 -- Default (./install.sh): minimal Neovim with no plugin downloads.
 
 local function read_profile()
