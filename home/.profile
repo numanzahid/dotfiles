@@ -25,4 +25,5 @@ fi
 if [ -d "$HOME/.local/bin" ] ; then
     PATH="$HOME/.local/bin:$PATH"
 fi
-. "$HOME/.cargo/env"
+# Optional Rust/cargo (installed by install-lazyvim.sh / tree-sitter-cli-install.sh).
+[ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"

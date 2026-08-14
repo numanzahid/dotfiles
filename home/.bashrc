@@ -74,7 +74,7 @@ export PATH="$HOME/.local/bin:$PATH"
 # opencode.
 export PATH="$HOME/.opencode/bin:$PATH"
 
-# Cargo.
+# Optional Rust/cargo (install-lazyvim.sh may install rustup for tree-sitter).
 [ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
 
 # nvm.

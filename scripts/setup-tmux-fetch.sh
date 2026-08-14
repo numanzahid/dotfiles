@@ -44,12 +44,12 @@ resolve_mode() {
   fi
 
   local choice
-  echo
-  echo "Tmux fetch banner (optional):"
-  echo "  1) none       Plain panes (default)"
-  echo "  2) fastfetch  Rich system info banner"
-  echo "  3) pfetch     Minimal ASCII banner"
-  echo
+  echo >&2
+  echo "Tmux fetch banner (optional):" >&2
+  echo "  1) none       Plain panes (default)" >&2
+  echo "  2) fastfetch  Rich system info banner" >&2
+  echo "  3) pfetch     Minimal ASCII banner" >&2
+  echo >&2
   read -r -p "Choose [1-3] (default 1): " choice
 
   case "${choice:-1}" in
