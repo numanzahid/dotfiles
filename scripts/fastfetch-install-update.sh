@@ -52,13 +52,14 @@ use_ubuntu_ppa() {
 install_via_ppa() {
   echo "Using official fastfetch PPA on Ubuntu: $PPA"
 
+  if ! need_cmd add-apt-repository; then
+    echo "add-apt-repository not found; installing software-properties-common..."
+    $SUDO apt-get update
+    $SUDO apt-get install -y software-properties-common
+  fi
+
   if ! ppa_configured; then
-    if need_cmd add-apt-repository; then
-      $SUDO add-apt-repository -y "$PPA"
-    else
-      echo "ERROR: add-apt-repository not found; install software-properties-common" >&2
-      exit 1
-    fi
+    $SUDO add-apt-repository -y "$PPA"
   else
     echo "PPA already configured."
   fi
@@ -100,7 +101,14 @@ install_via_github_deb() {
 }
 
 if use_ubuntu_ppa; then
+  set +e
   install_via_ppa
+  ppa_rc=$?
+  set -e
+  if [[ "$ppa_rc" -ne 0 ]]; then
+    echo "Ubuntu PPA install failed; falling back to GitHub .deb release."
+    install_via_github_deb
+  fi
 else
   echo "Ubuntu PPA not applicable (${os_id:-unknown} ${os_version_id:-}). Using GitHub .deb release."
   install_via_github_deb

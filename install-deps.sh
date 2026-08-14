@@ -52,7 +52,13 @@ setup_utf8_locale() {
 }
 
 echo "Configuring UTF-8 locale..."
+set +e
 setup_utf8_locale
+locale_rc=$?
+set -e
+if [[ "$locale_rc" -ne 0 ]]; then
+  echo "WARN: UTF-8 locale setup failed; continuing (set LANG/LC_ALL manually if needed)" >&2
+fi
 
 echo "Installing btop from upstream release..."
 bash "$SCRIPT_DIR/scripts/btop-install-update.sh"

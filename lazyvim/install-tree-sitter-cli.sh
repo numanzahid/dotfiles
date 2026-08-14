@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Install official prebuilt Tree-sitter CLI (no Rust/Cargo).
-# Picks a release compatible with the host glibc (Debian bookworm = 2.36).
+# Picks a release compatible with the host glibc (Ubuntu 22.04 / Debian bookworm = 0.25.6).
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -8,6 +8,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/common.sh"
 # shellcheck source=lib/arch.sh
 source "$SCRIPT_DIR/lib/arch.sh"
+# shellcheck source=../scripts/lib/platform.sh
+source "$SCRIPT_DIR/../scripts/lib/platform.sh"
 
 TREE_SITTER_REPO="tree-sitter/tree-sitter"
 INSTALL_BIN="${HOME}/.local/bin/tree-sitter"
@@ -32,30 +34,26 @@ declare -A TREE_SITTER_SHA256_GZ=(
 )
 
 host_glibc_version() {
-  local ver
-  ver="$(getconf GNU_LIBC_VERSION 2>/dev/null | awk '{print $2}')"
-  [[ -n "$ver" ]] || ver="$(ldd --version 2>/dev/null | head -n1 | grep -oE '[0-9]+\.[0-9]+' | head -n1)"
-  [[ -n "$ver" ]] || die "could not detect glibc version"
-  printf '%s' "$ver"
+  df_host_glibc_version
 }
 
 select_tree_sitter_release() {
   local glibc="$1"
 
-  if version_ge "$glibc" "2.39"; then
+  if df_version_ge "$glibc" "2.39"; then
     TREE_SITTER_SELECTED_VERSION="$TREE_SITTER_VERSION_NEW"
     TREE_SITTER_SELECTED_FORMAT="zip"
     return 0
   fi
 
-  if version_ge "$glibc" "2.34"; then
+  if df_version_ge "$glibc" "2.34"; then
     TREE_SITTER_SELECTED_VERSION="$TREE_SITTER_VERSION_BOOKWORM"
     TREE_SITTER_SELECTED_FORMAT="gz"
-    warn "glibc ${glibc} < 2.39: using tree-sitter v${TREE_SITTER_SELECTED_VERSION} (bookworm-compatible prebuilt)"
+    warn "glibc ${glibc} < 2.39: using tree-sitter v${TREE_SITTER_SELECTED_VERSION} (Ubuntu 22.04 / Debian bookworm prebuilt)"
     return 0
   fi
 
-  if version_ge "$glibc" "2.29"; then
+  if df_version_ge "$glibc" "2.29"; then
     TREE_SITTER_SELECTED_VERSION="$TREE_SITTER_VERSION_LEGACY"
     TREE_SITTER_SELECTED_FORMAT="gz"
     warn "glibc ${glibc} is old: using tree-sitter v${TREE_SITTER_SELECTED_VERSION}"
@@ -65,13 +63,8 @@ select_tree_sitter_release() {
   die "glibc ${glibc} is too old for official tree-sitter CLI prebuilts (need >= 2.29)"
 }
 
-version_ge() {
-  printf '%s\n%s\n' "$2" "$1" | sort -C -V
-}
-
 tree_sitter_works() {
-  local bin="$1"
-  [[ -n "$bin" && -x "$bin" ]] && "$bin" --version &>/dev/null
+  df_tree_sitter_cli_runs "$1"
 }
 
 tree_sitter_error() {
@@ -160,14 +153,10 @@ install_tree_sitter_binary() {
 
 main() {
   detect_lazyvim_arch
+  df_prepend_local_bin
 
-  if tree_sitter_works "$INSTALL_BIN"; then
+  if df_tree_sitter_cli_ok_for_host "$INSTALL_BIN"; then
     log "tree-sitter already installed: $("$INSTALL_BIN" --version) ($INSTALL_BIN)"
-    return 0
-  fi
-
-  if tree_sitter_works "$(command -v tree-sitter 2>/dev/null || true)"; then
-    log "using existing tree-sitter on PATH: $(command -v tree-sitter)"
     return 0
   fi
 

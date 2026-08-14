@@ -103,6 +103,9 @@ prompt_yes() {
 }
 
 check_platform() {
+  # shellcheck source=../../scripts/lib/platform.sh
+  source "$DOTFILES_DIR/scripts/lib/platform.sh"
+
   case "$(uname -s)" in
     Linux) ;;
     *)
@@ -111,8 +114,18 @@ check_platform() {
   esac
 
   if ! command -v apt-get >/dev/null 2>&1; then
-    die "apt-get not found (Debian/Ubuntu-like systems only)"
+    die "apt-get not found (Debian/Ubuntu only)"
   fi
+
+  case "$(df_host_os_id 2>/dev/null || echo unknown)" in
+    debian | ubuntu | linuxmint | pop) ;;
+    unknown)
+      warn "unknown /etc/os-release ID; continuing (apt-based Linux assumed)"
+      ;;
+    *)
+      warn "untested OS ID: $(df_host_os_id); continuing (Debian/Ubuntu-like apt assumed)"
+      ;;
+  esac
 }
 
 check_not_root_for_user_phase() {
@@ -131,12 +144,12 @@ check_not_root_for_user_phase() {
 }
 
 ensure_local_bin_path() {
-  case ":${PATH}:" in
-    *":${HOME}/.local/bin:"*) ;;
-    *)
-      warn "~/.local/bin is not in PATH; add: export PATH=\"\$HOME/.local/bin:\$PATH\""
-      ;;
-  esac
+  # shellcheck source=../../scripts/lib/platform.sh
+  source "$DOTFILES_DIR/scripts/lib/platform.sh"
+  df_prepend_local_bin
+  if [[ ":${PATH}:" != *":${HOME}/.local/bin:"* ]]; then
+    warn "~/.local/bin is not in PATH; add: export PATH=\"\$HOME/.local/bin:\$PATH\""
+  fi
 }
 
 load_nvm_into_shell() {

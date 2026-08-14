@@ -201,8 +201,10 @@ prepare_lazyvim_config() {
 
 verify_installation() {
   local sync_ok=1 parser_ok=1 mason_ok=1
+  local ts_bin="${HOME}/.local/bin/tree-sitter"
 
   load_nvm_into_shell || true
+  ensure_local_bin_path
 
   log "verification"
 
@@ -210,21 +212,34 @@ verify_installation() {
   command -v git >/dev/null 2>&1 || record_fail "git missing"
   command -v curl >/dev/null 2>&1 || record_fail "curl missing"
   command -v rg >/dev/null 2>&1 || record_fail "rg missing"
-  command -v tree-sitter >/dev/null 2>&1 || record_fail "tree-sitter missing"
   command -v cc >/dev/null 2>&1 || command -v gcc >/dev/null 2>&1 || record_fail "C compiler missing"
+
+  # shellcheck source=../scripts/lib/platform.sh
+  source "$DOTFILES_DIR/scripts/lib/platform.sh"
+  if df_tree_sitter_cli_ok_for_host "$ts_bin"; then
+    log "tree-sitter CLI OK: $("$ts_bin" --version 2>/dev/null | head -n1)"
+  else
+    record_fail "tree-sitter CLI missing or too old at $ts_bin (host glibc $(df_host_glibc_version 2>/dev/null || echo unknown))"
+  fi
 
   if [[ "$SKIP_SYNC" -eq 0 && "$DRY_RUN" -eq 0 ]]; then
     if ! nvim --headless "+checkhealth lazy" +qa >/tmp/lazyvim-health-lazy.log 2>&1; then
       sync_ok=0
-      record_fail "checkhealth lazy failed"
+      record_fail "checkhealth lazy failed (see /tmp/lazyvim-health-lazy.log)"
     fi
-    if ! nvim --headless "+checkhealth nvim-treesitter" +qa >/tmp/lazyvim-health-ts.log 2>&1; then
+
+    # nvim-treesitter health insists on CLI 0.26.1+ even when glibc < 2.39 cannot run it.
+    # Verify nvim can execute our CLI instead (Ubuntu 22.04 / Debian bookworm).
+    if ! nvim --headless "+lua if vim.fn.executable('tree-sitter')~=1 then os.exit(2) end" +qa >/tmp/lazyvim-health-ts.log 2>&1; then
       parser_ok=0
-      record_fail "checkhealth nvim-treesitter reported issues"
+      record_fail "nvim cannot run tree-sitter CLI (see /tmp/lazyvim-health-ts.log)"
+    elif ! df_version_ge "$(df_host_glibc_version)" "2.39"; then
+      warn "nvim-treesitter :checkhealth may warn about CLI 0.26.1 on glibc $(df_host_glibc_version); installed $(df_tree_sitter_expected_cli_version) is expected"
     fi
+
     if ! nvim --headless "+checkhealth mason" +qa >/tmp/lazyvim-health-mason.log 2>&1; then
       mason_ok=0
-      record_fail "checkhealth mason reported issues"
+      record_fail "checkhealth mason failed (see /tmp/lazyvim-health-mason.log)"
     fi
   fi
 

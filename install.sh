@@ -7,6 +7,10 @@ SOURCE_DIR="$DOTFILES_DIR/home"
 SCRIPTS_DIR="$DOTFILES_DIR/scripts"
 TARGET_HOME="${HOME:?}"
 
+# shellcheck source=scripts/lib/platform.sh
+source "$SCRIPTS_DIR/lib/platform.sh"
+df_prepend_local_bin
+
 INSTALL_DEPS=0
 INSTALL_TOOLS=0
 INSTALL_LAZYGIT=0

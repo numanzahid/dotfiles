@@ -80,10 +80,11 @@ Prebuilt official release, auto-selected by host glibc:
 | Host glibc | Version | Asset |
 |------------|---------|-------|
 | >= 2.39 | 0.26.11 | `tree-sitter-cli-linux-x64.zip` |
-| >= 2.34 (Debian bookworm) | 0.25.6 | `tree-sitter-linux-x64.gz` |
+| >= 2.34 (Ubuntu 22.04, Debian bookworm) | 0.25.6 | `tree-sitter-linux-x64.gz` |
 | >= 2.29 | 0.24.7 | `tree-sitter-linux-x64.gz` |
 
-Debian bookworm (glibc 2.36) cannot run 0.26.x prebuilts (they require glibc 2.39).
+Ubuntu 22.04 and Debian bookworm (glibc 2.35-2.36) cannot run 0.26.x prebuilts (they need glibc 2.39).
+`:checkhealth nvim-treesitter` may still warn about CLI 0.26.1 on those hosts; editing works and install scripts treat 0.25.6 as success.
 
 ## Migration from old installer
 
