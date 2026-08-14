@@ -53,7 +53,13 @@ Tmux fetch banner: prompted during `./install.sh --all`, or run:
 cd ~/dotfiles && git pull && ./install.sh
 ```
 
-Re-run individual `scripts/*-install-update.sh` files to upgrade tools.
+Re-run individual `scripts/*-install-update.sh` files to upgrade tools (bat, fd, nvm, neovim, etc.).
+
+Node.js only:
+
+```bash
+./scripts/nvm-install-update.sh
+```
 
 ## Layout
 

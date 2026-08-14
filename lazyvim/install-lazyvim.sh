@@ -83,21 +83,40 @@ check_node_environment() {
     return 0
   fi
 
+  load_nvm_into_shell || true
+
   if command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
     log "node OK: $(node --version), npm $(npm --version)"
     return 0
   fi
 
-  cat >&2 <<'EOF'
-ERROR: Node.js and npm are required for the web development LazyVim profile.
+  if ! truthy "${INSTALL_NVM_IF_MISSING:-true}"; then
+    die "node/npm missing and INSTALL_NVM_IF_MISSING=false"
+  fi
 
-Install Node using your separate development-runtime installer, then re-run:
-  ./lazyvim/install-lazyvim.sh
+  if truthy "${PROMPT_NVM_INSTALL:-true}"; then
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+      log "would prompt to install Node.js via nvm"
+    elif [[ -t 0 ]]; then
+      echo
+      echo "Node.js is required for the LazyVim web development profile."
+      echo "The nvm installer will ask which Node major version to use (latest x.y.z in that line)."
+      if ! prompt_yes "Install Node.js via nvm now?"; then
+        die "install Node with ./scripts/nvm-install-update.sh or set REQUIRE_NODE=false"
+      fi
+    fi
+  fi
 
-To continue without Node (limited web LSP tooling):
-  REQUIRE_NODE=false ./lazyvim/install-lazyvim.sh
-EOF
-  exit 1
+  log "starting nvm installer (interactive version selection)"
+  run bash "$SCRIPT_DIR/install-nvm-node.sh"
+  load_nvm_into_shell || true
+
+  if command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
+    log "node OK: $(node --version), npm $(npm --version)"
+    return 0
+  fi
+
+  die "node/npm are required but not available after nvm install attempt"
 }
 
 write_dotfiles_extras() {
@@ -182,6 +201,8 @@ prepare_lazyvim_config() {
 
 verify_installation() {
   local sync_ok=1 parser_ok=1 mason_ok=1
+
+  load_nvm_into_shell || true
 
   log "verification"
 

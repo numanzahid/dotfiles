@@ -37,6 +37,10 @@ load_install_conf() {
   # Environment variables set on the command line win over install.conf.
   local env_allow_root="${LAZYVIM_ALLOW_ROOT+set}"
   local env_allow_root_val="${LAZYVIM_ALLOW_ROOT:-}"
+  local env_install_nvm="${INSTALL_NVM_IF_MISSING+set}"
+  local env_install_nvm_val="${INSTALL_NVM_IF_MISSING:-}"
+  local env_require_node="${REQUIRE_NODE+set}"
+  local env_require_node_val="${REQUIRE_NODE:-}"
 
   if [[ -f "$INSTALL_CONF" ]]; then
     # shellcheck disable=SC1090
@@ -49,19 +53,51 @@ load_install_conf() {
     : "${LAZYVIM_ALLOW_ROOT:=false}"
   fi
 
+  if [[ -n "$env_install_nvm" ]]; then
+    INSTALL_NVM_IF_MISSING="$env_install_nvm_val"
+  else
+    : "${INSTALL_NVM_IF_MISSING:=true}"
+  fi
+
+  if [[ -n "$env_require_node" ]]; then
+    REQUIRE_NODE="$env_require_node_val"
+  else
+    : "${REQUIRE_NODE:=true}"
+  fi
+
   : "${ENABLE_DOCKER:=true}"
   : "${ENABLE_MARKDOWN_TOOLS:=false}"
   : "${ENABLE_VUE:=false}"
   : "${ENABLE_SVELTE:=false}"
   : "${ENABLE_ASTRO:=false}"
   : "${ENABLE_ANGULAR:=false}"
-  : "${REQUIRE_NODE:=true}"
+  : "${PROMPT_NVM_INSTALL:=true}"
   : "${APT_CLEAN_AFTER_INSTALL:=true}"
 }
 
 truthy() {
   case "${1,,}" in
     1 | true | yes | on) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+prompt_yes() {
+  local prompt="$1"
+  local reply=""
+
+  if truthy "${LAZYVIM_YES:-}" || truthy "${DF_YES:-}"; then
+    return 0
+  fi
+
+  if [[ ! -t 0 ]]; then
+    return 1
+  fi
+
+  read -r -p "$prompt [Y/n] " reply
+  reply="${reply:-Y}"
+  case "$reply" in
+    y | Y | yes | YES) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -101,6 +137,12 @@ ensure_local_bin_path() {
       warn "~/.local/bin is not in PATH; add: export PATH=\"\$HOME/.local/bin:\$PATH\""
       ;;
   esac
+}
+
+load_nvm_into_shell() {
+  # shellcheck source=../../scripts/lib/nvm.sh
+  source "$DOTFILES_DIR/scripts/lib/nvm.sh"
+  nvm_load
 }
 
 command_version() {

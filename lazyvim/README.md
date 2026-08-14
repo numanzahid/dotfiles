@@ -39,7 +39,9 @@ Edit `lazyvim/install.conf` for feature flags:
 | `ENABLE_DOCKER` | true | Docker/Compose LSP extra |
 | `ENABLE_MARKDOWN_TOOLS` | false | Rich Markdown extra (extra Node tooling) |
 | `ENABLE_VUE` / `SVELTE` / `ASTRO` / `ANGULAR` | false | Optional framework extras |
-| `REQUIRE_NODE` | true | Fail if node/npm missing |
+| `REQUIRE_NODE` | true | Install/use Node for web extras |
+| `INSTALL_NVM_IF_MISSING` | true | Offer nvm when node/npm missing |
+| `PROMPT_NVM_INSTALL` | true | Ask before running nvm installer from LazyVim |
 | `LAZYVIM_ALLOW_ROOT` | false | Allow setup as root |
 | `APT_CLEAN_AFTER_INSTALL` | true | apt clean for containers |
 
@@ -49,6 +51,7 @@ Edit `lazyvim/install.conf` for feature flags:
 |--------|---------|
 | `install-lazyvim.sh` | Main installer |
 | `install-system-deps.sh` | Minimal apt + gcc check |
+| `install-nvm-node.sh` | LazyVim wrapper (calls `scripts/nvm-install-update.sh`) |
 | `install-tree-sitter-cli.sh` | Prebuilt Tree-sitter CLI |
 | `sync-lazyvim.sh` | Headless LazyVim sync |
 | `migrate-legacy.sh` | Remove old LLVM/Rust leftovers |
@@ -104,9 +107,34 @@ Removes broken Mason tree-sitter, optional `libclang-dev`/`clang` apt packages, 
 
 Typical LazyVim plugin + Mason footprint is hundreds of MB (not the old ~1.5GB Rust/LLVM path).
 
-## Node.js
+## Node.js / nvm
 
-Web extras expect Node/npm from your separate dev-runtime installer. To skip:
+When `REQUIRE_NODE=true` and `node`/`npm` are missing, LazyVim asks to install Node via nvm, then runs:
+
+```bash
+./scripts/nvm-install-update.sh
+```
+
+Install or add Node majors anytime (interactive menu, latest patch in each line):
+
+```bash
+./scripts/nvm-install-update.sh
+./scripts/nvm-install-update.sh 20
+NODE_VERSION=22 ./scripts/nvm-install-update.sh
+```
+
+Menu defaults:
+- `22` recommended (latest 22.x)
+- `20` LTS (latest 20.x)
+- `18` maintenance LTS (latest 18.x)
+
+Skip LazyVim nvm prompt:
+
+```bash
+PROMPT_NVM_INSTALL=false LAZYVIM_ALLOW_ROOT=true ./lazyvim/install-lazyvim.sh
+```
+
+Skip Node entirely:
 
 ```bash
 REQUIRE_NODE=false ./lazyvim/install-lazyvim.sh

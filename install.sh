@@ -390,6 +390,6 @@ Next steps:
      Without it, nvim uses a minimal config with no plugin downloads.
   4. Tmux fetch banner: chosen during install, or run:
        ./scripts/setup-tmux-fetch.sh
-  5. Optional: install nvm/rustup/cargo tools referenced in .bashrc.
+  5. Optional: nvm/Node via ./scripts/nvm-install-update.sh
 
 EOF

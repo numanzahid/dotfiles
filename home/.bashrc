@@ -35,8 +35,12 @@ if [ -z "${debian_chroot:-}" ] && [ -r /etc/debian_chroot ]; then
   debian_chroot=$(cat /etc/debian_chroot)
 fi
 
-# Short multi-line prompt.
-PS1='\[\e[38;5;208m\]┌──[\[\e[94m\]\w\[\e[38;5;208m\]]\n└─\$\[\e[0m\] '
+# Prompt: multi-line outside tmux; single-line inside tmux (avoids cursor/redraw bugs).
+if [[ -n "${TMUX:-}" ]]; then
+  PS1='\[\e[38;5;208m\][\[\e[94m\]\w\[\e[38;5;208m\]]\[\e[0m\]\$ '
+else
+  PS1='\[\e[38;5;208m\]┌──[\[\e[94m\]\w\[\e[38;5;208m\]]\n└─\$\[\e[0m\] '
+fi
 
 # If this is an xterm/rxvt-compatible terminal, set title to user@host:dir.
 case "$TERM" in
