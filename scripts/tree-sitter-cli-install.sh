@@ -48,6 +48,11 @@ remove_broken_mason_tree_sitter() {
 }
 
 ensure_rust() {
+  if [[ -f "${HOME}/.cargo/env" ]]; then
+    # shellcheck disable=SC1091
+    source "${HOME}/.cargo/env"
+  fi
+
   if command -v cargo >/dev/null 2>&1; then
     return 0
   fi
@@ -63,6 +68,42 @@ ensure_rust() {
   source "${HOME}/.cargo/env"
 }
 
+find_libclang_dir() {
+  local dir llvm_config
+
+  for llvm_config in llvm-config llvm-config-14 llvm-config-15 llvm-config-16 llvm-config-17; do
+    if command -v "$llvm_config" >/dev/null 2>&1; then
+      "$llvm_config" --libdir
+      return 0
+    fi
+  done
+
+  for dir in /usr/lib/llvm-*/lib /usr/lib/"$(uname -m)"-linux-gnu /usr/lib64 /usr/lib; do
+    if compgen -G "${dir}/libclang.so" >/dev/null ||
+      compgen -G "${dir}/libclang-"*.so >/dev/null ||
+      compgen -G "${dir}/libclang.so."* >/dev/null; then
+      echo "$dir"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+setup_libclang_env() {
+  local libclang_dir
+
+  if libclang_dir="$(find_libclang_dir)"; then
+    export LIBCLANG_PATH="$libclang_dir"
+    return 0
+  fi
+
+  echo "ERROR: libclang not found (needed to build tree-sitter-cli)." >&2
+  echo "Run: ./install-lazyvim.sh  (installs libclang-dev)" >&2
+  echo "Or:  apt-get install -y libclang-dev pkg-config" >&2
+  return 1
+}
+
 install_from_source() {
   ensure_rust
 
@@ -71,18 +112,12 @@ install_from_source() {
     exit 1
   fi
 
-  if ! ldconfig -p 2>/dev/null | grep -q 'libclang\.so' &&
-    ! compgen -G '/usr/lib/*/libclang.so*' >/dev/null &&
-    ! compgen -G '/usr/lib/libclang.so*' >/dev/null; then
-    echo "ERROR: libclang not found (needed to build tree-sitter-cli)." >&2
-    echo "Run: ./install-lazyvim.sh  (installs libclang-dev)" >&2
-    echo "Or:  apt-get install -y libclang-dev pkg-config" >&2
-    exit 1
-  fi
+  setup_libclang_env
 
   mkdir -p "${INSTALL_DIR}"
 
   echo "Building tree-sitter-cli v${TREE_SITTER_VERSION} from source..."
+  echo "Using LIBCLANG_PATH=${LIBCLANG_PATH}"
   cargo install tree-sitter-cli --version "${TREE_SITTER_VERSION}" --locked --root "${HOME}/.local"
 
   if ! tree_sitter_works "${LOCAL_TS}"; then
