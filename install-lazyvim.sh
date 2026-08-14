@@ -56,6 +56,11 @@ if ! command -v nvim >/dev/null 2>&1; then
   exit 1
 fi
 
+# shellcheck disable=SC1091
+source "$SCRIPTS_DIR/nvim-profile.sh"
+echo "[lazyvim] enabling LazyVim nvim profile..."
+run set_nvim_profile "lazyvim"
+
 echo "[lazyvim] installing apt dependencies..."
 run bash "$SCRIPTS_DIR/install-lazyvim-deps.sh"
 

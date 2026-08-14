@@ -15,11 +15,13 @@ chmod +x install.sh install-deps.sh install-tools.sh install-lazyvim.sh scripts/
 
 Copy SSH keys manually (never commit private keys). See `home/.ssh/config.example`.
 
-Optional LazyVim bootstrap (not part of `--all`):
+Optional LazyVim bootstrap (not part of `--all`). Enables the LazyVim nvim profile, then installs deps and syncs plugins:
 
 ```bash
 ./install-lazyvim.sh
 ```
+
+Without that script, `nvim` uses a minimal config only (no LazyVim download).
 
 Plain `./install.sh` only symlinks configs into `$HOME`.
 
@@ -31,14 +33,19 @@ Plain `./install.sh` only symlinks configs into `$HOME`.
 | `--tools` | bat, fd, zoxide, eza |
 | `--lazygit` / `--gh` | lazygit, GitHub CLI |
 | `--neovim` | Neovim from GitHub release |
-| `--fastfetch` / `--pfetch` | Optional fetch tools |
+| `--fastfetch` / `--pfetch` | Install one fetch tool + enable tmux banner |
+| `--fetch MODE` | Set tmux fetch: `none`, `fastfetch`, or `pfetch` (no prompt) |
 | `--tpm` / `--fzf` | tmux plugins, fzf |
-| `--all` | All of the above (not LazyVim extras) |
+| `--all` | Base bootstrap; prompts for tmux fetch banner |
 | `--dry-run` | Preview only |
 
 After install, open tmux and run `prefix + Shift + I` once for TPM plugins.
 
-Tmux fetch banner (optional): `./scripts/enable-tmux-fetch.sh fastfetch|pfetch|none`
+Tmux fetch banner: prompted during `./install.sh --all`, or run:
+
+```bash
+./scripts/setup-tmux-fetch.sh
+```
 
 ## Updates
 
@@ -70,4 +77,4 @@ git remote add upstream https://github.com/LazyVim/starter.git 2>/dev/null || tr
 git fetch upstream && git merge upstream/main
 ```
 
-`install-lazyvim.sh` adds nvim apt extras, tree-sitter CLI (source build on older glibc), and parser sync.
+`install-lazyvim.sh` enables the LazyVim profile, then adds nvim apt extras, tree-sitter CLI (source build on older glibc), and parser sync.

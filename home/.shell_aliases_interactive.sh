@@ -28,9 +28,70 @@ if command -v zoxide >/dev/null 2>&1; then
   }
 fi
 
-##### pfetch ############################################################
+##### fetch banner (fastfetch / pfetch) #################################
 
-export PF_SOURCE="${XDG_CONFIG_HOME:-$HOME/.config}/pfetch/pfetchrc"
+export PF_SOURCE="${XDG_CONFIG_HOME:-$HOME}/.config/pfetch/pfetchrc"
+
+_dotfiles_fetch_mode() {
+  local conf="${XDG_CONFIG_HOME:-$HOME}/.config/tmux/fetch.conf"
+  local target
+
+  if [[ ! -e "$conf" ]]; then
+    echo none
+    return 0
+  fi
+
+  target="$(readlink -f "$conf" 2>/dev/null || readlink "$conf" 2>/dev/null || true)"
+  case "$(basename "${target:-}")" in
+    fetch-fastfetch.conf) echo fastfetch ;;
+    fetch-pfetch.conf) echo pfetch ;;
+    *) echo none ;;
+  esac
+}
+
+_dotfiles_show_fetch_banner() {
+  # Once per shell. Inside tmux, pane bindings run fetch explicitly and set
+  # NO_FETCH=1 so login shells spawned by those bindings do not run it again.
+  [[ -n "${DOTFILES_FETCH_SHOWN:-}" || -n "${NO_FETCH:-}" ]] && return 0
+  [[ -n "${TMUX:-}" ]] && return 0
+
+  local mode
+  mode="$(_dotfiles_fetch_mode)"
+
+  case "$mode" in
+    fastfetch)
+      if command -v fastfetch >/dev/null 2>&1; then
+        fastfetch --config "${XDG_CONFIG_HOME:-$HOME}/.config/tmux/fastfetch.jsonc"
+        DOTFILES_FETCH_SHOWN=1
+      fi
+      ;;
+    pfetch)
+      if command -v pfetch >/dev/null 2>&1; then
+        pfetch
+        DOTFILES_FETCH_SHOWN=1
+      fi
+      ;;
+  esac
+}
+
+fetch() {
+  local mode
+  mode="$(_dotfiles_fetch_mode)"
+  case "$mode" in
+    fastfetch)
+      command -v fastfetch >/dev/null 2>&1 &&
+        fastfetch --config "${XDG_CONFIG_HOME:-$HOME}/.config/tmux/fastfetch.jsonc"
+      ;;
+    pfetch)
+      command -v pfetch >/dev/null 2>&1 && pfetch
+      ;;
+    *)
+      echo "fetch banner disabled (mode: none). Run: ~/dotfiles/scripts/setup-tmux-fetch.sh"
+      ;;
+  esac
+}
+
+_dotfiles_show_fetch_banner
 
 ##### eza / ls ##########################################################
 
