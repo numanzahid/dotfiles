@@ -72,11 +72,15 @@ Not installed: `build-essential`, `g++`, `clang`, `libclang-dev`, `llvm`, `pytho
 
 ## Tree-sitter CLI
 
-Pinned prebuilt release (see `install-tree-sitter-cli.sh`):
+Prebuilt official release, auto-selected by host glibc:
 
-- Version: `0.26.11`
-- x86_64: `tree-sitter-cli-linux-x64.zip`
-- arm64: `tree-sitter-cli-linux-arm64.zip`
+| Host glibc | Version | Asset |
+|------------|---------|-------|
+| >= 2.39 | 0.26.11 | `tree-sitter-cli-linux-x64.zip` |
+| >= 2.34 (Debian bookworm) | 0.25.6 | `tree-sitter-linux-x64.gz` |
+| >= 2.29 | 0.24.7 | `tree-sitter-linux-x64.gz` |
+
+Debian bookworm (glibc 2.36) cannot run 0.26.x prebuilts (they require glibc 2.39).
 
 ## Migration from old installer
 
