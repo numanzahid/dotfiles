@@ -16,6 +16,8 @@ df_ensure_sudo
 
 PACKAGES=(
   build-essential
+  libclang-dev
+  pkg-config
   python3-pip
   sqlite3
   trash-cli

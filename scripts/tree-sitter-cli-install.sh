@@ -71,6 +71,15 @@ install_from_source() {
     exit 1
   fi
 
+  if ! ldconfig -p 2>/dev/null | grep -q 'libclang\.so' &&
+    ! compgen -G '/usr/lib/*/libclang.so*' >/dev/null &&
+    ! compgen -G '/usr/lib/libclang.so*' >/dev/null; then
+    echo "ERROR: libclang not found (needed to build tree-sitter-cli)." >&2
+    echo "Run: ./install-lazyvim.sh  (installs libclang-dev)" >&2
+    echo "Or:  apt-get install -y libclang-dev pkg-config" >&2
+    exit 1
+  fi
+
   mkdir -p "${INSTALL_DIR}"
 
   echo "Building tree-sitter-cli v${TREE_SITTER_VERSION} from source..."
