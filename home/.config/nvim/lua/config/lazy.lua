@@ -17,6 +17,9 @@ vim.opt.rtp:prepend(lazypath)
 require("config.treesitter-path").setup()
 
 require("lazy").setup({
+  rocks = {
+    enabled = false,
+  },
   spec = {
     -- add LazyVim and import its plugins
     { "LazyVim/LazyVim", import = "lazyvim.plugins" },

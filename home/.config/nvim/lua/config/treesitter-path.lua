@@ -45,6 +45,8 @@ function M.apply_if_needed()
 end
 
 function M.setup()
+  M.apply_if_needed()
+
   -- Mason adjusts PATH during plugin startup; re-check after Lazy finishes.
   vim.api.nvim_create_autocmd("User", {
     pattern = "LazyDone",

@@ -282,6 +282,8 @@ main() {
 
   if [[ "$RUN_MIGRATE" -eq 1 ]]; then
     bash "$SCRIPT_DIR/migrate-legacy.sh"
+  else
+    bash "$SCRIPT_DIR/migrate-legacy.sh" --pack-only
   fi
 
   disk_before="$(disk_usage_bytes "${XDG_DATA_HOME:-$HOME/.local/share}/nvim")"
