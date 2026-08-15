@@ -1,5 +1,5 @@
--- Load LazyVim after ./lazyvim/install-lazyvim.sh or ./lazyvim-lite/install-lazyvim-lite.sh.
--- Default (./install.sh): minimal Neovim with no plugin downloads.
+-- LazyVim profiles: run ./lazyvim/install-lazyvim.sh or ./lazyvim-lite/install-lazyvim-lite.sh
+-- No profile file = plain Neovim (stock + small dotfiles tweaks in config/plain.lua).
 
 local profile = require("config.nvim-profile")
 
@@ -10,5 +10,5 @@ end
 if profile.is_lazyvim() then
   require("config.lazy")
 else
-  require("config.minimal")
+  require("config.plain")
 end

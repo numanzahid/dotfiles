@@ -19,7 +19,7 @@ Switch profiles later:
 ```bash
 ./scripts/nvim-profile.sh lazyvim-lite   # this build
 ./scripts/nvim-profile.sh lazyvim        # full IDE profile
-./scripts/nvim-profile.sh minimal        # no plugins
+./scripts/nvim-profile.sh none           # plain nvim (remove profile file)
 ./scripts/nvim-profile.sh status
 ```
 
@@ -64,7 +64,7 @@ Installed by `lazyvim/install-system-deps.sh` (shared with full LazyVim):
 | tree-sitter CLI | `~/.local/bin/tree-sitter` | nvim-treesitter parser install/update |
 | fd (compat) | `~/.local/bin/fd` | symlink to `fdfind` when needed |
 
-Tree-sitter CLI version follows host glibc (same rules as `lazyvim/install-tree-sitter-cli.sh`).
+Tree-sitter CLI version: try 0.26.11 first, then fall back to an older prebuilt that executes (see `lazyvim/install-tree-sitter-cli.sh`).
 
 ### Not required for lite
 
@@ -178,7 +178,7 @@ Inside nvim: `:Lazy`, `:LazyHealth`, `:TSInstallInfo`
 
 | Check | Expected on a CT/SSH host |
 |-------|---------------------------|
-| nvim-treesitter CLI 0.26.1 | ERROR on glibc < 2.39; parsers still work with 0.25.6 |
+| nvim-treesitter CLI 0.26.1 | ERROR on bookworm; install shows **WARN (degraded CLI)**; parsers still work |
 | snacks.image | Warnings (no kitty/wezterm, no imagemagick) |
 | snacks.explorer trash | Warning (permanent delete; dotfiles disables trash helper) |
 | vim.provider node | Warning (Node not required for lite) |

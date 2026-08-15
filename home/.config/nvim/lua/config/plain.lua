@@ -1,5 +1,5 @@
--- Minimal Neovim (no LazyVim, no plugin manager).
--- Active when ~/.local/share/dotfiles/nvim-profile is "minimal" (default).
+-- Plain Neovim: no LazyVim, no plugin manager.
+-- Active when ~/.local/share/dotfiles/nvim-profile is missing or unset.
 
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "

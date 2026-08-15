@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Install official prebuilt Tree-sitter CLI (no Rust/Cargo).
-# Picks a release compatible with the host glibc (Ubuntu 22.04 / Debian bookworm = 0.25.6).
+# Tries the current nvim-treesitter target first, then older prebuilts that still run.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -14,11 +14,8 @@ source "$SCRIPT_DIR/../scripts/lib/platform.sh"
 TREE_SITTER_REPO="tree-sitter/tree-sitter"
 INSTALL_BIN="${HOME}/.local/bin/tree-sitter"
 
-# glibc >= 2.39
-TREE_SITTER_VERSION_NEW="${TREE_SITTER_VERSION_NEW:-0.26.11}"
-# glibc >= 2.34 (Debian bookworm / Ubuntu 22.04)
-TREE_SITTER_VERSION_BOOKWORM="${TREE_SITTER_VERSION_BOOKWORM:-0.25.6}"
-# glibc >= 2.29
+TREE_SITTER_VERSION_PRIMARY="${TREE_SITTER_VERSION_PRIMARY:-0.26.11}"
+TREE_SITTER_VERSION_FALLBACK="${TREE_SITTER_VERSION_FALLBACK:-0.25.6}"
 TREE_SITTER_VERSION_LEGACY="${TREE_SITTER_VERSION_LEGACY:-0.24.7}"
 
 declare -A TREE_SITTER_SHA256_ZIP=(
@@ -33,40 +30,6 @@ declare -A TREE_SITTER_SHA256_GZ=(
   ["0.24.7:linux-arm64"]="bad9cd53adcbd18df33084bb811b8cf7868fffd79437acfc83ac1025e7574c78"
 )
 
-host_glibc_version() {
-  df_host_glibc_version
-}
-
-select_tree_sitter_release() {
-  local glibc="$1"
-
-  if df_version_ge "$glibc" "2.39"; then
-    TREE_SITTER_SELECTED_VERSION="$TREE_SITTER_VERSION_NEW"
-    TREE_SITTER_SELECTED_FORMAT="zip"
-    return 0
-  fi
-
-  if df_version_ge "$glibc" "2.34"; then
-    TREE_SITTER_SELECTED_VERSION="$TREE_SITTER_VERSION_BOOKWORM"
-    TREE_SITTER_SELECTED_FORMAT="gz"
-    warn "glibc ${glibc} < 2.39: using tree-sitter v${TREE_SITTER_SELECTED_VERSION} (Ubuntu 22.04 / Debian bookworm prebuilt)"
-    return 0
-  fi
-
-  if df_version_ge "$glibc" "2.29"; then
-    TREE_SITTER_SELECTED_VERSION="$TREE_SITTER_VERSION_LEGACY"
-    TREE_SITTER_SELECTED_FORMAT="gz"
-    warn "glibc ${glibc} is old: using tree-sitter v${TREE_SITTER_SELECTED_VERSION}"
-    return 0
-  fi
-
-  die "glibc ${glibc} is too old for official tree-sitter CLI prebuilts (need >= 2.29)"
-}
-
-tree_sitter_works() {
-  df_tree_sitter_cli_runs "$1"
-}
-
 tree_sitter_error() {
   local bin="$1"
   local err
@@ -74,58 +37,61 @@ tree_sitter_error() {
   printf '%s' "${err:-unknown error}"
 }
 
-installed_tree_sitter_version() {
-  local bin="$1"
-  if ! tree_sitter_works "$bin"; then
-    return 1
-  fi
-  "$bin" --version 2>/dev/null | awk '{print $NF}'
-}
-
 release_asset_name() {
-  case "$TREE_SITTER_SELECTED_FORMAT" in
+  local version="$1"
+  local format="$2"
+
+  case "$format" in
     zip) printf 'tree-sitter-cli-%s.zip' "$LAZYVIM_ARCH_LABEL" ;;
     gz) printf 'tree-sitter-linux-%s.gz' "$LAZYVIM_ARCH" ;;
-    *) die "unknown tree-sitter archive format: $TREE_SITTER_SELECTED_FORMAT" ;;
+    *) die "unknown tree-sitter archive format: $format" ;;
   esac
 }
 
 expected_sha256() {
-  local key="${TREE_SITTER_SELECTED_VERSION}:${LAZYVIM_ARCH_LABEL}"
-  case "$TREE_SITTER_SELECTED_FORMAT" in
+  local version="$1"
+  local format="$2"
+  local key="${version}:${LAZYVIM_ARCH_LABEL}"
+
+  case "$format" in
     zip) printf '%s' "${TREE_SITTER_SHA256_ZIP[$key]:-}" ;;
     gz) printf '%s' "${TREE_SITTER_SHA256_GZ[$key]:-}" ;;
   esac
 }
 
-install_tree_sitter_binary() {
-  local glibc asset url expected tmpdir archive extract_dir binary actual err
+try_install_tree_sitter_release() {
+  local version="$1"
+  local format="$2"
+  local asset url expected tmpdir archive extract_dir binary actual err
 
-  glibc="$(host_glibc_version)"
-  select_tree_sitter_release "$glibc"
-
-  asset="$(release_asset_name)"
-  url="https://github.com/${TREE_SITTER_REPO}/releases/download/v${TREE_SITTER_SELECTED_VERSION}/${asset}"
-  expected="$(expected_sha256)"
-  [[ -n "$expected" ]] || die "no SHA256 pin for ${TREE_SITTER_SELECTED_VERSION} ${LAZYVIM_ARCH_LABEL} (update install-tree-sitter-cli.sh)"
+  asset="$(release_asset_name "$version" "$format")"
+  url="https://github.com/${TREE_SITTER_REPO}/releases/download/v${version}/${asset}"
+  expected="$(expected_sha256 "$version" "$format")"
+  if [[ -z "$expected" ]]; then
+    warn "no SHA256 pin for tree-sitter v${version} ${LAZYVIM_ARCH_LABEL}; skipping"
+    return 1
+  fi
 
   tmpdir="$(mktemp -d)"
   archive="${tmpdir}/${asset}"
   extract_dir="${tmpdir}/extract"
-  trap '[[ -n "${tmpdir:-}" ]] && rm -rf "$tmpdir"' EXIT
+  trap '[[ -n "${tmpdir:-}" ]] && rm -rf "$tmpdir"' RETURN
 
   mkdir -p "${HOME}/.local/bin"
   mkdir -p "$extract_dir"
 
-  log "downloading Tree-sitter CLI v${TREE_SITTER_SELECTED_VERSION} (${LAZYVIM_ARCH_LABEL}, glibc ${glibc})"
-  run curl -fL --retry 3 --retry-delay 1 -o "$archive" "$url"
+  log "trying Tree-sitter CLI v${version} (${LAZYVIM_ARCH_LABEL})"
+  if ! run curl -fL --retry 3 --retry-delay 1 -o "$archive" "$url"; then
+    warn "download failed for tree-sitter v${version}"
+    return 1
+  fi
 
   actual="$(sha256sum "$archive" | awk '{print $1}')"
   if [[ "$actual" != "$expected" ]]; then
     die "SHA256 mismatch for ${asset} (expected ${expected}, got ${actual})"
   fi
 
-  case "$TREE_SITTER_SELECTED_FORMAT" in
+  case "$format" in
     zip)
       run unzip -oq "$archive" -d "$extract_dir"
       binary="$(find "$extract_dir" -type f -name tree-sitter | head -n 1)"
@@ -138,31 +104,64 @@ install_tree_sitter_binary() {
       ;;
   esac
 
-  [[ -n "${binary:-}" && -f "$binary" ]] || die "tree-sitter binary not found in ${asset}"
+  [[ -n "${binary:-}" && -f "$binary" ]] || {
+    warn "tree-sitter binary not found in ${asset}"
+    return 1
+  }
 
   run install -m 755 "$binary" "${INSTALL_BIN}.new"
   run mv -f "${INSTALL_BIN}.new" "$INSTALL_BIN"
 
-  if ! tree_sitter_works "$INSTALL_BIN"; then
+  if ! df_tree_sitter_cli_runs "$INSTALL_BIN"; then
     err="$(tree_sitter_error "$INSTALL_BIN")"
-    die "installed tree-sitter binary does not run (${err})"
+    warn "tree-sitter v${version} installed but does not run (${err})"
+    rm -f "$INSTALL_BIN"
+    return 1
   fi
 
-  log "tree-sitter installed: $("$INSTALL_BIN" --version) ($INSTALL_BIN)"
+  TREE_SITTER_SELECTED_VERSION="$version"
+  return 0
+}
+
+install_tree_sitter_binary() {
+  local version format
+  local -a candidates=(
+    "${TREE_SITTER_VERSION_PRIMARY}:zip"
+    "${TREE_SITTER_VERSION_FALLBACK}:gz"
+    "${TREE_SITTER_VERSION_LEGACY}:gz"
+  )
+
+  for entry in "${candidates[@]}"; do
+    version="${entry%%:*}"
+    format="${entry##*:}"
+    if try_install_tree_sitter_release "$version" "$format"; then
+      if df_tree_sitter_cli_meets_nvim_treesitter_min "$INSTALL_BIN"; then
+        log "tree-sitter installed: $("$INSTALL_BIN" --version) ($INSTALL_BIN)"
+      else
+        warn "tree-sitter installed (degraded): $("$INSTALL_BIN" --version) ($INSTALL_BIN)"
+        warn "nvim-treesitter expects CLI >= $(df_nvim_treesitter_cli_min); :checkhealth will ERROR on this host (parsers still work)"
+      fi
+      return 0
+    fi
+  done
+
+  die "no official tree-sitter CLI prebuilt runs on this host (tried ${TREE_SITTER_VERSION_PRIMARY}, ${TREE_SITTER_VERSION_FALLBACK}, ${TREE_SITTER_VERSION_LEGACY})"
 }
 
 main() {
   detect_lazyvim_arch
   df_prepend_local_bin
 
-  if df_tree_sitter_cli_ok_for_host "$INSTALL_BIN"; then
+  if df_tree_sitter_cli_meets_nvim_treesitter_min "$INSTALL_BIN"; then
     log "tree-sitter already installed: $("$INSTALL_BIN" --version) ($INSTALL_BIN)"
     return 0
   fi
 
-  if [[ -x "$INSTALL_BIN" ]]; then
+  if [[ -x "$INSTALL_BIN" ]] && ! df_tree_sitter_cli_runs "$INSTALL_BIN"; then
     warn "removing broken tree-sitter at $INSTALL_BIN ($(tree_sitter_error "$INSTALL_BIN"))"
     rm -f "$INSTALL_BIN"
+  elif df_tree_sitter_cli_degraded "$INSTALL_BIN"; then
+    warn "tree-sitter v$(df_tree_sitter_cli_version "$INSTALL_BIN") runs but is below nvim-treesitter minimum; trying newer prebuilt"
   fi
 
   install_tree_sitter_binary

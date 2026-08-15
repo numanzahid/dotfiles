@@ -22,7 +22,7 @@ Optional LazyVim bootstrap (not part of `--all`):
 ./lazyvim-lite/install-lazyvim-lite.sh    # editor-only (no Mason/LSP/Node)
 ```
 
-Without those scripts, `nvim` uses a minimal config only (no LazyVim download).
+Without those scripts, `nvim` uses plain Neovim (no LazyVim, no plugin downloads).
 
 Plain `./install.sh` only symlinks configs into `$HOME`.
 

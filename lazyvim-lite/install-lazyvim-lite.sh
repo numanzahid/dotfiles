@@ -110,10 +110,11 @@ verify_installation() {
 
   # shellcheck source=../scripts/lib/platform.sh
   source "$DOTFILES_DIR/scripts/lib/platform.sh"
-  if df_tree_sitter_cli_ok_for_host "$ts_bin"; then
-    log "tree-sitter CLI OK: $("$ts_bin" --version 2>/dev/null | head -n1)"
-  else
-    record_fail "tree-sitter CLI missing or too old at $ts_bin (host glibc $(df_host_glibc_version 2>/dev/null || echo unknown))"
+  # shellcheck source=../lazyvim/lib/tree-sitter-verify.sh
+  source "$LAZYVIM_DIR/lib/tree-sitter-verify.sh"
+  verify_tree_sitter_cli_for_install "$ts_bin" || true
+  if [[ "${TS_CLI_VERIFY_STATUS:-fail}" == "fail" ]]; then
+    parser_ok=0
   fi
 
   if [[ "$SKIP_SYNC" -eq 0 && "$DRY_RUN" -eq 0 ]]; then
@@ -122,11 +123,8 @@ verify_installation() {
       record_fail "checkhealth lazy failed (see /tmp/lazyvim-lite-health-lazy.log)"
     fi
 
-    if ! nvim --headless "+lua if vim.fn.executable('tree-sitter')~=1 then os.exit(2) end" +qa >/tmp/lazyvim-lite-health-ts.log 2>&1; then
+    if ! verify_nvim_tree_sitter_runtime /tmp/lazyvim-lite-health-ts.log; then
       parser_ok=0
-      record_fail "nvim cannot run tree-sitter CLI (see /tmp/lazyvim-lite-health-ts.log)"
-    elif ! df_version_ge "$(df_host_glibc_version)" "2.39"; then
-      warn "nvim-treesitter :checkhealth may warn about CLI 0.26.1 on glibc $(df_host_glibc_version); installed $(df_tree_sitter_expected_cli_version) is expected"
     fi
   fi
 
@@ -155,7 +153,8 @@ LazyVim data:       ${XDG_DATA_HOME:-$HOME/.local/share}/nvim
 Profile:            lazyvim-lite (no Mason/LSP/Node)
 
 LazyVim core sync:  $( [[ "$SKIP_SYNC" -eq 1 ]] && echo SKIP || ([[ "$sync_ok" -eq 1 ]] && echo PASS || echo FAIL) )
-Tree-sitter health: $( [[ "$SKIP_SYNC" -eq 1 ]] && echo SKIP || ([[ "$parser_ok" -eq 1 ]] && echo PASS || echo FAIL) )
+Tree-sitter CLI:    $( [[ -n "${TS_CLI_VERIFY_STATUS:-}" ]] && ts_cli_verify_summary_label || echo SKIP) )
+Tree-sitter runtime: $( [[ "$SKIP_SYNC" -eq 1 ]] && echo SKIP || ([[ "$parser_ok" -eq 1 ]] && echo PASS || echo FAIL) )
 
 Disk usage:
   nvim data:  $(format_bytes "$(disk_usage_bytes "${XDG_DATA_HOME:-$HOME/.local/share}/nvim")")

@@ -3,17 +3,26 @@ local M = {}
 local function read_profile()
   local path = vim.fn.expand("~/.local/share/dotfiles/nvim-profile")
   if vim.fn.filereadable(path) ~= 1 then
-    return "minimal"
+    return nil
   end
 
   local file = io.open(path, "r")
   if not file then
-    return "minimal"
+    return nil
   end
 
-  local profile = file:read("*l") or "minimal"
+  local profile = (file:read("*l") or ""):gsub("%s+", "")
   file:close()
-  return profile:gsub("%s+", "")
+
+  if profile == "minimal" then
+    return nil
+  end
+
+  if profile == "lazyvim" or profile == "lazyvim-lite" then
+    return profile
+  end
+
+  return nil
 end
 
 function M.current()

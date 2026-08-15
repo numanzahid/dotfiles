@@ -55,7 +55,7 @@ Edit `lazyvim/install.conf` for feature flags:
 | `install-tree-sitter-cli.sh` | Prebuilt Tree-sitter CLI |
 | `sync-lazyvim.sh` | Headless LazyVim sync |
 | `migrate-legacy.sh` | Remove old LLVM/Rust leftovers |
-| `uninstall-lazyvim.sh` | Switch to minimal + remove nvim data |
+| `uninstall-lazyvim.sh` | Switch to plain nvim + remove nvim data |
 | `measure-disk.sh` | Disk footprint report |
 
 ## Apt packages (only if missing)
@@ -75,16 +75,21 @@ Not installed: `build-essential`, `g++`, `clang`, `libclang-dev`, `llvm`, `pytho
 
 ## Tree-sitter CLI
 
-Prebuilt official release, auto-selected by host glibc:
+Official prebuilt releases from GitHub, with SHA256 verification and an execution test.
 
-| Host glibc | Version | Asset |
-|------------|---------|-------|
-| >= 2.39 | 0.26.11 | `tree-sitter-cli-linux-x64.zip` |
-| >= 2.34 (Ubuntu 22.04, Debian bookworm) | 0.25.6 | `tree-sitter-linux-x64.gz` |
-| >= 2.29 | 0.24.7 | `tree-sitter-linux-x64.gz` |
+Install order (first binary that actually runs wins):
 
-Ubuntu 22.04 and Debian bookworm (glibc 2.35-2.36) cannot run 0.26.x prebuilts (they need glibc 2.39).
-`:checkhealth nvim-treesitter` may still warn about CLI 0.26.1 on those hosts; editing works and install scripts treat 0.25.6 as success.
+| Try | Version | Asset |
+|-----|---------|-------|
+| 1 | 0.26.11 | `tree-sitter-cli-linux-x64.zip` |
+| 2 | 0.25.6 | `tree-sitter-linux-x64.gz` |
+| 3 | 0.24.7 | `tree-sitter-linux-x64.gz` |
+
+On modern hosts (glibc >= 2.39), step 1 succeeds and matches nvim-treesitter's CLI minimum (0.26.1).
+
+On Debian bookworm / Ubuntu 22.04, step 1 usually fails to execute; step 2 installs and **the install still completes**. The installer reports **WARN (degraded CLI)** because `:checkhealth nvim-treesitter` will ERROR. Highlighting, folds, and `:TSUpdate` still work.
+
+`gcc` + `libc6-dev` stay installed when needed; they are not removed after parser builds.
 
 ## Migration from old installer
 

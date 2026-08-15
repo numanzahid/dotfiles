@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Remove LazyVim runtime data and switch nvim back to minimal profile.
+# Remove LazyVim runtime data and switch nvim back to plain (no profile file).
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -52,8 +52,8 @@ confirm() {
 main() {
   parse_args "$@"
 
-  log "switching nvim profile to minimal"
-  run set_nvim_profile "minimal"
+  log "switching nvim profile to none (plain nvim)"
+  run clear_nvim_profile
 
   confirm
 

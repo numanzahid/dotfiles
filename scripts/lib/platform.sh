@@ -31,6 +31,10 @@ df_prepend_local_bin() {
   esac
 }
 
+df_nvim_treesitter_cli_min() {
+  printf '%s' "0.26.1"
+}
+
 df_tree_sitter_cli_runs() {
   local bin="$1"
   [[ -n "$bin" && -x "$bin" ]] && "$bin" --version &>/dev/null
@@ -44,37 +48,19 @@ df_tree_sitter_cli_version() {
   "$bin" --version 2>/dev/null | awk '{print $2}'
 }
 
-# Newest CLI we can use on this host (prebuilt limits on older glibc).
-df_tree_sitter_expected_cli_version() {
-  local glibc="${1:-$(df_host_glibc_version)}"
-  if df_version_ge "$glibc" "2.39"; then
-    printf '%s' "0.26.11"
-  elif df_version_ge "$glibc" "2.34"; then
-    printf '%s' "0.25.6"
-  elif df_version_ge "$glibc" "2.29"; then
-    printf '%s' "0.24.7"
-  else
-    return 1
-  fi
-}
-
-# Minimum CLI version install scripts treat as success (matches what we can install).
-df_tree_sitter_install_min_version() {
-  local glibc="${1:-$(df_host_glibc_version)}"
-  if df_version_ge "$glibc" "2.39"; then
-    printf '%s' "0.26.1"
-  elif df_version_ge "$glibc" "2.34"; then
-    printf '%s' "0.25.0"
-  else
-    printf '%s' "0.24.0"
-  fi
-}
-
+# Install success: binary exists and executes.
 df_tree_sitter_cli_ok_for_host() {
-  local bin="$1"
-  local glibc min_ver ver
-  glibc="$(df_host_glibc_version)" || return 1
-  min_ver="$(df_tree_sitter_install_min_version "$glibc")"
+  df_tree_sitter_cli_runs "$1"
+}
+
+# nvim-treesitter :checkhealth minimum (may be unreachable on older glibc hosts).
+df_tree_sitter_cli_meets_nvim_treesitter_min() {
+  local bin="$1" ver min
+  min="$(df_nvim_treesitter_cli_min)"
   ver="$(df_tree_sitter_cli_version "$bin")" || return 1
-  df_version_ge "$ver" "$min_ver"
+  df_version_ge "$ver" "$min"
+}
+
+df_tree_sitter_cli_degraded() {
+  df_tree_sitter_cli_ok_for_host "$1" && ! df_tree_sitter_cli_meets_nvim_treesitter_min "$1"
 }
