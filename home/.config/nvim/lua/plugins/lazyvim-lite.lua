@@ -23,19 +23,23 @@ end
 
 return vim.list_extend(disabled, {
   {
-    name = "lazyvim-lite-init",
-    lazy = false,
-    priority = 10002,
-    init = function()
-      vim.g.autoformat = false
-    end,
-  },
-  {
     "saghen/blink.cmp",
     opts = function(_, opts)
       opts.sources = opts.sources or {}
-      opts.sources.default = { "buffer", "path", "snippets" }
-      opts.sources.cmdline = { "buffer", "cmdline" }
+      opts.sources.default = { "path", "snippets", "buffer" }
+
+      opts.sources.providers = opts.sources.providers or {}
+      opts.sources.providers.lsp = nil
+      opts.sources.providers.lazydev = nil
+
+      if opts.sources.per_filetype and opts.sources.per_filetype.lua then
+        opts.sources.per_filetype.lua = { inherit_defaults = true }
+      end
+
+      if vim.tbl_get(opts, "completion", "menu", "draw", "treesitter") then
+        opts.completion.menu.draw.treesitter = {}
+      end
+
       return opts
     end,
   },

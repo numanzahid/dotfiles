@@ -135,7 +135,7 @@ check_not_root_for_user_phase() {
   fi
 
   if [[ "$(id -u)" -eq 0 ]] && ! truthy "$LAZYVIM_ALLOW_ROOT"; then
-    die "run as your normal user, not root. For root-only hosts: LAZYVIM_ALLOW_ROOT=true $0 (or set LAZYVIM_ALLOW_ROOT=true in lazyvim/install.conf)"
+    die "run as your normal user, not root. For root-only hosts: LAZYVIM_ALLOW_ROOT=true $0 (or set LAZYVIM_ALLOW_ROOT=true in install.conf)"
   fi
 
   if [[ "$(id -u)" -eq 0 ]]; then

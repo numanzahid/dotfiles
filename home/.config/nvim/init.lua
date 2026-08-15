@@ -3,6 +3,10 @@
 
 local profile = require("config.nvim-profile")
 
+if profile.is("lazyvim-lite") then
+  vim.g.autoformat = false
+end
+
 if profile.is_lazyvim() then
   require("config.lazy")
 else

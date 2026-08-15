@@ -173,3 +173,20 @@ nvim --headless "+checkhealth nvim-treesitter" +qa   # may warn on old glibc; se
 ```
 
 Inside nvim: `:Lazy`, `:LazyHealth`, `:TSInstallInfo`
+
+### Expected health noise on headless servers
+
+| Check | Expected on a CT/SSH host |
+|-------|---------------------------|
+| nvim-treesitter CLI 0.26.1 | ERROR on glibc < 2.39; parsers still work with 0.25.6 |
+| snacks.image | Warnings (no kitty/wezterm, no imagemagick) |
+| snacks.explorer trash | Warning (permanent delete; dotfiles disables trash helper) |
+| vim.provider node | Warning (Node not required for lite) |
+| blink_cmp_fuzzy lib | Warning until first completion triggers download |
+
+### Real issues (should be fixed)
+
+- **blink.cmp lazydev error** breaks `:` command hints; fixed in `lua/plugins/lazyvim-lite.lua`
+- **lazy invalid spec** for bare `name = "lazyvim-lite-init"`; fixed (use `init.lua` for `vim.g.autoformat`)
+
+After pulling config fixes, restart nvim and run `:Lazy sync`, then `:checkhealth blink.cmp`.
