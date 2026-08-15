@@ -1,0 +1,175 @@
+# LazyVim-lite
+
+LazyVim look and feel without the IDE stack. Same Tree-sitter CLI install path as full LazyVim, but no Mason, LSP, Node.js, or language IDE extras.
+
+Use this when you want a fast, pretty text editor on servers and VMs, not a language server workstation.
+
+## Install
+
+Prerequisites: run dotfiles base install first (at minimum Neovim):
+
+```bash
+./install.sh --neovim
+chmod +x lazyvim-lite/*.sh lazyvim-lite/lib/*.sh
+./lazyvim-lite/install-lazyvim-lite.sh
+```
+
+Switch profiles later:
+
+```bash
+./scripts/nvim-profile.sh lazyvim-lite   # this build
+./scripts/nvim-profile.sh lazyvim        # full IDE profile
+./scripts/nvim-profile.sh minimal        # no plugins
+./scripts/nvim-profile.sh status
+```
+
+## What is removed vs full LazyVim
+
+| Removed | Kept |
+|---------|------|
+| Mason + LSP servers | LazyVim UI (Snacks, Noice, which-key) |
+| nvim-lspconfig | Tree-sitter highlighting, folds, indent |
+| conform.nvim (format-on-save) | blink.cmp (buffer/path/snippets only) |
+| nvim-lint | Git signs, flash, bufferline, mini.* |
+| lazydev.nvim | grug-far, trouble, todo-comments |
+| Node.js / nvm requirement | persistence, themes (tokyonight) |
+| dotfiles lang extras (TS, Python, Docker, etc.) | treesitter textobjects, ts-autotag |
+
+## System dependencies
+
+Installed by `lazyvim/install-system-deps.sh` (shared with full LazyVim):
+
+### Apt packages
+
+| Package | Purpose |
+|---------|---------|
+| ca-certificates | HTTPS downloads |
+| curl | fetch tree-sitter CLI, git clones |
+| git | lazy.nvim, LazyVim, plugins |
+| unzip, tar | archives |
+| ripgrep | Snacks picker, grug-far search |
+| fd-find | file finding (symlinked to `~/.local/bin/fd`) |
+
+### Compiler (installed if missing)
+
+| Package | Purpose |
+|---------|---------|
+| gcc | build Tree-sitter parsers from source |
+| libc6-dev | C headers for parser builds |
+
+### User-local binaries
+
+| Binary | Path | Purpose |
+|--------|------|---------|
+| tree-sitter CLI | `~/.local/bin/tree-sitter` | nvim-treesitter parser install/update |
+| fd (compat) | `~/.local/bin/fd` | symlink to `fdfind` when needed |
+
+Tree-sitter CLI version follows host glibc (same rules as `lazyvim/install-tree-sitter-cli.sh`).
+
+### Not required for lite
+
+- Node.js / npm / nvm
+- Mason registry packages
+- Python/Perl/Ruby Neovim providers (disabled in dotfiles nvim config)
+- Rust / LLVM toolchain
+
+### Recommended (optional)
+
+- Nerd Font (icons in bufferline, which-key)
+- `./install.sh --tools` for upstream bat, eza, zoxide (not required by LazyVim-lite itself)
+
+## Neovim plugins
+
+### Plugin manager
+
+| Plugin | Repo |
+|--------|------|
+| lazy.nvim | folke/lazy.nvim |
+
+### LazyVim core (enabled)
+
+| Plugin | Repo | Role |
+|--------|------|------|
+| LazyVim | LazyVim/LazyVim | distro config, keymaps, UI integration |
+| snacks.nvim | folke/snacks.nvim | explorer, picker, terminal, dashboard |
+| noice.nvim | folke/noice.nvim | better cmdline and messages |
+| nui.nvim | MunifTanjim/nui.nvim | UI components (Noice dependency) |
+| which-key.nvim | folke/which-key.nvim | keymap discovery |
+| nvim-treesitter | nvim-treesitter/nvim-treesitter | syntax, folds, indent |
+| nvim-treesitter-textobjects | nvim-treesitter/nvim-treesitter-textobjects | function/class motion |
+| nvim-ts-autotag | windwp/nvim-ts-autotag | HTML/JSX tag closing |
+| blink.cmp | saghen/blink.cmp | completion (no LSP source) |
+| friendly-snippets | rafamadriz/friendly-snippets | snippet definitions |
+| bufferline.nvim | akinsho/bufferline.nvim | tabline (diagnostics off) |
+| lualine.nvim | nvim-lualine/lualine.nvim | statusline |
+| gitsigns.nvim | lewis6991/gitsigns.nvim | git gutter |
+| flash.nvim | folke/flash.nvim | jump navigation |
+| grug-far.nvim | MagicDuck/grug-far.nvim | project search/replace |
+| trouble.nvim | folke/trouble.nvim | diagnostics/loclist UI |
+| todo-comments.nvim | folke/todo-comments.nvim | TODO/FIXME highlights |
+| persistence.nvim | folke/persistence.nvim | session save/restore |
+| mini.ai | echasnovski/mini.ai | text objects |
+| mini.pairs | echasnovski/mini.pairs | auto-pairs |
+| mini.icons | echasnovski/mini.icons | icon sets |
+| plenary.nvim | nvim-lua/plenary.nvim | Lua utilities |
+| tokyonight.nvim | folke/tokyonight.nvim | default colorscheme |
+| catppuccin | catppuccin/nvim | alternate colorscheme |
+| ts-comments.nvim | folke/ts-comments.nvim | treesitter-aware comments |
+
+### Dotfiles overrides (enabled)
+
+| File | Role |
+|------|------|
+| lua/plugins/lazyvim-lite.lua | disable IDE plugins, tune treesitter + blink |
+| lua/plugins/dotfiles-tweaks.lua | snacks image off, trash off for headless |
+| lua/config/treesitter-path.lua | PATH for tree-sitter CLI |
+| lua/config/options.lua | disable python/perl/ruby providers |
+
+### Disabled in lite profile
+
+| Plugin | Repo | Why |
+|--------|------|-----|
+| mason.nvim | mason-org/mason.nvim | LSP/tool installer |
+| mason-lspconfig.nvim | mason-org/mason-lspconfig.nvim | Mason + LSP bridge |
+| nvim-lspconfig | neovim/nvim-lspconfig | language servers |
+| conform.nvim | stevearc/conform.nvim | format-on-save |
+| nvim-lint | mfussenegger/nvim-lint | linter integration |
+| lazydev.nvim | folke/lazydev.nvim | LSP types for Lua |
+
+### Not loaded (full LazyVim only)
+
+`lua/plugins/dotfiles-extras.lua` imports lang extras only when profile is `lazyvim` (typescript, python, json, yaml, toml, tailwind, git, docker).
+
+## Tree-sitter parsers (ensure_installed)
+
+bash, c, css, diff, dockerfile, html, javascript, jsdoc, json, lua, luadoc, markdown, markdown_inline, python, regex, toml, tsx, typescript, vim, vimdoc, xml, yaml
+
+Installed automatically on first sync via nvim-treesitter (same mechanism as full LazyVim).
+
+## Disk footprint (typical)
+
+- LazyVim-lite plugins only: ~80-150 MB (no Mason registry)
+- Tree-sitter parsers: ~30-60 MB
+- tree-sitter CLI: ~5 MB
+
+Compare to full LazyVim with Mason + Node: often 400 MB-1 GB+ extra.
+
+## Files in this folder
+
+| File | Purpose |
+|------|---------|
+| install-lazyvim-lite.sh | main installer |
+| sync-lazyvim-lite.sh | headless `Lazy! sync` + treesitter preload |
+| install.conf | allow-root, apt cleanup |
+| lib/common.sh | log prefix + reuse lazyvim helpers |
+
+Shared with `lazyvim/`: system deps, tree-sitter CLI, migrate-legacy, nvim-profile.
+
+## Verify
+
+```bash
+nvim --headless "+checkhealth lazy" +qa
+nvim --headless "+checkhealth nvim-treesitter" +qa   # may warn on old glibc; see lazyvim README
+```
+
+Inside nvim: `:Lazy`, `:LazyHealth`, `:TSInstallInfo`

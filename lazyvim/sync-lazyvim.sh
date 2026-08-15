@@ -6,7 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/common.sh
 source "$SCRIPT_DIR/lib/common.sh"
 
-SYNC_LOG="${HOME}/.local/state/dotfiles/lazyvim-sync.log"
+SYNC_LOG="${LAZYVIM_SYNC_LOG:-${HOME}/.local/state/dotfiles/lazyvim-sync.log}"
 
 sync_lazyvim_plugins() {
   mkdir -p "$(dirname "$SYNC_LOG")"
@@ -47,4 +47,6 @@ main() {
   sync_treesitter_parsers
 }
 
-main "$@"
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  main "$@"
+fi

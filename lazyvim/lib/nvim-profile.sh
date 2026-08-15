@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Neovim config profile: minimal (default) or lazyvim.
+# Neovim config profile: minimal (default), lazyvim, or lazyvim-lite.
 set -euo pipefail
 
 nvim_profile_file() {

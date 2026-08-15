@@ -18,10 +18,11 @@ Copy SSH keys manually (never commit private keys). See `home/.ssh/config.exampl
 Optional LazyVim bootstrap (not part of `--all`):
 
 ```bash
-./lazyvim/install-lazyvim.sh
+./lazyvim/install-lazyvim.sh              # full IDE profile
+./lazyvim-lite/install-lazyvim-lite.sh    # editor-only (no Mason/LSP/Node)
 ```
 
-Without that script, `nvim` uses a minimal config only (no LazyVim download).
+Without those scripts, `nvim` uses a minimal config only (no LazyVim download).
 
 Plain `./install.sh` only symlinks configs into `$HOME`.
 

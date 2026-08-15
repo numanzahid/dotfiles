@@ -8,7 +8,7 @@ source "$SCRIPT_DIR/../lazyvim/lib/nvim-profile.sh"
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   case "${1:-}" in
-    minimal | lazyvim)
+    minimal | lazyvim | lazyvim-lite)
       set_nvim_profile "$1"
       echo "nvim profile: $1"
       ;;
@@ -16,7 +16,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
       echo "nvim profile: $(get_nvim_profile)"
       ;;
     *)
-      echo "Usage: $(basename "$0") {minimal|lazyvim|status}" >&2
+      echo "Usage: $(basename "$0") {minimal|lazyvim|lazyvim-lite|status}" >&2
       exit 1
       ;;
   esac

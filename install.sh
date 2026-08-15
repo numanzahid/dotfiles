@@ -45,7 +45,8 @@ Options:
   -h, --help   Show this help
 
 LazyVim extras (optional, not part of --all):
-  ./lazyvim/install-lazyvim.sh
+  ./lazyvim/install-lazyvim.sh          # full IDE profile (Mason, LSP, Node)
+  ./lazyvim-lite/install-lazyvim-lite.sh # editor-only profile (no Mason/LSP/Node)
 
 Tmux fetch banners (optional, not enabled by default):
   ./scripts/setup-tmux-fetch.sh              # interactive prompt
