@@ -35,17 +35,13 @@ if [ -z "${debian_chroot:-}" ] && [ -r /etc/debian_chroot ]; then
   debian_chroot=$(cat /etc/debian_chroot)
 fi
 
-# Prompt: multi-line outside tmux; single-line inside tmux (avoids cursor/redraw bugs).
-if [[ -n "${TMUX:-}" ]]; then
-  PS1='\[\e[38;5;208m\][\[\e[94m\]\w\[\e[38;5;208m\]]\[\e[0m\]\$ '
-else
-  PS1='\[\e[38;5;208m\]┌──[\[\e[94m\]\w\[\e[38;5;208m\]]\n└─\$\[\e[0m\] '
-fi
+# Debian-style prompt: hostname:path ($ for user, # for root). No username.
+PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
 
-# If this is an xterm/rxvt-compatible terminal, set title to user@host:dir.
+# Window title (xterm / SSH): hostname and directory only.
 case "$TERM" in
 xterm* | rxvt*)
-  PS1="\[\e]0;${debian_chroot:+($debian_chroot)}\u@\h: \w\a\]$PS1"
+  PS1="\[\e]0;${debian_chroot:+($debian_chroot)}\h: \w\a\]$PS1"
   ;;
 esac
 
