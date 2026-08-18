@@ -28,4 +28,4 @@ gr_install_from_targz "$url" btop "$BIN_PATH"
 
 echo "Done."
 echo "btop path: $(command -v btop || true)"
-btop --version | head -n 1
+gr_print_version_line btop

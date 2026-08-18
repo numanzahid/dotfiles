@@ -27,4 +27,4 @@ gr_install_from_targz "$url" bat "$BIN_PATH"
 
 echo "Done."
 echo "bat path: $(command -v bat || true)"
-bat --version | head -n 1
+gr_print_version_line bat

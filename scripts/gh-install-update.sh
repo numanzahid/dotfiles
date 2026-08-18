@@ -71,4 +71,4 @@ $SUDO apt-get install -y "$deb"
 
 echo "Done."
 echo "gh path: $(command -v gh || true)"
-gh --version | head -n 1
+gh --version 2>&1 | head -n 1 || true

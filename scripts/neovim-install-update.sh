@@ -118,4 +118,4 @@ $SUDO ln -sfn "${symlink_dir}/bin/nvim" /usr/local/bin/nvim
 echo "Done."
 echo "nvim path: $(command -v nvim || true)"
 echo "nvim version:"
-nvim --version | head -n 2
+nvim --version 2>&1 | head -n 2 || true

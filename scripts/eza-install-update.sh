@@ -27,4 +27,4 @@ gr_install_from_targz "$url" eza "$BIN_PATH"
 
 echo "Done."
 echo "eza path: $(command -v eza || true)"
-eza --version | head -n 1
+gr_print_version_line eza

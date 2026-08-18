@@ -73,7 +73,7 @@ extract_dir="${tmpdir}/extract"
 mkdir -p "$extract_dir"
 tar -xzf "$tarball" -C "$extract_dir"
 
-binary="$(find "$extract_dir" -type f -name lazygit | head -n 1)"
+binary="$(find "$extract_dir" -type f -name lazygit -print -quit)"
 if [[ -z "${binary:-}" || ! -f "$binary" ]]; then
   echo "ERROR: lazygit binary not found in archive" >&2
   exit 1
@@ -84,4 +84,4 @@ $SUDO install -m 755 "$binary" "$BIN_PATH"
 
 echo "Done."
 echo "lazygit path: $(command -v lazygit || true)"
-lazygit --version | head -n 1
+lazygit --version 2>&1 | head -n 1 || true

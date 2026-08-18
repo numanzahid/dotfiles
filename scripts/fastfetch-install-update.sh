@@ -116,4 +116,4 @@ fi
 
 echo "Done."
 echo "fastfetch path: $(command -v fastfetch || true)"
-fastfetch --version | head -n 1
+fastfetch --version 2>&1 | head -n 1 || true

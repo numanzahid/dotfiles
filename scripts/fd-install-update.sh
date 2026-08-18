@@ -27,4 +27,4 @@ gr_install_from_targz "$url" fd "$BIN_PATH"
 
 echo "Done."
 echo "fd path: $(command -v fd || true)"
-fd --version | head -n 1
+gr_print_version_line fd

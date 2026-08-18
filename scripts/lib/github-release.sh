@@ -42,7 +42,14 @@ gr_download() {
 gr_find_binary() {
   local dir="$1"
   local name="$2"
-  find "$dir" -type f -name "$name" | head -n 1
+  find "$dir" -type f -name "$name" -print -quit
+}
+
+# Safe under set -o pipefail (plain "cmd --version | head" can exit 141).
+gr_print_version_line() {
+  local cmd="$1"
+  shift
+  "$cmd" --version "$@" 2>&1 | head -n 1 || true
 }
 
 gr_install_binary() {
