@@ -16,12 +16,8 @@ INSTALL_TOOLS=0
 INSTALL_LAZYGIT=0
 INSTALL_GH=0
 INSTALL_NEOVIM=0
-INSTALL_FASTFETCH=0
-INSTALL_PFETCH=0
 INSTALL_TPM=0
 INSTALL_FZF=0
-PROMPT_FETCH=0
-FETCH_MODE=""
 DRY_RUN=0
 
 usage() {
@@ -34,13 +30,9 @@ Options:
   --lazygit    Run scripts/lazygit-install-update.sh (GitHub release)
   --gh         Run scripts/gh-install-update.sh (GitHub release)
   --neovim     Run scripts/neovim-install-update.sh (GitHub release, not apt)
-  --fastfetch  Install fastfetch and enable tmux fetch banner
-  --pfetch     Install pfetch and enable tmux fetch banner
-  --fetch MODE Set tmux fetch mode: none, fastfetch, or pfetch (non-interactive)
   --tpm        Clone tmux-plugin-manager if missing
   --fzf        Clone and install junegunn/fzf if missing
   --all        Enable --deps --tools --lazygit --gh --neovim --tpm --fzf
-               (prompts for optional tmux fetch banner: none / fastfetch / pfetch)
   --dry-run    Print actions without changing anything
   -h, --help   Show this help
 
@@ -48,14 +40,16 @@ LazyVim extras (optional, not part of --all):
   ./lazyvim/install-lazyvim.sh          # full IDE profile (Mason, LSP, Node)
   ./lazyvim-lite/install-lazyvim-lite.sh # editor-only profile (no Mason/LSP/Node)
 
-Tmux fetch banners (optional, not enabled by default):
-  ./scripts/setup-tmux-fetch.sh              # interactive prompt
-  ./scripts/setup-tmux-fetch.sh fastfetch
-  ./scripts/setup-tmux-fetch.sh none
+Tmux fetch banners (optional, not part of --all):
+  ./install-fetch.sh                    # interactive: none / fastfetch / pfetch / both
+  ./install-fetch.sh fastfetch
+  ./install-fetch.sh both
+  ./install-fetch.sh none
 
 Default behavior links config files into $HOME.
 Neovim editor rules: home/.config/nvim-plain (plain nvim, no plugins).
 LazyVim nvim config is not linked here.
+Fetch banner mode (~/.config/tmux/fetch.conf) is never reset if it already exists.
 EOF
 }
 
@@ -78,9 +72,7 @@ needs_privileged_install() {
     "$INSTALL_TOOLS" -eq 1 ||
     "$INSTALL_LAZYGIT" -eq 1 ||
     "$INSTALL_GH" -eq 1 ||
-    "$INSTALL_NEOVIM" -eq 1 ||
-    "$INSTALL_FASTFETCH" -eq 1 ||
-    "$INSTALL_PFETCH" -eq 1 ]]
+    "$INSTALL_NEOVIM" -eq 1 ]]
 }
 
 ensure_sudo_for_install() {
@@ -144,8 +136,8 @@ link_fetch_conf_default() {
 
   mkdir -p "$TARGET_HOME/.config/tmux"
 
-  if [[ -e "$dest" ]]; then
-    log "exists, not overwriting: $dest"
+  if [[ -e "$dest" || -L "$dest" ]]; then
+    log "fetch banner left untouched: $dest"
     return 0
   fi
 
@@ -230,31 +222,6 @@ while [[ $# -gt 0 ]]; do
     --lazygit) INSTALL_LAZYGIT=1 ;;
     --gh) INSTALL_GH=1 ;;
     --neovim) INSTALL_NEOVIM=1 ;;
-    --fastfetch)
-      INSTALL_FASTFETCH=1
-      FETCH_MODE="fastfetch"
-      ;;
-    --pfetch)
-      INSTALL_PFETCH=1
-      FETCH_MODE="pfetch"
-      ;;
-    --fetch)
-      shift
-      FETCH_MODE="${1:?--fetch requires none, fastfetch, or pfetch}"
-      case "$FETCH_MODE" in
-        none)
-          INSTALL_FASTFETCH=0
-          INSTALL_PFETCH=0
-          ;;
-        fastfetch) INSTALL_FASTFETCH=1 ;;
-        pfetch) INSTALL_PFETCH=1 ;;
-        *)
-          echo "Unknown --fetch mode: $FETCH_MODE" >&2
-          exit 1
-          ;;
-      esac
-      shift
-      ;;
     --tpm) INSTALL_TPM=1 ;;
     --fzf) INSTALL_FZF=1 ;;
     --all)
@@ -265,7 +232,6 @@ while [[ $# -gt 0 ]]; do
       INSTALL_NEOVIM=1
       INSTALL_TPM=1
       INSTALL_FZF=1
-      PROMPT_FETCH=1
       ;;
     --dry-run) DRY_RUN=1 ;;
     -h | --help)
@@ -338,44 +304,6 @@ if [[ "$INSTALL_NEOVIM" -eq 1 ]]; then
   fi
 fi
 
-if [[ "$INSTALL_FASTFETCH" -eq 1 ]]; then
-  log "installing fastfetch via scripts/fastfetch-install-update.sh"
-  if [[ "$DRY_RUN" -eq 1 ]]; then
-    run bash "$SCRIPTS_DIR/fastfetch-install-update.sh"
-    run bash "$SCRIPTS_DIR/enable-tmux-fetch.sh" fastfetch
-  else
-    bash "$SCRIPTS_DIR/fastfetch-install-update.sh"
-    bash "$SCRIPTS_DIR/enable-tmux-fetch.sh" fastfetch
-  fi
-fi
-
-if [[ "$INSTALL_PFETCH" -eq 1 ]]; then
-  log "installing pfetch via scripts/pfetch-install-update.sh"
-  if [[ "$DRY_RUN" -eq 1 ]]; then
-    run bash "$SCRIPTS_DIR/pfetch-install-update.sh"
-    run bash "$SCRIPTS_DIR/enable-tmux-fetch.sh" pfetch
-  else
-    bash "$SCRIPTS_DIR/pfetch-install-update.sh"
-    bash "$SCRIPTS_DIR/enable-tmux-fetch.sh" pfetch
-  fi
-fi
-
-if [[ "$PROMPT_FETCH" -eq 1 && -z "$FETCH_MODE" ]]; then
-  log "optional tmux fetch banner"
-  if [[ "$DRY_RUN" -eq 1 ]]; then
-    run bash "$SCRIPTS_DIR/setup-tmux-fetch.sh" --dry-run
-  else
-    bash "$SCRIPTS_DIR/setup-tmux-fetch.sh"
-  fi
-elif [[ -n "$FETCH_MODE" && "$FETCH_MODE" == "none" && "$PROMPT_FETCH" -eq 0 ]]; then
-  log "tmux fetch banner: none"
-  if [[ "$DRY_RUN" -eq 1 ]]; then
-    run bash "$SCRIPTS_DIR/enable-tmux-fetch.sh" none
-  else
-    bash "$SCRIPTS_DIR/enable-tmux-fetch.sh" none
-  fi
-fi
-
 cat <<'EOF'
 
 Next steps:
@@ -385,8 +313,10 @@ Next steps:
        ./lazyvim-lite/install-lazyvim-lite.sh
        ./lazyvim/install-lazyvim.sh
      Without them, nvim uses the plain editor config from this install.
-  4. Tmux fetch banner: chosen during install, or run:
-       ./scripts/setup-tmux-fetch.sh
+  4. Optional fetch banner (not part of --all; does not change an existing banner):
+       ./install-fetch.sh                 # prompt: none / fastfetch / pfetch / both
+       ./install-fetch.sh fastfetch
+       ./install-fetch.sh both
   5. Optional: nvm/Node via ./scripts/nvm-install-update.sh
 
 EOF

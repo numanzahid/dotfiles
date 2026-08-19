@@ -34,8 +34,8 @@ require_cmd() {
     echo "ERROR: $1 is not installed." >&2
     echo "Install first:" >&2
     case "$1" in
-      fastfetch) echo "  $DOTFILES_DIR/scripts/fastfetch-install-update.sh" >&2 ;;
-      pfetch) echo "  $DOTFILES_DIR/scripts/pfetch-install-update.sh" >&2 ;;
+      fastfetch) echo "  $DOTFILES_DIR/install-fetch.sh fastfetch" >&2 ;;
+      pfetch) echo "  $DOTFILES_DIR/install-fetch.sh pfetch" >&2 ;;
     esac
     exit 1
   fi
@@ -54,20 +54,23 @@ link_fetch_mode() {
   ln -sfn "$src" "$FETCH_CONF"
 }
 
-show_status() {
+tmux_fetch_current_mode() {
   if [[ ! -e "$FETCH_CONF" ]]; then
-    echo "mode: none (fetch.conf not set)"
+    printf '%s\n' "none"
     return 0
   fi
 
   local target
   target="$(readlink -f "$FETCH_CONF" 2>/dev/null || readlink "$FETCH_CONF" 2>/dev/null || true)"
   case "$(basename "${target:-}")" in
-    fetch-fastfetch.conf) echo "mode: fastfetch" ;;
-    fetch-pfetch.conf) echo "mode: pfetch" ;;
-    fetch-none.conf | "") echo "mode: none" ;;
-    *) echo "mode: custom ($target)" ;;
+    fetch-fastfetch.conf) printf '%s\n' "fastfetch" ;;
+    fetch-pfetch.conf) printf '%s\n' "pfetch" ;;
+    *) printf '%s\n' "none" ;;
   esac
+}
+
+show_status() {
+  printf 'mode: %s\n' "$(tmux_fetch_current_mode)"
 }
 
 reload_tmux() {
@@ -82,41 +85,58 @@ reload_tmux() {
   fi
 }
 
-if [[ $# -ne 1 ]]; then
-  usage >&2
-  exit 1
-fi
+apply_tmux_fetch_mode() {
+  local mode="$1"
+  local reload="${2:-1}"
 
-case "$1" in
-  none | off | disable)
-    link_fetch_mode "fetch-none.conf"
-    echo "Tmux fetch mode: none"
-    ;;
-  fastfetch)
-    require_cmd fastfetch
-    link_fetch_mode "fetch-fastfetch.conf"
-    echo "Tmux fetch mode: fastfetch"
-    echo "Config: $TMUX_CONFIG_DIR/fastfetch.jsonc"
-    ;;
-  pfetch)
-    require_cmd pfetch
-    link_fetch_mode "fetch-pfetch.conf"
-    echo "Tmux fetch mode: pfetch"
-    echo "Config: ${XDG_CONFIG_HOME:-$HOME/.config}/pfetch/pfetchrc"
-    ;;
-  status)
-    show_status
-    exit 0
-    ;;
-  -h | --help)
-    usage
-    exit 0
-    ;;
-  *)
-    echo "Unknown mode: $1" >&2
+  case "$mode" in
+    none | off | disable)
+      link_fetch_mode "fetch-none.conf"
+      echo "Tmux fetch mode: none"
+      ;;
+    fastfetch)
+      require_cmd fastfetch
+      link_fetch_mode "fetch-fastfetch.conf"
+      echo "Tmux fetch mode: fastfetch"
+      echo "Config: $TMUX_CONFIG_DIR/fastfetch.jsonc"
+      ;;
+    pfetch)
+      require_cmd pfetch
+      link_fetch_mode "fetch-pfetch.conf"
+      echo "Tmux fetch mode: pfetch"
+      echo "Config: ${XDG_CONFIG_HOME:-$HOME/.config}/pfetch/pfetchrc"
+      ;;
+    *)
+      echo "Unknown mode: $mode" >&2
+      return 1
+      ;;
+  esac
+
+  if [[ "$reload" -eq 1 ]]; then
+    reload_tmux
+  fi
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  if [[ $# -ne 1 ]]; then
     usage >&2
     exit 1
-    ;;
-esac
+  fi
 
-reload_tmux
+  case "$1" in
+    none | off | disable | fastfetch | pfetch)
+      apply_tmux_fetch_mode "$1"
+      ;;
+    status)
+      show_status
+      ;;
+    -h | --help)
+      usage
+      ;;
+    *)
+      echo "Unknown mode: $1" >&2
+      usage >&2
+      exit 1
+      ;;
+  esac
+fi

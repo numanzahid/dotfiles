@@ -86,7 +86,7 @@ fetch() {
       command -v pfetch >/dev/null 2>&1 && pfetch
       ;;
     *)
-      echo "fetch banner disabled (mode: none). Run: ~/dotfiles/scripts/setup-tmux-fetch.sh"
+      echo "fetch banner disabled (mode: none). Run: ~/dotfiles/install-fetch.sh"
       ;;
   esac
 }

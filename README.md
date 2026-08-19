@@ -9,7 +9,7 @@ On a fresh temp VM or machine:
 ```bash
 git clone git@github.com:numanzahid/dotfiles.git ~/dotfiles
 cd ~/dotfiles
-chmod +x install.sh install-deps.sh install-tools.sh lazyvim/*.sh lazyvim/lib/*.sh scripts/*.sh
+chmod +x install.sh install-deps.sh install-tools.sh install-fetch.sh lazyvim/*.sh lazyvim/lib/*.sh scripts/*.sh
 ./install.sh --all
 ```
 
@@ -22,9 +22,18 @@ Optional LazyVim bootstrap (not part of `--all`):
 ./lazyvim-lite/install-lazyvim-lite.sh    # editor-only (no Mason/LSP/Node)
 ```
 
+Optional fetch banner (not part of `--all`):
+
+```bash
+./install-fetch.sh              # prompt: none / fastfetch / pfetch / both
+./install-fetch.sh fastfetch    # install and enable fastfetch
+./install-fetch.sh both         # install both; keep current banner if set
+./install-fetch.sh none         # disable banner
+```
+
 Without those scripts, `nvim` uses the plain editor config (`home/.config/nvim-plain`).
-`./install.sh` never links or resets LazyVim. Re-running `--all` leaves an existing LazyVim
-nvim config untouched.
+`./install.sh` never links or resets LazyVim, and never changes an existing fetch banner.
+Re-running `--all` leaves LazyVim nvim config and `~/.config/tmux/fetch.conf` untouched.
 
 ## install.sh
 
@@ -34,18 +43,16 @@ nvim config untouched.
 | `--tools` | bat, fd, zoxide, eza |
 | `--lazygit` / `--gh` | lazygit, GitHub CLI |
 | `--neovim` | Neovim from GitHub release |
-| `--fastfetch` / `--pfetch` | Install one fetch tool + enable tmux banner |
-| `--fetch MODE` | Set tmux fetch: `none`, `fastfetch`, or `pfetch` (no prompt) |
 | `--tpm` / `--fzf` | tmux plugins, fzf |
-| `--all` | Base bootstrap; prompts for tmux fetch banner |
+| `--all` | Base bootstrap (no LazyVim, no fetch banner prompt) |
 | `--dry-run` | Preview only |
 
 After install, open tmux and run `prefix + Shift + I` once for TPM plugins.
 
-Tmux fetch banner: prompted during `./install.sh --all`, or run:
+Tmux fetch banner (separate from `--all`):
 
 ```bash
-./scripts/setup-tmux-fetch.sh
+./install-fetch.sh
 ```
 
 ## Updates
@@ -66,7 +73,7 @@ Node.js only:
 
 ```text
 dotfiles/
-  install.sh install-deps.sh install-tools.sh
+  install.sh install-deps.sh install-tools.sh install-fetch.sh
   lazyvim/            # full LazyVim installer (owns LazyVim nvim link)
   lazyvim-lite/       # editor-only LazyVim installer
   scripts/

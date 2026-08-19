@@ -19,8 +19,10 @@ Usage: ./install-tools.sh [options]
 Install or upgrade from upstream releases:
   bat, fd, zoxide, eza
 
-Fastfetch and lazygit are separate:
-  ./scripts/fastfetch-install-update.sh
+Fastfetch and pfetch are separate:
+  ./install-fetch.sh
+
+Lazygit is separate:
   ./scripts/lazygit-install-update.sh
 
 Options:
