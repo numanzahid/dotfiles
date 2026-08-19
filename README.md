@@ -9,7 +9,7 @@ On a fresh temp VM or machine:
 ```bash
 git clone git@github.com:numanzahid/dotfiles.git ~/dotfiles
 cd ~/dotfiles
-chmod +x install.sh install-deps.sh install-tools.sh install-fetch.sh lazyvim/*.sh lazyvim/lib/*.sh scripts/*.sh
+chmod +x install.sh install-deps.sh install-tools.sh install-fetch.sh install-ai-cli.sh lazyvim/*.sh lazyvim/lib/*.sh scripts/*.sh
 ./install.sh --all
 ```
 
@@ -31,9 +31,26 @@ Optional fetch banner (not part of `--all`):
 ./install-fetch.sh none         # disable banner
 ```
 
+Optional AI coding CLIs (not part of `--all`):
+
+```bash
+./install-ai-cli.sh             # prompt per tool
+./install-ai-cli.sh all         # OpenCode, Cursor, Claude Code, Codex
+./install-ai-cli.sh claude opencode
+```
+
+Official sources:
+
+| Tool | Installer |
+|------|-----------|
+| OpenCode | `https://opencode.ai/install` |
+| Cursor CLI (`agent`) | `https://cursor.com/install` |
+| Claude Code | `https://claude.ai/install.sh` |
+| Codex | `https://chatgpt.com/codex/install.sh` |
+
 Without those scripts, `nvim` uses the plain editor config (`home/.config/nvim-plain`).
-`./install.sh` never links or resets LazyVim, and never changes an existing fetch banner.
-Re-running `--all` leaves LazyVim nvim config and `~/.config/tmux/fetch.conf` untouched.
+`./install.sh` never links or resets LazyVim, never changes an existing fetch banner,
+and never installs AI CLIs. Re-running `--all` leaves those extras untouched.
 
 ## install.sh
 
@@ -73,7 +90,7 @@ Node.js only:
 
 ```text
 dotfiles/
-  install.sh install-deps.sh install-tools.sh install-fetch.sh
+  install.sh install-deps.sh install-tools.sh install-fetch.sh install-ai-cli.sh
   lazyvim/            # full LazyVim installer (owns LazyVim nvim link)
   lazyvim-lite/       # editor-only LazyVim installer
   scripts/

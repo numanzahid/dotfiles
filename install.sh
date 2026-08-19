@@ -46,10 +46,16 @@ Tmux fetch banners (optional, not part of --all):
   ./install-fetch.sh both
   ./install-fetch.sh none
 
+AI coding CLIs (optional, not part of --all):
+  ./install-ai-cli.sh                   # prompt: opencode / cursor / claude / codex
+  ./install-ai-cli.sh all
+  ./install-ai-cli.sh claude opencode
+
 Default behavior links config files into $HOME.
 Neovim editor rules: home/.config/nvim-plain (plain nvim, no plugins).
 LazyVim nvim config is not linked here.
 Fetch banner mode (~/.config/tmux/fetch.conf) is never reset if it already exists.
+OpenCode config is linked only by ./install-ai-cli.sh.
 EOF
 }
 
@@ -174,8 +180,6 @@ install_dotfiles() {
   link_path "$SOURCE_DIR/.config/btop" "$TARGET_HOME/.config/btop"
   mkdir -p "$TARGET_HOME/.config/lazygit"
   link_path "$SOURCE_DIR/.config/lazygit/config.yml" "$TARGET_HOME/.config/lazygit/config.yml"
-  mkdir -p "$TARGET_HOME/.config/opencode"
-  link_path "$SOURCE_DIR/.config/opencode/opencode.jsonc" "$TARGET_HOME/.config/opencode/opencode.jsonc"
 
   mkdir -p "$TARGET_HOME/.ssh"
   chmod 700 "$TARGET_HOME/.ssh"
@@ -317,6 +321,9 @@ Next steps:
        ./install-fetch.sh                 # prompt: none / fastfetch / pfetch / both
        ./install-fetch.sh fastfetch
        ./install-fetch.sh both
-  5. Optional: nvm/Node via ./scripts/nvm-install-update.sh
+  5. Optional AI CLIs (not part of --all):
+       ./install-ai-cli.sh                # prompt: opencode / cursor / claude / codex
+       ./install-ai-cli.sh all
+  6. Optional: nvm/Node via ./scripts/nvm-install-update.sh
 
 EOF

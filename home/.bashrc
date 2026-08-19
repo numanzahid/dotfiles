@@ -112,8 +112,10 @@ export EDITOR=nvim
 # User-local binaries.
 export PATH="$HOME/.local/bin:$PATH"
 
-# opencode.
-export PATH="$HOME/.opencode/bin:$PATH"
+# OpenCode (only if installed; see ./install-ai-cli.sh).
+if [ -d "$HOME/.opencode/bin" ]; then
+  export PATH="$HOME/.opencode/bin:$PATH"
+fi
 
 # Optional Rust/cargo (not installed by dotfiles by default).
 [ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
