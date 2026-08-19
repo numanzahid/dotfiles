@@ -26,7 +26,7 @@ LAZYVIM_ALLOW_ROOT=true ./lazyvim/install-lazyvim.sh
 2. Installs only missing apt packages (no build-essential, no LLVM)
 3. Installs prebuilt Tree-sitter CLI (no Rust/Cargo)
 4. Ensures minimal `gcc` + `libc6-dev` only if no working C compiler exists
-5. Enables LazyVim nvim profile and official LazyExtras
+5. Links the LazyVim nvim config and enables the LazyVim profile
 6. Runs headless `Lazy! sync` + `Lazy! load all`
 7. Verifies health and prints disk usage
 
@@ -104,6 +104,9 @@ Removes broken Mason tree-sitter, optional `libclang-dev`/`clang` apt packages, 
 ```bash
 ./lazyvim/uninstall-lazyvim.sh
 ```
+
+This restores the plain editor config (`nvim-plain`) and removes LazyVim plugin data.
+The Neovim binary is not removed.
 
 ## Disk usage
 

@@ -1,5 +1,5 @@
--- Plain Neovim: no LazyVim, no plugin manager.
--- Active when ~/.local/share/dotfiles/nvim-profile is missing or unset.
+-- Fallback if this LazyVim tree is linked but no profile file is set.
+-- Normal plain nvim uses home/.config/nvim-plain (linked by ./install.sh).
 
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "

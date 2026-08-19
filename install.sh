@@ -54,6 +54,8 @@ Tmux fetch banners (optional, not enabled by default):
   ./scripts/setup-tmux-fetch.sh none
 
 Default behavior links config files into $HOME.
+Neovim editor rules: home/.config/nvim-plain (plain nvim, no plugins).
+LazyVim nvim config is not linked here.
 EOF
 }
 
@@ -101,30 +103,25 @@ ensure_sudo_for_install() {
   df_ensure_sudo
 }
 
+# shellcheck source=scripts/lib/link.sh
+source "$SCRIPTS_DIR/lib/link.sh"
+
 link_path() {
-  local src="$1"
-  local dest="$2"
+  df_link_path "$@"
+}
 
-  if [[ ! -e "$src" ]]; then
-    log "skip missing source: $src"
+link_plain_nvim() {
+  local src="$SOURCE_DIR/.config/nvim-plain"
+  local dest="$TARGET_HOME/.config/nvim"
+  local lazyvim_src="$SOURCE_DIR/.config/nvim"
+
+  if [[ -e "$dest" || -L "$dest" ]] && df_paths_same "$dest" "$lazyvim_src"; then
+    log "nvim: LazyVim config left untouched (managed by lazyvim scripts)"
     return 0
   fi
 
-  mkdir -p "$(dirname "$dest")"
-
-  if [[ -L "$dest" && "$(readlink "$dest")" == "$src" ]]; then
-    log "already linked: $dest"
-    return 0
-  fi
-
-  if [[ -e "$dest" || -L "$dest" ]]; then
-    local backup="${dest}.pre-dotfiles-$(date +%Y%m%d%H%M%S)"
-    log "backup existing: $dest -> $backup"
-    run mv "$dest" "$backup"
-  fi
-
-  log "link: $dest -> $src"
-  run ln -sfn "$src" "$dest"
+  link_path "$src" "$dest"
+  log "nvim: plain editor config"
 }
 
 copy_if_missing() {
@@ -168,7 +165,7 @@ install_dotfiles() {
   link_path "$SOURCE_DIR/.tmux.conf" "$TARGET_HOME/.tmux.conf"
   link_path "$SOURCE_DIR/.fzf.bash" "$TARGET_HOME/.fzf.bash"
 
-  link_path "$SOURCE_DIR/.config/nvim" "$TARGET_HOME/.config/nvim"
+  link_plain_nvim
   link_path "$SOURCE_DIR/.config/fastfetch" "$TARGET_HOME/.config/fastfetch"
 
   link_path "$SOURCE_DIR/.config/tmux/fastfetch.jsonc" "$TARGET_HOME/.config/tmux/fastfetch.jsonc"
@@ -192,8 +189,6 @@ install_dotfiles() {
   chmod 700 "$TARGET_HOME/.ssh"
   copy_if_missing "$SOURCE_DIR/.ssh/config.example" "$TARGET_HOME/.ssh/config"
   run chmod 600 "$TARGET_HOME/.ssh/config" 2>/dev/null || true
-
-  log "nvim: plain by default (run ./lazyvim/install-lazyvim.sh or ./lazyvim-lite/install-lazyvim-lite.sh to enable LazyVim)"
 }
 
 install_tpm() {
@@ -386,9 +381,10 @@ cat <<'EOF'
 Next steps:
   1. Copy SSH private keys into ~/.ssh/ manually (never commit keys).
   2. Open tmux and press prefix + Shift + I to install tmux plugins.
-  3. Optional LazyVim setup (enables LazyVim profile + plugins):
+  3. Optional LazyVim (not part of --all; these scripts own nvim LazyVim config):
+       ./lazyvim-lite/install-lazyvim-lite.sh
        ./lazyvim/install-lazyvim.sh
-     Without it, nvim uses plain Neovim with no plugin downloads.
+     Without them, nvim uses the plain editor config from this install.
   4. Tmux fetch banner: chosen during install, or run:
        ./scripts/setup-tmux-fetch.sh
   5. Optional: nvm/Node via ./scripts/nvm-install-update.sh

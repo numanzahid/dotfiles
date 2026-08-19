@@ -22,9 +22,9 @@ Optional LazyVim bootstrap (not part of `--all`):
 ./lazyvim-lite/install-lazyvim-lite.sh    # editor-only (no Mason/LSP/Node)
 ```
 
-Without those scripts, `nvim` uses plain Neovim (no LazyVim, no plugin downloads).
-
-Plain `./install.sh` only symlinks configs into `$HOME`.
+Without those scripts, `nvim` uses the plain editor config (`home/.config/nvim-plain`).
+`./install.sh` never links or resets LazyVim. Re-running `--all` leaves an existing LazyVim
+nvim config untouched.
 
 ## install.sh
 
@@ -67,9 +67,12 @@ Node.js only:
 ```text
 dotfiles/
   install.sh install-deps.sh install-tools.sh
-  lazyvim/       # lean LazyVim installer
+  lazyvim/            # full LazyVim installer (owns LazyVim nvim link)
+  lazyvim-lite/       # editor-only LazyVim installer
   scripts/
-  home/          # symlinked into $HOME
+  home/               # symlinked into $HOME
+    .config/nvim-plain/   # plain editor rules (linked by install.sh)
+    .config/nvim/         # LazyVim config (linked only by lazyvim scripts)
 ```
 
 ## Security

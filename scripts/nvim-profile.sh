@@ -21,7 +21,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
       ;;
     *)
       echo "Usage: $(basename "$0") {none|lazyvim|lazyvim-lite|status}" >&2
-      echo "  none         plain nvim (removes profile file)" >&2
+      echo "  none         plain nvim (nvim-plain config, no LazyVim)" >&2
       echo "  lazyvim      full LazyVim IDE profile" >&2
       echo "  lazyvim-lite editor-only LazyVim (no Mason/LSP/Node)" >&2
       exit 1

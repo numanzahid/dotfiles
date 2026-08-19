@@ -77,6 +77,8 @@ check_neovim() {
 }
 
 prepare_lazyvim_lite_config() {
+  log "linking LazyVim nvim config"
+  link_nvim_lazyvim_config
   log "enabling LazyVim-lite nvim profile"
   if [[ "$DRY_RUN" -eq 1 ]]; then
     run set_nvim_profile "lazyvim-lite"

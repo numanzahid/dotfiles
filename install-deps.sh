@@ -16,6 +16,7 @@ df_ensure_sudo
 
 PACKAGES=(
   bash
+  bash-completion
   ca-certificates
   curl
   git
@@ -71,4 +72,4 @@ echo "Fastfetch: ./scripts/fastfetch-install-update.sh"
 echo "Pfetch:    ./scripts/pfetch-install-update.sh"
 echo "Neovim:    ./install.sh --neovim  (or --all)"
 echo "Nvm/Node:  ./scripts/nvm-install-update.sh"
-echo "LazyVim:   ./lazyvim/install-lazyvim.sh  (optional, after neovim)"
+echo "LazyVim:   ./lazyvim/install-lazyvim.sh or ./lazyvim-lite/install-lazyvim-lite.sh"

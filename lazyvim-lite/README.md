@@ -19,7 +19,7 @@ Switch profiles later:
 ```bash
 ./scripts/nvim-profile.sh lazyvim-lite   # this build
 ./scripts/nvim-profile.sh lazyvim        # full IDE profile
-./scripts/nvim-profile.sh none           # plain nvim (remove profile file)
+./scripts/nvim-profile.sh none           # plain nvim (nvim-plain config)
 ./scripts/nvim-profile.sh status
 ```
 

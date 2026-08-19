@@ -51,11 +51,10 @@ confirm() {
 
 main() {
   parse_args "$@"
-
-  log "switching nvim profile to none (plain nvim)"
-  run clear_nvim_profile
-
   confirm
+
+  log "switching nvim back to plain editor config"
+  run clear_nvim_profile
 
   for path in \
     "${XDG_DATA_HOME:-$HOME/.local/share}/nvim" \
