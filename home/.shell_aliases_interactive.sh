@@ -20,6 +20,8 @@ if command -v zoxide >/dev/null 2>&1; then
   zd() {
     if [ $# -eq 0 ]; then
       builtin cd ~ && return
+    elif [ "$1" = "-" ]; then
+      builtin cd - && return
     elif [ -d "$1" ]; then
       builtin cd "$1"
     else
@@ -117,6 +119,11 @@ alias egrep='egrep --color=auto'
 alias ..='cd ..'
 alias ...='cd ../..'
 alias ....='cd ../../..'
+alias -- -='cd -'
+
+mkcd() {
+  mkdir -p -- "$1" && builtin cd -- "$1"
+}
 
 ##### Desktop notification helper ######################################
 
