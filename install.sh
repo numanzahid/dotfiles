@@ -73,6 +73,27 @@ run() {
   fi
 }
 
+GITHUB_STEP_FAILED=0
+
+run_github_step() {
+  local label="$1"
+  shift
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    run "$@"
+    return 0
+  fi
+  if "$@"; then
+    return 0
+  fi
+  log "WARN: $label failed (often GitHub); continuing"
+  GITHUB_STEP_FAILED=1
+  return 0
+}
+
+git_github() {
+  git -c http.version=HTTP/1.1 "$@"
+}
+
 needs_privileged_install() {
   [[ "$INSTALL_DEPS" -eq 1 ||
     "$INSTALL_TOOLS" -eq 1 ||
@@ -196,7 +217,7 @@ install_tpm() {
 
   log "installing tmux plugin manager..."
   run mkdir -p "$TARGET_HOME/.tmux/plugins"
-  run git clone https://github.com/tmux-plugins/tpm "$tpm_dir"
+  run git_github clone -4 https://github.com/tmux-plugins/tpm "$tpm_dir"
 }
 
 install_fzf() {
@@ -205,13 +226,13 @@ install_fzf() {
   if [[ -d "$fzf_dir/.git" ]]; then
     log "updating fzf in $fzf_dir"
     if [[ "$DRY_RUN" -eq 1 ]]; then
-      run git -C "$fzf_dir" pull --ff-only
+      run git_github -C "$fzf_dir" pull -4 --ff-only
     else
-      git -C "$fzf_dir" pull --ff-only
+      git_github -C "$fzf_dir" pull -4 --ff-only
     fi
   else
     log "installing fzf..."
-    run git clone --depth 1 https://github.com/junegunn/fzf.git "$fzf_dir"
+    run git_github clone -4 --depth 1 https://github.com/junegunn/fzf.git "$fzf_dir"
   fi
 
   if [[ "$DRY_RUN" -eq 0 ]]; then
@@ -258,54 +279,39 @@ fi
 install_dotfiles
 
 if [[ "$INSTALL_DEPS" -eq 1 ]]; then
-  if [[ "$DRY_RUN" -eq 1 ]]; then
-    run "$DOTFILES_DIR/install-deps.sh"
-  else
-    bash "$DOTFILES_DIR/install-deps.sh"
-  fi
+  run_github_step "install-deps.sh" bash "$DOTFILES_DIR/install-deps.sh"
 fi
 
 if [[ "$INSTALL_TOOLS" -eq 1 ]]; then
-  if [[ "$DRY_RUN" -eq 1 ]]; then
-    run "$DOTFILES_DIR/install-tools.sh"
-  else
-    bash "$DOTFILES_DIR/install-tools.sh"
-  fi
+  run_github_step "install-tools.sh" bash "$DOTFILES_DIR/install-tools.sh"
 fi
 
 if [[ "$INSTALL_LAZYGIT" -eq 1 ]]; then
   log "installing lazygit via scripts/lazygit-install-update.sh"
-  if [[ "$DRY_RUN" -eq 1 ]]; then
-    run bash "$SCRIPTS_DIR/lazygit-install-update.sh"
-  else
-    bash "$SCRIPTS_DIR/lazygit-install-update.sh"
-  fi
+  run_github_step "lazygit" bash "$SCRIPTS_DIR/lazygit-install-update.sh"
 fi
 
 if [[ "$INSTALL_GH" -eq 1 ]]; then
   log "installing gh via scripts/gh-install-update.sh"
-  if [[ "$DRY_RUN" -eq 1 ]]; then
-    run bash "$SCRIPTS_DIR/gh-install-update.sh"
-  else
-    bash "$SCRIPTS_DIR/gh-install-update.sh"
-  fi
+  run_github_step "gh" bash "$SCRIPTS_DIR/gh-install-update.sh"
 fi
 
 if [[ "$INSTALL_FZF" -eq 1 ]]; then
-  install_fzf
+  run_github_step "fzf" install_fzf
 fi
 
 if [[ "$INSTALL_TPM" -eq 1 ]]; then
-  install_tpm
+  run_github_step "tpm" install_tpm
 fi
 
 if [[ "$INSTALL_NEOVIM" -eq 1 ]]; then
   log "installing neovim via scripts/neovim-install-update.sh"
-  if [[ "$DRY_RUN" -eq 1 ]]; then
-    run bash "$SCRIPTS_DIR/neovim-install-update.sh"
-  else
-    bash "$SCRIPTS_DIR/neovim-install-update.sh"
-  fi
+  run_github_step "neovim" bash "$SCRIPTS_DIR/neovim-install-update.sh"
+fi
+
+if [[ "$GITHUB_STEP_FAILED" -eq 1 ]]; then
+  log "one or more GitHub installs failed; re-run ./install.sh --all"
+  exit 1
 fi
 
 cat <<'EOF'

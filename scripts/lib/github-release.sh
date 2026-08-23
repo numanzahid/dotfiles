@@ -27,23 +27,19 @@ gr_sudo() {
   fi
 }
 
-# Shared curl flags so a GitHub blip does not abort install.sh --all.
-# curl --retry covers timeouts and HTTP 408/429/5xx. It does not retry TLS
-# reset (35) or recv failures. Do not use --retry-all-errors: that also
-# retries HTTP 404 and makes missing-asset fallbacks very slow.
+# GitHub often RSTs IPv6 and/or HTTP/2 (curl 35 at 0 bytes). Apt still works
+# because it does not use github.com. Prefer IPv4 + HTTP/1.1, then fall back.
+# Override: DOTFILES_CURL_MODE=auto|ipv4|default
 GR_CURL_HAS_RETRY_CONNREFUSED=""
 gr_curl() {
-  local -a args
-  local attempt=1
-  local max=4
-  local delay=5
-  local rc
+  local -a retry_flags extra modes
+  local mode attempt rc
 
-  args=(
-    --connect-timeout 20
-    --retry 6
-    --retry-delay 5
-    --retry-max-time 120
+  retry_flags=(
+    --connect-timeout 15
+    --retry 2
+    --retry-delay 2
+    --retry-max-time 45
   )
   if [[ -z "$GR_CURL_HAS_RETRY_CONNREFUSED" ]]; then
     GR_CURL_HAS_RETRY_CONNREFUSED=0
@@ -53,29 +49,72 @@ gr_curl() {
     fi
   fi
   if [[ "$GR_CURL_HAS_RETRY_CONNREFUSED" -eq 1 ]]; then
-    args+=(--retry-connrefused)
+    retry_flags+=(--retry-connrefused)
   fi
 
-  while true; do
-    curl "${args[@]}" "$@" && return 0
-    rc=$?
-    case "$rc" in
-      0) return 0 ;;
-      7 | 35 | 52 | 55 | 56) ;;
-      *) return "$rc" ;;
+  case "${DOTFILES_CURL_MODE:-auto}" in
+    ipv4) modes=("ipv4") ;;
+    default) modes=("default") ;;
+    *) modes=("ipv4" "http11" "default") ;;
+  esac
+
+  rc=1
+  for mode in "${modes[@]}"; do
+    extra=()
+    case "$mode" in
+      ipv4) extra=(-4 --http1.1) ;;
+      http11) extra=(--http1.1) ;;
     esac
-    if ((attempt >= max)); then
-      return "$rc"
-    fi
-    echo "WARNING: curl exit ${rc}; retry ${attempt}/${max} in ${delay}s" >&2
-    sleep "$delay"
-    attempt=$((attempt + 1))
-    delay=$((delay * 2))
+    for attempt in 1 2; do
+      curl "${retry_flags[@]}" "${extra[@]}" "$@" && return 0
+      rc=$?
+      case "$rc" in
+        7 | 28 | 35 | 52 | 55 | 56) ;;
+        *) return "$rc" ;;
+      esac
+      echo "WARNING: curl ${mode} exit ${rc}; retry ${attempt}/2" >&2
+      sleep 2
+    done
   done
+  return "$rc"
 }
 
 gr_wget() {
-  wget --timeout=20 --tries=8 --waitretry=5 --retry-connrefused "$@"
+  wget -4 --timeout=20 --tries=8 --waitretry=5 --retry-connrefused "$@"
+}
+
+gr_git() {
+  git -c http.version=HTTP/1.1 "$@"
+}
+
+gr_bin_has_tag() {
+  local dest="$1"
+  local tag="$2"
+  local ver="${tag#v}"
+  [[ -n "$ver" && -x "$dest" ]] || return 1
+  "$dest" --version 2>&1 | grep -F -q "$ver"
+}
+
+gr_keep_existing() {
+  local dest="$1"
+  local why="$2"
+  if [[ -x "$dest" ]]; then
+    echo "WARN: ${why}; keeping existing $dest" >&2
+    return 0
+  fi
+  return 1
+}
+
+gr_exit_if_keeping() {
+  local dest="$1"
+  local why="$2"
+  local bin
+  bin="$(basename "$dest")"
+  gr_keep_existing "$dest" "$why" || return 1
+  echo "Done."
+  echo "$bin path: $(command -v "$bin" || true)"
+  gr_print_version_line "$bin"
+  exit 0
 }
 
 gr_latest_tag() {
@@ -141,8 +180,14 @@ gr_install_from_targz() {
   local url="$1"
   local bin_name="$2"
   local dest_path="$3"
+  local tag="${4:-}"
 
   local sudo_cmd tmpdir tarball extract_dir binary
+  if [[ -n "$tag" ]] && gr_bin_has_tag "$dest_path" "$tag"; then
+    echo "Already current: $dest_path ($tag)"
+    return 0
+  fi
+
   sudo_cmd="$(gr_sudo)"
   tmpdir="$(mktemp -d)"
   tarball="${tmpdir}/archive.tar.gz"
@@ -150,7 +195,13 @@ gr_install_from_targz() {
 
   trap "rm -rf '${tmpdir}'" EXIT
 
-  gr_download "$url" "$tarball"
+  if ! gr_download "$url" "$tarball"; then
+    if gr_keep_existing "$dest_path" "GitHub download failed"; then
+      return 0
+    fi
+    echo "ERROR: download failed: $url" >&2
+    exit 1
+  fi
   mkdir -p "$extract_dir"
   tar -xzf "$tarball" -C "$extract_dir"
 

@@ -49,11 +49,21 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
+failed=()
 for tool_script in "${TOOLS[@]}"; do
   echo
   echo "==> ${tool_script}"
-  bash "$SCRIPTS_DIR/$tool_script"
+  if bash "$SCRIPTS_DIR/$tool_script"; then
+    continue
+  fi
+  echo "WARN: ${tool_script} failed (often GitHub); continuing" >&2
+  failed+=("$tool_script")
 done
 
 echo
+if ((${#failed[@]} > 0)); then
+  echo "WARN: GitHub tool installs failed: ${failed[*]}" >&2
+  echo "Re-run: ./install-tools.sh"
+  exit 1
+fi
 echo "CLI tools install complete."

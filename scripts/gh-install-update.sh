@@ -51,10 +51,22 @@ deb_arch() {
   esac
 }
 
-tag="$(latest_tag)"
+GH_BIN="$(command -v gh || true)"
+GH_BIN="${GH_BIN:-/usr/bin/gh}"
+
+tag="$(latest_tag || true)"
 if [[ -z "$tag" || "$tag" == "null" ]]; then
+  gr_exit_if_keeping "$GH_BIN" "could not resolve latest ${REPO} tag"
   echo "ERROR: could not resolve latest gh release tag" >&2
   exit 1
+fi
+
+if gr_bin_has_tag "$GH_BIN" "$tag"; then
+  echo "Already current: $GH_BIN ($tag)"
+  echo "Done."
+  echo "gh path: $(command -v gh || true)"
+  gh --version 2>&1 | head -n 1 || true
+  exit 0
 fi
 
 version="${tag#v}"
@@ -67,7 +79,11 @@ trap "rm -rf '${tmpdir}'" EXIT
 
 deb="${tmpdir}/${asset}"
 
-gr_download "$url" "$deb"
+if ! gr_download "$url" "$deb"; then
+  gr_exit_if_keeping "$GH_BIN" "GitHub download failed"
+  echo "ERROR: download failed: $url" >&2
+  exit 1
+fi
 
 echo "Installing: $asset"
 $SUDO apt-get install -y "$deb"

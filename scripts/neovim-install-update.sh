@@ -66,22 +66,28 @@ remove_apt_neovim() {
   fi
 }
 
-remove_apt_neovim
-
 tmpdir="$(mktemp -d)"
 trap "rm -rf '${tmpdir}'" EXIT
 
 tarball="${tmpdir}/${ASSET}"
+NVIM_BIN="${NVIM_BIN:-/usr/local/bin/nvim}"
 
 echo "Downloading: $URL"
+download_ok=1
+final_url=""
 if need_cmd curl; then
-  gr_curl -fL -o "$tarball" "$URL"
-  # Resolve the final URL to extract the version tag (best-effort).
-  final_url="$(gr_curl -fsSL -o /dev/null -w '%{url_effective}' "$URL" || true)"
+  final_url="$(gr_curl -fL -o "$tarball" -w '%{url_effective}' "$URL")" || download_ok=0
 else
-  gr_wget -O "$tarball" "$URL"
-  final_url="" # best-effort version detection not available with wget here
+  gr_wget -O "$tarball" "$URL" || download_ok=0
 fi
+
+if [[ "$download_ok" -ne 1 || ! -s "$tarball" ]]; then
+  gr_exit_if_keeping "$NVIM_BIN" "GitHub download failed"
+  echo "ERROR: download failed: $URL" >&2
+  exit 1
+fi
+
+remove_apt_neovim
 
 version="latest"
 if [[ -n "${final_url:-}" ]]; then

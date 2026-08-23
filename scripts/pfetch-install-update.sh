@@ -50,13 +50,13 @@ version="$tag"
 
 if [[ -d "$INSTALL_DIR/.git" ]]; then
   echo "Updating existing checkout in $INSTALL_DIR"
-  $SUDO git -C "$INSTALL_DIR" fetch --tags origin
+  $SUDO git -c http.version=HTTP/1.1 -C "$INSTALL_DIR" fetch -4 --tags origin
   $SUDO git -C "$INSTALL_DIR" checkout -f "$tag"
 else
   echo "Cloning pfetch $tag into $INSTALL_DIR"
   $SUDO mkdir -p "$(dirname "$INSTALL_DIR")"
   $SUDO rm -rf "$INSTALL_DIR"
-  $SUDO git clone --depth 1 --branch "$tag" "https://github.com/${REPO}.git" "$INSTALL_DIR"
+  $SUDO git -c http.version=HTTP/1.1 clone -4 --depth 1 --branch "$tag" "https://github.com/${REPO}.git" "$INSTALL_DIR"
 fi
 
 if [[ ! -f "$INSTALL_DIR/pfetch" ]]; then

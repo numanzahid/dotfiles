@@ -50,10 +50,19 @@ arch_suffix() {
   esac
 }
 
-tag="$(latest_tag)"
+tag="$(latest_tag || true)"
 if [[ -z "$tag" || "$tag" == "null" ]]; then
+  gr_exit_if_keeping "$BIN_PATH" "could not resolve latest ${REPO} tag"
   echo "ERROR: could not resolve latest lazygit release tag" >&2
   exit 1
+fi
+
+if gr_bin_has_tag "$BIN_PATH" "$tag"; then
+  echo "Already current: $BIN_PATH ($tag)"
+  echo "Done."
+  echo "lazygit path: $(command -v lazygit || true)"
+  lazygit --version 2>&1 | head -n 1 || true
+  exit 0
 fi
 
 version="${tag#v}"
@@ -66,7 +75,11 @@ trap "rm -rf '${tmpdir}'" EXIT
 
 tarball="${tmpdir}/${asset}"
 
-gr_download "$url" "$tarball"
+if ! gr_download "$url" "$tarball"; then
+  gr_exit_if_keeping "$BIN_PATH" "GitHub download failed"
+  echo "ERROR: download failed: $url" >&2
+  exit 1
+fi
 
 extract_dir="${tmpdir}/extract"
 mkdir -p "$extract_dir"
