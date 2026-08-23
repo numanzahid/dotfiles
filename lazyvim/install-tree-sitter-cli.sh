@@ -10,6 +10,8 @@ source "$SCRIPT_DIR/lib/common.sh"
 source "$SCRIPT_DIR/lib/arch.sh"
 # shellcheck source=../scripts/lib/platform.sh
 source "$SCRIPT_DIR/../scripts/lib/platform.sh"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/../scripts/lib/github-release.sh"
 
 TREE_SITTER_REPO="tree-sitter/tree-sitter"
 INSTALL_BIN="${HOME}/.local/bin/tree-sitter"
@@ -81,7 +83,7 @@ try_install_tree_sitter_release() {
   mkdir -p "$extract_dir"
 
   log "trying Tree-sitter CLI v${version} (${LAZYVIM_ARCH_LABEL})"
-  if ! run curl -fL --retry 3 --retry-delay 1 -o "$archive" "$url"; then
+  if ! run gr_curl -fL -o "$archive" "$url"; then
     warn "download failed for tree-sitter v${version}"
     return 1
   fi

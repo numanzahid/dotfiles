@@ -6,6 +6,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/nvm.sh
 source "$SCRIPT_DIR/lib/nvm.sh"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/lib/github-release.sh"
 
 # Major Node lines offered in the interactive menu (nvm installs latest x.y.z in the line).
 NVM_NODE_RECOMMENDED_MAJOR="${NVM_NODE_RECOMMENDED_MAJOR:-22}"
@@ -148,11 +150,11 @@ resolve_nvm_tag() {
   command -v curl >/dev/null 2>&1 || die "curl is required"
   command -v jq >/dev/null 2>&1 || die "jq is required"
 
-  curl -fsSL "https://api.github.com/repos/nvm-sh/nvm/releases/latest" | jq -r .tag_name
+  gr_latest_tag "nvm-sh/nvm"
 }
 
 install_nvm() {
-  local tag url
+  local tag url tmp
 
   export NVM_DIR="$(nvm_dir)"
 
@@ -168,11 +170,14 @@ install_nvm() {
   log "installing nvm ${tag} into $NVM_DIR"
 
   if [[ "$DRY_RUN" -eq 1 ]]; then
-    run curl -fsSL "$url"
+    run gr_curl -fsSL "$url"
     return 0
   fi
 
-  curl -fsSL "$url" | bash
+  tmp="$(mktemp)"
+  gr_curl -fsSL -o "$tmp" "$url"
+  bash "$tmp"
+  rm -f "$tmp"
 }
 
 install_node_major() {

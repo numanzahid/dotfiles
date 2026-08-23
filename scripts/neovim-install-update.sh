@@ -10,6 +10,10 @@ set -euo pipefail
 
 REPO="neovim/neovim"
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/lib/github-release.sh"
+
 need_cmd() { command -v "$1" >/dev/null 2>&1; }
 
 if ! need_cmd curl && ! need_cmd wget; then
@@ -71,11 +75,11 @@ tarball="${tmpdir}/${ASSET}"
 
 echo "Downloading: $URL"
 if need_cmd curl; then
-  curl -fL --retry 3 --retry-delay 1 -o "$tarball" "$URL"
+  gr_curl -fL -o "$tarball" "$URL"
   # Resolve the final URL to extract the version tag (best-effort).
-  final_url="$(curl -fsSL -o /dev/null -w '%{url_effective}' "$URL" || true)"
+  final_url="$(gr_curl -fsSL -o /dev/null -w '%{url_effective}' "$URL" || true)"
 else
-  wget -O "$tarball" "$URL"
+  gr_wget -O "$tarball" "$URL"
   final_url="" # best-effort version detection not available with wget here
 fi
 

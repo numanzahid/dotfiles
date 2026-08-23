@@ -27,16 +27,67 @@ gr_sudo() {
   fi
 }
 
+# Shared curl flags so a GitHub blip does not abort install.sh --all.
+# curl --retry covers timeouts and HTTP 408/429/5xx. It does not retry TLS
+# reset (35) or recv failures. Do not use --retry-all-errors: that also
+# retries HTTP 404 and makes missing-asset fallbacks very slow.
+GR_CURL_HAS_RETRY_CONNREFUSED=""
+gr_curl() {
+  local -a args
+  local attempt=1
+  local max=4
+  local delay=5
+  local rc
+
+  args=(
+    --connect-timeout 20
+    --retry 6
+    --retry-delay 5
+    --retry-max-time 120
+  )
+  if [[ -z "$GR_CURL_HAS_RETRY_CONNREFUSED" ]]; then
+    GR_CURL_HAS_RETRY_CONNREFUSED=0
+    # curl 8.x lists this under --help all, not the short --help.
+    if { curl --help all 2>/dev/null || curl --help 2>/dev/null; } | grep -q -- '--retry-connrefused'; then
+      GR_CURL_HAS_RETRY_CONNREFUSED=1
+    fi
+  fi
+  if [[ "$GR_CURL_HAS_RETRY_CONNREFUSED" -eq 1 ]]; then
+    args+=(--retry-connrefused)
+  fi
+
+  while true; do
+    curl "${args[@]}" "$@" && return 0
+    rc=$?
+    case "$rc" in
+      0) return 0 ;;
+      7 | 35 | 52 | 55 | 56) ;;
+      *) return "$rc" ;;
+    esac
+    if ((attempt >= max)); then
+      return "$rc"
+    fi
+    echo "WARNING: curl exit ${rc}; retry ${attempt}/${max} in ${delay}s" >&2
+    sleep "$delay"
+    attempt=$((attempt + 1))
+    delay=$((delay * 2))
+  done
+}
+
+gr_wget() {
+  wget --timeout=20 --tries=8 --waitretry=5 --retry-connrefused "$@"
+}
+
 gr_latest_tag() {
   local repo="$1"
-  curl -fsSL "https://api.github.com/repos/${repo}/releases/latest" | jq -r .tag_name
+  gr_curl -fsSL "https://api.github.com/repos/${repo}/releases/latest" | jq -r .tag_name
 }
 
 gr_download() {
   local url="$1"
   local dest="$2"
   echo "Downloading: $url"
-  curl -fL --retry 3 --retry-delay 1 -o "$dest" "$url"
+  gr_curl -fL -o "$dest" "$url"
 }
 
 gr_find_binary() {

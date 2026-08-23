@@ -6,6 +6,10 @@ set -euo pipefail
 #
 # Re-run anytime to upgrade.
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/lib/github-release.sh"
+
 REPO="cli/cli"
 
 need_cmd() { command -v "$1" >/dev/null 2>&1; }
@@ -33,7 +37,7 @@ if [[ "${EUID:-$(id -u)}" -ne 0 ]]; then
 fi
 
 latest_tag() {
-  curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" | jq -r .tag_name
+  gr_latest_tag "$REPO"
 }
 
 deb_arch() {
@@ -63,8 +67,7 @@ trap "rm -rf '${tmpdir}'" EXIT
 
 deb="${tmpdir}/${asset}"
 
-echo "Downloading: $url"
-curl -fL --retry 3 --retry-delay 1 -o "$deb" "$url"
+gr_download "$url" "$deb"
 
 echo "Installing: $asset"
 $SUDO apt-get install -y "$deb"

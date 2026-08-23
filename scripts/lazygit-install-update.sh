@@ -7,6 +7,10 @@ set -euo pipefail
 # Installs to /usr/local/bin/lazygit
 # Re-run anytime to upgrade.
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/lib/github-release.sh"
+
 REPO="jesseduffield/lazygit"
 BIN_PATH="/usr/local/bin/lazygit"
 
@@ -30,7 +34,7 @@ if [[ "${EUID:-$(id -u)}" -ne 0 ]]; then
 fi
 
 latest_tag() {
-  curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" | jq -r .tag_name
+  gr_latest_tag "$REPO"
 }
 
 arch_suffix() {
@@ -62,12 +66,7 @@ trap "rm -rf '${tmpdir}'" EXIT
 
 tarball="${tmpdir}/${asset}"
 
-echo "Downloading: $url"
-if need_cmd curl; then
-  curl -fL --retry 3 --retry-delay 1 -o "$tarball" "$url"
-else
-  wget -O "$tarball" "$url"
-fi
+gr_download "$url" "$tarball"
 
 extract_dir="${tmpdir}/extract"
 mkdir -p "$extract_dir"

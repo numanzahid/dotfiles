@@ -16,6 +16,8 @@ SELECTED=()
 source "$SCRIPTS_DIR/lib/platform.sh"
 # shellcheck source=scripts/lib/link.sh
 source "$SCRIPTS_DIR/lib/link.sh"
+# shellcheck disable=SC1091
+source "$SCRIPTS_DIR/lib/github-release.sh"
 df_prepend_local_bin
 
 usage() {
@@ -200,7 +202,7 @@ run_official_installer() {
 
   tmp="$(mktemp)"
   # Download first so a failed fetch cannot pipe HTML into a shell.
-  curl -fsSL --retry 3 --retry-delay 1 "$url" -o "$tmp"
+  gr_curl -fsSL "$url" -o "$tmp"
   if [[ ! -s "$tmp" ]]; then
     rm -f "$tmp"
     die "downloaded empty installer for $name"

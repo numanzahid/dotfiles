@@ -9,6 +9,10 @@ set -euo pipefail
 #
 # Re-run this script anytime to upgrade.
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/lib/github-release.sh"
+
 REPO="dylanaraps/pfetch"
 INSTALL_DIR="/opt/pfetch"
 BIN_PATH="/usr/local/bin/pfetch"
@@ -33,7 +37,7 @@ if [[ "${EUID:-$(id -u)}" -ne 0 ]]; then
 fi
 
 latest_tag() {
-  curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" | jq -r .tag_name
+  gr_latest_tag "$REPO"
 }
 
 version="latest"

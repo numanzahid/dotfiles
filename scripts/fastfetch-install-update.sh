@@ -7,6 +7,10 @@ set -euo pipefail
 #
 # Re-run this script anytime to upgrade.
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/lib/github-release.sh"
+
 REPO="fastfetch-cli/fastfetch"
 PPA="ppa:zhangsongcui3371/fastfetch"
 
@@ -91,9 +95,9 @@ install_via_github_deb() {
 
   echo "Downloading: $url"
   if need_cmd curl; then
-    curl -fL --retry 3 --retry-delay 1 -o "$deb" "$url"
+    gr_curl -fL -o "$deb" "$url"
   else
-    wget -O "$deb" "$url"
+    gr_wget -O "$deb" "$url"
   fi
 
   echo "Installing: $asset"
