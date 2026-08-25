@@ -45,7 +45,7 @@ cd ~/dotfiles
 ./install-copy/install.sh --all
 ```
 
-Then you can `rm -rf ~/dotfiles`. Upgrade Neovim later with `neovim-install-update` (copied into `~/.local/bin`; no backups).
+Then you can `rm -rf ~/dotfiles`. Upgrade Neovim later with `~/neovim-install-update.sh` (no backups).
 
 `--all` copies configs, installs apt deps (tmux, htop, locale, ...), and installs the same GitHub Neovim as the main installer.
 
