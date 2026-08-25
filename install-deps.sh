@@ -25,7 +25,6 @@ PACKAGES=(
   less
   locales
   ripgrep
-  sudo
   tar
   tmux
   wget

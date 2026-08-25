@@ -35,3 +35,6 @@ if [ -d "$HOME/.local/bin" ] ; then
 fi
 # Optional Rust/cargo (not installed by dotfiles by default).
 [ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
+
+# Debian/Proxmox skel: do not allow write/wall to this terminal.
+mesg n 2> /dev/null || true

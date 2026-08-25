@@ -46,8 +46,9 @@ df_install_sudo_package() {
   DEBIAN_FRONTEND=noninteractive apt-get install -y sudo
 }
 
-# Ensure sudo exists before privileged install steps.
-# Root without sudo: prompt to install (optional; root can still run apt directly).
+# Ensure we can run privileged steps.
+# Root without sudo: prompt once. Yes installs sudo; no continues as root.
+# sudo is not an apt dep, so No cannot be undone by install-deps.sh.
 # Non-root without sudo: fail with instructions.
 df_ensure_sudo() {
   if df_need_cmd sudo; then
@@ -55,6 +56,9 @@ df_ensure_sudo() {
   fi
 
   if df_is_root; then
+    if [[ "${DF_ROOT_WITHOUT_SUDO:-}" == "1" ]]; then
+      return 0
+    fi
     echo "sudo is not installed."
     if df_prompt_yes "Install sudo now?"; then
       df_install_sudo_package
@@ -65,6 +69,7 @@ df_ensure_sudo() {
       echo "sudo installed."
     else
       echo "Continuing as root without sudo."
+      export DF_ROOT_WITHOUT_SUDO=1
     fi
     return 0
   fi
