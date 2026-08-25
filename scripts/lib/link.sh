@@ -5,28 +5,35 @@
 df_prune_pre_dotfiles_backups() {
   local dest="$1"
   local keep=2
+  local f extra i
+  local nullglob_on=0
   local -a backups=()
-  local old_nullglob f
-  local extra i
+  local -a ordered=()
 
-  old_nullglob="$(shopt -p nullglob)"
+  # shopt -p returns 1 when the option is off, which aborts under set -e.
+  if shopt -q nullglob; then
+    nullglob_on=1
+  fi
   shopt -s nullglob
   backups=("${dest}".pre-dotfiles-*)
-  eval "$old_nullglob"
+  if [[ "$nullglob_on" -eq 0 ]]; then
+    shopt -u nullglob
+  fi
 
   if ((${#backups[@]} <= keep)); then
     return 0
   fi
 
-  local -a ordered=()
   while IFS= read -r f; do
     [[ -n "$f" ]] && ordered+=("$f")
   done < <(printf '%s\n' "${backups[@]}" | sort)
 
   extra=$((${#ordered[@]} - keep))
-  for ((i = 0; i < extra; i++)); do
+  i=0
+  while ((i < extra)); do
     log "removed old backup: ${ordered[i]}"
     run rm -rf "${ordered[i]}"
+    i=$((i + 1))
   done
 }
 
