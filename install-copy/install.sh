@@ -25,9 +25,13 @@ remove the dotfiles folder.
 Does not install or copy: gitconfig, fzf, zoxide, lazygit, lazydocker,
 fetch banners, TPM/tmux plugins.
 
+Always copies the Neovim updater into $HOME (overwrite, no backups)
+so you can upgrade nvim after deleting this clone:
+  ~/.local/bin/neovim-install-update
+
 Options:
   --deps       Run install-copy/install-deps.sh (apt packages + locale)
-  --neovim     Install latest Neovim via scripts/neovim-install-update.sh
+  --neovim     Install latest Neovim (same GitHub build as ./install.sh)
   --all        Copy configs, --deps, and --neovim
   --dry-run    Print actions without changing anything
   -h, --help   Show this help
@@ -90,6 +94,43 @@ copy_if_missing() {
   run cp "$src" "$dest"
 }
 
+# Overwrite a helper script. No .pre-dotfiles backups.
+copy_overwrite() {
+  local src="$1"
+  local dest="$2"
+
+  if [[ ! -e "$src" ]]; then
+    log "skip missing source: $src"
+    return 0
+  fi
+
+  mkdir -p "$(dirname "$dest")"
+  run cp -f "$src" "$dest"
+  log "copied: $dest"
+}
+
+copy_neovim_updater() {
+  local dest_dir="$TARGET_HOME/.local/share/dotfiles"
+  local dest_script="$dest_dir/neovim-install-update.sh"
+  local dest_bin="$TARGET_HOME/.local/bin/neovim-install-update"
+
+  copy_overwrite "$SCRIPTS_DIR/neovim-install-update.sh" "$dest_script"
+  copy_overwrite "$SCRIPTS_DIR/lib/github-release.sh" "$dest_dir/lib/github-release.sh"
+  run chmod 755 "$dest_script"
+
+  mkdir -p "$TARGET_HOME/.local/bin"
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    printf '+ write %q\n' "$dest_bin"
+  else
+    cat > "$dest_bin" <<'EOF'
+#!/usr/bin/env bash
+exec "${HOME}/.local/share/dotfiles/neovim-install-update.sh" "$@"
+EOF
+    chmod 755 "$dest_bin"
+  fi
+  log "copied: $dest_bin"
+}
+
 copy_nvim_plain() {
   local src="$SOURCE_DIR/.config/nvim-plain"
   local dest="$TARGET_HOME/.config/nvim"
@@ -128,6 +169,7 @@ install_configs() {
   copy_file "$COPY_DIR/tmux.conf" "$TARGET_HOME/.tmux.conf"
 
   copy_nvim_plain
+  copy_neovim_updater
 
   mkdir -p "$TARGET_HOME/.ssh"
   run chmod 700 "$TARGET_HOME/.ssh"
@@ -170,11 +212,11 @@ if [[ "$INSTALL_DEPS" -eq 1 ]]; then
 fi
 
 if [[ "$INSTALL_NEOVIM" -eq 1 ]]; then
-  log "installing neovim via scripts/neovim-install-update.sh"
+  log "installing neovim via ~/.local/share/dotfiles/neovim-install-update.sh"
   if [[ "$DRY_RUN" -eq 1 ]]; then
-    run bash "$DOTFILES_DIR/scripts/neovim-install-update.sh"
+    run bash "$TARGET_HOME/.local/share/dotfiles/neovim-install-update.sh"
   else
-    bash "$DOTFILES_DIR/scripts/neovim-install-update.sh"
+    bash "$TARGET_HOME/.local/share/dotfiles/neovim-install-update.sh"
   fi
 fi
 
@@ -196,12 +238,15 @@ Copied configs:
   ~/.config/nvim/init.lua  (plain nvim, if LazyVim was not already there)
   ~/.ssh/config  (only if missing)
   ~/.ssh/authorized_keys  (only if missing)
+  ~/.local/share/dotfiles/neovim-install-update.sh
+  ~/.local/bin/neovim-install-update
 
 Apt deps (--deps / --all):
   bash bash-completion ca-certificates curl gzip htop less locales tar tmux wget
 
 Neovim (--neovim / --all):
   same GitHub build as ./install.sh --neovim  (/usr/local/bin/nvim)
+  later: neovim-install-update
 
 If tmux is already running: tmux source-file ~/.tmux.conf
 EOF
