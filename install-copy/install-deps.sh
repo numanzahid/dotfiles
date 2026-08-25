@@ -19,8 +19,10 @@ PACKAGES=(
   bash-completion
   ca-certificates
   curl
+  git
   gzip
   htop
+  jq
   less
   locales
   tar

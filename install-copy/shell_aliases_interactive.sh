@@ -1,6 +1,6 @@
 # ~/.shell_aliases_interactive.sh
 # Interactive-only shell customizations for install-copy.
-# No fzf, zoxide, eza, or fetch banners.
+# No fzf, zoxide, eza, or fastfetch. pfetch is hardcoded.
 
 # Main install used: alias cd="zd" (zoxide). source ~/.bashrc does not drop
 # old aliases/functions, so cd would still call zoxide after a copy-install.
@@ -61,6 +61,29 @@ _dotfiles_lt() { _ls_two_level 0 "${1:-.}"; }
 _dotfiles_lta() { _ls_two_level 1 "${1:-.}"; }
 alias lt='_dotfiles_lt'
 alias lta='_dotfiles_lta'
+
+##### pfetch ############################################################
+
+export PF_SOURCE="${XDG_CONFIG_HOME:-$HOME}/.config/pfetch/pfetchrc"
+
+_dotfiles_show_pfetch() {
+  [[ -n "${DOTFILES_FETCH_SHOWN:-}" || -n "${NO_FETCH:-}" ]] && return 0
+  [[ -n "${TMUX:-}" ]] && return 0
+  if command -v pfetch >/dev/null 2>&1; then
+    pfetch
+    DOTFILES_FETCH_SHOWN=1
+  fi
+}
+
+fetch() {
+  if command -v pfetch >/dev/null 2>&1; then
+    pfetch
+  else
+    echo "pfetch not installed. Run: ~/pfetch-install-update.sh"
+  fi
+}
+
+_dotfiles_show_pfetch
 
 ##### grep ##############################################################
 

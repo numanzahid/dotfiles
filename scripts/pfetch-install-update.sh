@@ -11,7 +11,14 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1091
-source "$SCRIPT_DIR/lib/github-release.sh"
+if [[ -f "$SCRIPT_DIR/lib/github-release.sh" ]]; then
+  source "$SCRIPT_DIR/lib/github-release.sh"
+elif [[ -f "$SCRIPT_DIR/pfetch-install-update.lib.sh" ]]; then
+  source "$SCRIPT_DIR/pfetch-install-update.lib.sh"
+else
+  echo "ERROR: github-release helper not found next to this script" >&2
+  exit 1
+fi
 
 REPO="dylanaraps/pfetch"
 INSTALL_DIR="/opt/pfetch"

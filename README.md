@@ -45,15 +45,15 @@ cd ~/dotfiles
 ./install-copy/install.sh --all
 ```
 
-Then you can `rm -rf ~/dotfiles`. Upgrade Neovim later with `~/neovim-install-update.sh` (no backups).
+Then you can `rm -rf ~/dotfiles`. Upgrade later with `~/neovim-install-update.sh` and `~/pfetch-install-update.sh`.
 
-`--all` copies configs, installs apt deps (tmux, htop, locale, ...), and installs the same GitHub Neovim as the main installer.
+`--all` copies configs, installs apt deps (tmux, htop, git, jq, locale, ...), pfetch, and the same GitHub Neovim as the main installer.
 
-Copied: `.bashrc`, `.profile`, `.inputrc`, `.tmux.conf` (no TPM, no fetch), aliases, plain `~/.config/nvim/init.lua`, and `~/.ssh/config` plus `~/.ssh/authorized_keys` if missing.
+Copied: `.bashrc`, `.profile`, `.inputrc`, `.tmux.conf` (no TPM; pfetch on new panes), aliases, pfetch config, plain `~/.config/nvim/init.lua`, and `~/.ssh/config` plus `~/.ssh/authorized_keys` if missing.
 
-Not included: gitconfig, fzf, zoxide, eza, lazygit, gh, btop, fetch, TPM.
+Not included: gitconfig, fzf, zoxide, eza, lazygit, gh, btop, fastfetch, TPM.
 
-No flags copies configs only (no apt, no nvim binary).
+No flags copies configs and still installs pfetch if `git` and `jq` are present (no apt, no nvim binary).
 
 Tmux only: `./scripts/install-tmux-config.sh`
 
