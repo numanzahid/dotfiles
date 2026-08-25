@@ -77,7 +77,7 @@ See `lazyvim/README.md` and `lazyvim-lite/README.md`.
 cd ~/dotfiles && git pull && ./install.sh
 ```
 
-Re-runs overwrite configs. Replaced files are saved as `*.pre-dotfiles-*` (two kept per path). An existing fetch banner, LazyVim nvim config, and AI CLIs are not reset.
+Re-runs overwrite configs. Replaced files are saved as `*.pre-dotfiles-*` (one kept per path). An existing fetch banner, LazyVim nvim config, and AI CLIs are not reset.
 
 Upgrade one tool with `./scripts/<name>-install-update.sh`.
 

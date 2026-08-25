@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Shared symlink helpers for install.sh and LazyVim scripts.
 
-# Keep at most two .pre-dotfiles-* backups for a linked or copied path.
+# Keep at most one .pre-dotfiles-* backup for a linked or copied path.
 df_prune_pre_dotfiles_backups() {
   local dest="$1"
-  local keep=2
+  local keep=1
   local f extra i
   local nullglob_on=0
   local -a backups=()

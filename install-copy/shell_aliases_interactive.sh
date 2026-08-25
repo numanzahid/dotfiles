@@ -17,7 +17,7 @@ _ls_two_level() {
   shift
   local target="${1:-.}"
   local flags=(-lh --group-directories-first --color=auto)
-  local d old_nullglob old_dotglob
+  local d
 
   if [[ "$hidden" == "1" ]]; then
     flags=(-lha --group-directories-first --color=auto)
@@ -25,8 +25,13 @@ _ls_two_level() {
 
   command ls "${flags[@]}" -- "$target"
 
-  old_nullglob="$(shopt -p nullglob)"
-  old_dotglob="$(shopt -p dotglob)"
+  local nullglob_on=0 dotglob_on=0
+  if shopt -q nullglob; then
+    nullglob_on=1
+  fi
+  if shopt -q dotglob; then
+    dotglob_on=1
+  fi
   shopt -s nullglob
   if [[ "$hidden" == "1" ]]; then
     shopt -s dotglob
@@ -36,12 +41,21 @@ _ls_two_level() {
     printf '\n%s:\n' "${d%/}"
     command ls "${flags[@]}" -- "$d"
   done
-  eval "$old_nullglob"
-  eval "$old_dotglob"
+  if [[ "$nullglob_on" -eq 0 ]]; then
+    shopt -u nullglob
+  fi
+  if [[ "$hidden" == "1" && "$dotglob_on" -eq 0 ]]; then
+    shopt -u dotglob
+  fi
 }
 
-lt() { _ls_two_level 0 "${1:-.}"; }
-lta() { _ls_two_level 1 "${1:-.}"; }
+# If lt/lta already exist as aliases (common: alias lt='ls -lt'), a function
+# named lt() is a syntax error. Re-aliasing overwrites them.
+unalias lt lta 2>/dev/null || true
+_dotfiles_lt() { _ls_two_level 0 "${1:-.}"; }
+_dotfiles_lta() { _ls_two_level 1 "${1:-.}"; }
+alias lt='_dotfiles_lt'
+alias lta='_dotfiles_lta'
 
 ##### grep ##############################################################
 

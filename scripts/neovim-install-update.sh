@@ -128,6 +128,23 @@ $SUDO mv "$topdir" "$install_dir"
 # Update symlink /opt/nvim -> install_dir (atomic-ish).
 $SUDO ln -sfn "$install_dir" "$symlink_dir"
 
+# Drop leftover versioned trees from earlier upgrades (no extra copies).
+old_nullglob=0
+if shopt -q nullglob; then
+  old_nullglob=1
+fi
+shopt -s nullglob
+for old in /opt/nvim-*; do
+  if [[ "$old" == "$install_dir" || -L "$old" ]]; then
+    continue
+  fi
+  echo "Removing old neovim tree: $old"
+  $SUDO rm -rf "$old"
+done
+if [[ "$old_nullglob" -eq 0 ]]; then
+  shopt -u nullglob
+fi
+
 # Ensure /usr/local/bin/nvim points to the current /opt/nvim/bin/nvim
 $SUDO mkdir -p /usr/local/bin
 $SUDO ln -sfn "${symlink_dir}/bin/nvim" /usr/local/bin/nvim
