@@ -33,6 +33,13 @@ log() {
   printf '[tmux-config] %s\n' "$*"
 }
 
+run() {
+  "$@"
+}
+
+# shellcheck source=lib/link.sh
+source "$DOTFILES_DIR/scripts/lib/link.sh"
+
 copy_file() {
   local src="$1"
   local dest="$2"
@@ -45,10 +52,14 @@ copy_file() {
   mkdir -p "$(dirname "$dest")"
   if [[ -L "$dest" ]]; then
     log "replace symlink with file: $dest"
-    rm -f "$dest"
+    run rm -f "$dest"
+  else
+    df_stash_original_if_needed "$src" "$dest"
   fi
-  cp -f "$src" "$dest"
+  run cp -f "$src" "$dest"
   log "copied: $dest"
+  df_migrate_original_backup "$dest"
+  df_track_path "$dest"
 }
 
 while [[ $# -gt 0 ]]; do

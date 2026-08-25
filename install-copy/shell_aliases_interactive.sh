@@ -2,6 +2,11 @@
 # Interactive-only shell customizations for install-copy.
 # No fzf, zoxide, eza, or fetch banners.
 
+# Main install used: alias cd="zd" (zoxide). source ~/.bashrc does not drop
+# old aliases/functions, so cd would still call zoxide after a copy-install.
+unalias cd z zi zd ff 2>/dev/null || true
+unset -f zd z zi __zoxide_z __zoxide_zi 2>/dev/null || true
+
 ##### ls ################################################################
 
 # Closest GNU ls stand-in for the eza aliases:

@@ -69,15 +69,14 @@ copy_file() {
   if [[ -L "$dest" ]]; then
     log "replace symlink with file: $dest"
     run rm -f "$dest"
-  elif [[ -e "$dest" ]]; then
-    local backup="${dest}.pre-dotfiles-$(date +%Y%m%d%H%M%S)"
-    log "backup existing: $dest -> $backup"
-    run mv "$dest" "$backup"
+  else
+    df_stash_original_if_needed "$src" "$dest"
   fi
 
   run cp -f "$src" "$dest"
   log "copied: $dest"
-  df_prune_pre_dotfiles_backups "$dest"
+  df_migrate_original_backup "$dest"
+  df_track_path "$dest"
 }
 
 copy_if_missing() {
@@ -150,20 +149,36 @@ copy_nvim_plain() {
     log "replace nvim symlink with directory: $dest"
     run rm -f "$dest"
   elif [[ -d "$dest" ]]; then
-    local backup="${dest}.pre-dotfiles-$(date +%Y%m%d%H%M%S)"
-    log "backup existing: $dest -> $backup"
-    run mv "$dest" "$backup"
+    df_stash_original_if_needed "$src" "$dest"
   fi
 
   run mkdir -p "$dest"
   run cp -f "$src/init.lua" "$dest/init.lua"
   log "copied: $dest/init.lua (plain nvim)"
-  df_prune_pre_dotfiles_backups "$dest"
+  df_migrate_original_backup "$dest"
+  df_track_path "$dest"
 }
 
 install_configs() {
   log "source: $SOURCE_DIR"
   log "target: $TARGET_HOME"
+
+  # Previous copy-install left real files and the updater. Those dests are
+  # ours even if the user edited them; do not treat edits as the original.
+  if [[ -f "$TARGET_HOME/neovim-install-update.sh" ]]; then
+    local dest
+    for dest in \
+      "$TARGET_HOME/.bashrc" \
+      "$TARGET_HOME/.shell_aliases_interactive.sh" \
+      "$TARGET_HOME/.inputrc" \
+      "$TARGET_HOME/.profile" \
+      "$TARGET_HOME/.tmux.conf" \
+      "$TARGET_HOME/.config/nvim"; do
+      if [[ -e "$dest" && ! -L "$dest" ]]; then
+        df_track_path "$dest"
+      fi
+    done
+  fi
 
   copy_file "$SOURCE_DIR/.bashrc" "$TARGET_HOME/.bashrc"
   copy_file "$COPY_DIR/shell_aliases_interactive.sh" "$TARGET_HOME/.shell_aliases_interactive.sh"
