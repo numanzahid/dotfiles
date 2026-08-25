@@ -48,7 +48,7 @@ setup_utf8_locale() {
   fi
 
   df_run_privileged locale-gen en_US.UTF-8
-  df_run_privileged update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
+  df_run_privileged update-locale LANG=en_US.UTF-8 LC_ALL=
 }
 
 echo "Configuring UTF-8 locale..."
@@ -57,7 +57,7 @@ setup_utf8_locale
 locale_rc=$?
 set -e
 if [[ "$locale_rc" -ne 0 ]]; then
-  echo "WARN: UTF-8 locale setup failed; continuing (set LANG/LC_ALL manually if needed)" >&2
+  echo "WARN: UTF-8 locale setup failed; continuing (set LANG manually if needed)" >&2
 fi
 
 echo "Installing btop from upstream release..."
