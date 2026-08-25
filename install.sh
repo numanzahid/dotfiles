@@ -223,7 +223,9 @@ install_dotfiles() {
   mkdir -p "$TARGET_HOME/.ssh"
   chmod 700 "$TARGET_HOME/.ssh"
   copy_if_missing "$SOURCE_DIR/.ssh/config.example" "$TARGET_HOME/.ssh/config"
+  copy_if_missing "$SOURCE_DIR/.ssh/authorized_keys.example" "$TARGET_HOME/.ssh/authorized_keys"
   run chmod 600 "$TARGET_HOME/.ssh/config" 2>/dev/null || true
+  run chmod 600 "$TARGET_HOME/.ssh/authorized_keys" 2>/dev/null || true
 }
 
 install_tpm() {

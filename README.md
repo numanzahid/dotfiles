@@ -1,76 +1,75 @@
 # dotfiles
 
-Shell, tmux, neovim, and CLI tool configs with install scripts.
+Bash, tmux, neovim, and CLI configs. Pick one installer:
 
-## Quick start
+| | Workstation | Light host |
+|---|---|---|
+| Script | `./install.sh` | `./install-copy/install.sh` |
+| Configs | symlinks into `$HOME` | real files in `$HOME` |
+| Clone | keep it | safe to delete after install |
 
-On a fresh temp VM or machine:
+## Workstation
 
 ```bash
 git clone git@github.com:numanzahid/dotfiles.git ~/dotfiles
 cd ~/dotfiles
-chmod +x install.sh install-deps.sh install-tools.sh install-fetch.sh install-ai-cli.sh lazyvim/*.sh lazyvim/lib/*.sh scripts/*.sh
 ./install.sh --all
 ```
 
-Copy SSH keys manually (never commit private keys). See `home/.ssh/config.example`.
+`--all` links configs and installs apt deps, bat, fd, zoxide, eza, lazygit, gh, neovim, btop, TPM, and fzf.
 
-Optional LazyVim bootstrap (not part of `--all`):
-
-```bash
-./lazyvim/install-lazyvim.sh              # full IDE profile
-./lazyvim-lite/install-lazyvim-lite.sh    # editor-only (no Mason/LSP/Node)
-```
-
-Optional fetch banner (not part of `--all`):
-
-```bash
-./install-fetch.sh              # prompt: none / fastfetch / pfetch / both
-./install-fetch.sh fastfetch    # install and enable fastfetch
-./install-fetch.sh both         # install both; keep current banner if set
-./install-fetch.sh none         # disable banner
-```
-
-Optional AI coding CLIs (not part of `--all`):
-
-```bash
-./install-ai-cli.sh             # prompt per tool
-./install-ai-cli.sh all         # OpenCode, Cursor, Claude Code, Codex
-./install-ai-cli.sh claude opencode
-```
-
-Official sources:
-
-| Tool | Installer |
-|------|-----------|
-| OpenCode | `https://opencode.ai/install` |
-| Cursor CLI (`agent`) | `https://cursor.com/install` |
-| Claude Code | `https://claude.ai/install.sh` |
-| Codex | `https://chatgpt.com/codex/install.sh` |
-
-Without those scripts, `nvim` uses the plain editor config (`home/.config/nvim-plain`).
-`./install.sh` never links or resets LazyVim, never changes an existing fetch banner,
-and never installs AI CLIs. Re-running `--all` leaves those extras untouched.
-
-## install.sh
+It does not install LazyVim, fetch banners, or AI CLIs. Re-running `--all` leaves those extras alone.
 
 | Flag | Action |
 |------|--------|
-| `--deps` | Base apt packages |
+| `--deps` | apt packages + locale |
 | `--tools` | bat, fd, zoxide, eza |
 | `--lazygit` / `--gh` | lazygit, GitHub CLI |
-| `--neovim` | Neovim from GitHub release |
-| `--tpm` / `--fzf` | tmux plugins, fzf |
-| `--all` | Base bootstrap (no LazyVim, no fetch banner prompt) |
-| `--dry-run` | Preview only |
+| `--neovim` | Neovim from GitHub (`/usr/local/bin/nvim`) |
+| `--btop` | btop from GitHub |
+| `--tpm` / `--fzf` | tmux plugin manager, fzf |
+| `--all` | all of the above |
+| `--dry-run` | print actions only |
 
-After install, open tmux and run `prefix + Shift + I` once for TPM plugins.
+After install: copy SSH keys into `~/.ssh/` yourself, then in tmux press `prefix + Shift + I` once.
 
-Tmux fetch banner (separate from `--all`):
+Default nvim is the plain config (`home/.config/nvim-plain`).
+
+## Light host
+
+For CTs and machines where you do not want to keep this repo:
 
 ```bash
-./install-fetch.sh
+git clone git@github.com:numanzahid/dotfiles.git ~/dotfiles
+cd ~/dotfiles
+./install-copy/install.sh --all
 ```
+
+Then you can `rm -rf ~/dotfiles`.
+
+`--all` copies configs, installs apt deps (tmux, htop, locale, ...), and installs the same GitHub Neovim as the main installer.
+
+Copied: `.bashrc`, `.profile`, `.inputrc`, `.tmux.conf` (no TPM, no fetch), aliases, plain `~/.config/nvim/init.lua`, and `~/.ssh/config` plus `~/.ssh/authorized_keys` if missing.
+
+Not included: gitconfig, fzf, zoxide, eza, lazygit, gh, btop, fetch, TPM.
+
+No flags copies configs only (no apt, no nvim binary).
+
+Tmux only: `./scripts/install-tmux-config.sh`
+
+## Optional extras
+
+Not part of either `--all`:
+
+```bash
+./lazyvim/install-lazyvim.sh              # LazyVim IDE
+./lazyvim-lite/install-lazyvim-lite.sh    # LazyVim editor only (no Mason/LSP/Node)
+./install-fetch.sh                        # tmux banner: none / fastfetch / pfetch / both
+./install-ai-cli.sh                       # OpenCode, Cursor, Claude Code, Codex
+./scripts/nvm-install-update.sh           # Node via nvm
+```
+
+See `lazyvim/README.md` and `lazyvim-lite/README.md`.
 
 ## Updates
 
@@ -78,38 +77,25 @@ Tmux fetch banner (separate from `--all`):
 cd ~/dotfiles && git pull && ./install.sh
 ```
 
-Re-run individual `scripts/*-install-update.sh` files to upgrade tools (bat, fd, nvm, neovim, etc.).
+Re-runs overwrite configs. Replaced files are saved as `*.pre-dotfiles-*` (two kept per path). An existing fetch banner, LazyVim nvim config, and AI CLIs are not reset.
 
-Node.js only:
-
-```bash
-./scripts/nvm-install-update.sh
-```
+Upgrade one tool with `./scripts/<name>-install-update.sh`.
 
 ## Layout
 
 ```text
-dotfiles/
-  install.sh install-deps.sh install-tools.sh install-fetch.sh install-ai-cli.sh
-  lazyvim/            # full LazyVim installer (owns LazyVim nvim link)
-  lazyvim-lite/       # editor-only LazyVim installer
-  scripts/
-  home/               # symlinked into $HOME
-    .config/nvim-plain/   # plain editor rules (linked by install.sh)
-    .config/nvim/         # LazyVim config (linked only by lazyvim scripts)
+install.sh            symlink installer (keep the clone)
+install-copy/         copy installer (clone can be deleted)
+install-fetch.sh
+install-ai-cli.sh
+lazyvim/   lazyvim-lite/
+scripts/              per-tool GitHub installers
+home/                 source configs
+  .config/nvim-plain/ linked by ./install.sh
+  .config/nvim/       LazyVim; linked only by lazyvim scripts
 ```
 
 ## Security
 
-Do not commit: SSH private keys, API tokens, `auth.json`, `hosts.yml`, `.env*`, or plugin caches.
-
-## LazyVim
-
-See `lazyvim/README.md` for the lean installer (prebuilt Tree-sitter CLI, no Rust/LLVM).
-
-Merge upstream starter config when needed:
-
-```bash
-git remote add upstream https://github.com/LazyVim/starter.git 2>/dev/null || true
-git fetch upstream && git merge upstream/main
-```
+Do not commit SSH private keys, tokens, `auth.json`, `hosts.yml`, `.env*`, or plugin caches.
+`home/.ssh/config.example` and `home/.ssh/authorized_keys.example` are the SSH templates. Real keys stay out of git.

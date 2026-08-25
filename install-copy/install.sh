@@ -132,7 +132,9 @@ install_configs() {
   mkdir -p "$TARGET_HOME/.ssh"
   run chmod 700 "$TARGET_HOME/.ssh"
   copy_if_missing "$SOURCE_DIR/.ssh/config.example" "$TARGET_HOME/.ssh/config"
+  copy_if_missing "$SOURCE_DIR/.ssh/authorized_keys.example" "$TARGET_HOME/.ssh/authorized_keys"
   run chmod 600 "$TARGET_HOME/.ssh/config" 2>/dev/null || true
+  run chmod 600 "$TARGET_HOME/.ssh/authorized_keys" 2>/dev/null || true
 }
 
 while [[ $# -gt 0 ]]; do
@@ -193,6 +195,7 @@ Copied configs:
   ~/.tmux.conf  (no TPM / no fetch)
   ~/.config/nvim/init.lua  (plain nvim, if LazyVim was not already there)
   ~/.ssh/config  (only if missing)
+  ~/.ssh/authorized_keys  (only if missing)
 
 Apt deps (--deps / --all):
   bash bash-completion ca-certificates curl gzip htop less locales tar tmux wget
