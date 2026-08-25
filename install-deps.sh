@@ -60,9 +60,6 @@ if [[ "$locale_rc" -ne 0 ]]; then
   echo "WARN: UTF-8 locale setup failed; continuing (set LANG manually if needed)" >&2
 fi
 
-echo "Installing btop from upstream release..."
-bash "$SCRIPT_DIR/scripts/btop-install-update.sh"
-
 echo "Done. CLI tools (bat, fd, zoxide, eza): ./install-tools.sh"
 echo "Lazygit:   ./scripts/lazygit-install-update.sh"
 echo "Gh:        ./scripts/gh-install-update.sh"
@@ -71,6 +68,7 @@ echo "Fastfetch: ./install-fetch.sh fastfetch"
 echo "Pfetch:    ./install-fetch.sh pfetch"
 echo "Both:      ./install-fetch.sh both"
 echo "Neovim:    ./install.sh --neovim  (or --all)"
+echo "Btop:      ./install.sh --btop    (or --all)"
 echo "Nvm/Node:  ./scripts/nvm-install-update.sh"
 echo "AI CLIs:   ./install-ai-cli.sh  (opencode, cursor, claude, codex)"
 echo "LazyVim:   ./lazyvim/install-lazyvim.sh or ./lazyvim-lite/install-lazyvim-lite.sh"

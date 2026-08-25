@@ -16,6 +16,7 @@ INSTALL_TOOLS=0
 INSTALL_LAZYGIT=0
 INSTALL_GH=0
 INSTALL_NEOVIM=0
+INSTALL_BTOP=0
 INSTALL_TPM=0
 INSTALL_FZF=0
 DRY_RUN=0
@@ -30,9 +31,10 @@ Options:
   --lazygit    Run scripts/lazygit-install-update.sh (GitHub release)
   --gh         Run scripts/gh-install-update.sh (GitHub release)
   --neovim     Run scripts/neovim-install-update.sh (GitHub release, not apt)
+  --btop       Run scripts/btop-install-update.sh (GitHub release, not apt)
   --tpm        Clone tmux-plugin-manager if missing
   --fzf        Clone and install junegunn/fzf if missing
-  --all        Enable --deps --tools --lazygit --gh --neovim --tpm --fzf
+  --all        Enable --deps --tools --lazygit --gh --neovim --btop --tpm --fzf
   --dry-run    Print actions without changing anything
   -h, --help   Show this help
 
@@ -99,7 +101,8 @@ needs_privileged_install() {
     "$INSTALL_TOOLS" -eq 1 ||
     "$INSTALL_LAZYGIT" -eq 1 ||
     "$INSTALL_GH" -eq 1 ||
-    "$INSTALL_NEOVIM" -eq 1 ]]
+    "$INSTALL_NEOVIM" -eq 1 ||
+    "$INSTALL_BTOP" -eq 1 ]]
 }
 
 ensure_sudo_for_install() {
@@ -157,6 +160,21 @@ copy_if_missing() {
   run cp "$src" "$dest"
 }
 
+link_btop_conf() {
+  local dest_dir="$TARGET_HOME/.config/btop"
+  local src="$SOURCE_DIR/.config/btop/btop.conf"
+  local dest="$dest_dir/btop.conf"
+
+  # Older installs linked the whole ~/.config/btop directory.
+  if [[ -L "$dest_dir" ]]; then
+    log "replace btop config dir symlink with a directory"
+    run rm -f "$dest_dir"
+  fi
+
+  mkdir -p "$dest_dir"
+  link_path "$src" "$dest"
+}
+
 link_fetch_conf_default() {
   local dest="$TARGET_HOME/.config/tmux/fetch.conf"
   local src="$SOURCE_DIR/.config/tmux/fetch-none.conf"
@@ -198,7 +216,7 @@ install_dotfiles() {
 
   mkdir -p "$TARGET_HOME/.config/pfetch"
   link_path "$SOURCE_DIR/.config/pfetch/pfetchrc" "$TARGET_HOME/.config/pfetch/pfetchrc"
-  link_path "$SOURCE_DIR/.config/btop" "$TARGET_HOME/.config/btop"
+  link_btop_conf
   mkdir -p "$TARGET_HOME/.config/lazygit"
   link_path "$SOURCE_DIR/.config/lazygit/config.yml" "$TARGET_HOME/.config/lazygit/config.yml"
 
@@ -247,6 +265,7 @@ while [[ $# -gt 0 ]]; do
     --lazygit) INSTALL_LAZYGIT=1 ;;
     --gh) INSTALL_GH=1 ;;
     --neovim) INSTALL_NEOVIM=1 ;;
+    --btop) INSTALL_BTOP=1 ;;
     --tpm) INSTALL_TPM=1 ;;
     --fzf) INSTALL_FZF=1 ;;
     --all)
@@ -255,6 +274,7 @@ while [[ $# -gt 0 ]]; do
       INSTALL_LAZYGIT=1
       INSTALL_GH=1
       INSTALL_NEOVIM=1
+      INSTALL_BTOP=1
       INSTALL_TPM=1
       INSTALL_FZF=1
       ;;
@@ -307,6 +327,11 @@ fi
 if [[ "$INSTALL_NEOVIM" -eq 1 ]]; then
   log "installing neovim via scripts/neovim-install-update.sh"
   run_github_step "neovim" bash "$SCRIPTS_DIR/neovim-install-update.sh"
+fi
+
+if [[ "$INSTALL_BTOP" -eq 1 ]]; then
+  log "installing btop via scripts/btop-install-update.sh"
+  run_github_step "btop" bash "$SCRIPTS_DIR/btop-install-update.sh"
 fi
 
 if [[ "$GITHUB_STEP_FAILED" -eq 1 ]]; then
