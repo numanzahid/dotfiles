@@ -8,9 +8,11 @@ set -euo pipefail
 COPY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOTFILES_DIR="$(cd "$COPY_DIR/.." && pwd)"
 SOURCE_DIR="$DOTFILES_DIR/home"
+SCRIPTS_DIR="$DOTFILES_DIR/scripts"
 TARGET_HOME="${HOME:?}"
 
 INSTALL_DEPS=0
+INSTALL_NEOVIM=0
 DRY_RUN=0
 
 usage() {
@@ -25,7 +27,8 @@ fetch banners, TPM/tmux plugins.
 
 Options:
   --deps       Run install-copy/install-deps.sh (apt packages + locale)
-  --all        Copy configs and run --deps
+  --neovim     Install latest Neovim via scripts/neovim-install-update.sh
+  --all        Copy configs, --deps, and --neovim
   --dry-run    Print actions without changing anything
   -h, --help   Show this help
 EOF
@@ -44,6 +47,9 @@ run() {
     "$@"
   fi
 }
+
+# shellcheck source=../scripts/lib/link.sh
+source "$SCRIPTS_DIR/lib/link.sh"
 
 copy_file() {
   local src="$1"
@@ -67,6 +73,7 @@ copy_file() {
 
   run cp -f "$src" "$dest"
   log "copied: $dest"
+  df_prune_pre_dotfiles_backups "$dest"
 }
 
 copy_if_missing() {
@@ -107,6 +114,7 @@ copy_nvim_plain() {
   run mkdir -p "$dest"
   run cp -f "$src/init.lua" "$dest/init.lua"
   log "copied: $dest/init.lua (plain nvim)"
+  df_prune_pre_dotfiles_backups "$dest"
 }
 
 install_configs() {
@@ -130,8 +138,10 @@ install_configs() {
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --deps) INSTALL_DEPS=1 ;;
+    --neovim) INSTALL_NEOVIM=1 ;;
     --all)
       INSTALL_DEPS=1
+      INSTALL_NEOVIM=1
       ;;
     --dry-run) DRY_RUN=1 ;;
     -h | --help)
@@ -157,6 +167,15 @@ if [[ "$INSTALL_DEPS" -eq 1 ]]; then
   fi
 fi
 
+if [[ "$INSTALL_NEOVIM" -eq 1 ]]; then
+  log "installing neovim via scripts/neovim-install-update.sh"
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    run bash "$DOTFILES_DIR/scripts/neovim-install-update.sh"
+  else
+    bash "$DOTFILES_DIR/scripts/neovim-install-update.sh"
+  fi
+fi
+
 cat <<'EOF'
 
 install-copy finished. Configs are real files in $HOME.
@@ -176,7 +195,10 @@ Copied configs:
   ~/.ssh/config  (only if missing)
 
 Apt deps (--deps / --all):
-  bash bash-completion ca-certificates htop less locales tmux
+  bash bash-completion ca-certificates curl gzip htop less locales tar tmux wget
+
+Neovim (--neovim / --all):
+  same GitHub build as ./install.sh --neovim  (/usr/local/bin/nvim)
 
 If tmux is already running: tmux source-file ~/.tmux.conf
 EOF

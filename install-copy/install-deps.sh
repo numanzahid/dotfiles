@@ -18,10 +18,14 @@ PACKAGES=(
   bash
   bash-completion
   ca-certificates
+  curl
+  gzip
   htop
   less
   locales
+  tar
   tmux
+  wget
 )
 
 echo "Updating package lists..."
