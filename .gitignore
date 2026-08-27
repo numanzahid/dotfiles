@@ -20,3 +20,4 @@
 # Local install state (never commit from a live machine)
 home/.tmux/plugins/
 home/.fzf/
+home/.fzf.bash

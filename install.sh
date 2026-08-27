@@ -202,7 +202,6 @@ install_dotfiles() {
   link_path "$SOURCE_DIR/.profile" "$TARGET_HOME/.profile"
   link_path "$SOURCE_DIR/.gitconfig" "$TARGET_HOME/.gitconfig"
   link_path "$SOURCE_DIR/.tmux.conf" "$TARGET_HOME/.tmux.conf"
-  link_path "$SOURCE_DIR/.fzf.bash" "$TARGET_HOME/.fzf.bash"
 
   link_plain_nvim
   link_path "$SOURCE_DIR/.config/fastfetch" "$TARGET_HOME/.config/fastfetch"
@@ -260,6 +259,12 @@ install_fzf() {
   fi
 
   if [[ "$DRY_RUN" -eq 0 ]]; then
+    # fzf writes ~/.fzf.bash. If that path is still a symlink into this
+    # repo, the installer would dirty home/.fzf.bash (machine-specific PATH).
+    if [[ -L "$TARGET_HOME/.fzf.bash" ]]; then
+      log "replace fzf bash stub symlink with a real file"
+      run rm -f "$TARGET_HOME/.fzf.bash"
+    fi
     "$fzf_dir/install" --all --no-update-rc
   fi
 }
