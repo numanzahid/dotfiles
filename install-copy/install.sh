@@ -292,7 +292,7 @@ Copied configs:
   ~/pfetch-install-update.sh
 
 Apt deps (--deps / --all):
-  bash bash-completion ca-certificates curl git gzip htop jq less locales tar tmux wget
+  avahi-daemon bash bash-completion ca-certificates curl git gzip htop jq less locales tar tmux wget
 
 Neovim (--neovim / --all):
   same GitHub build as ./install.sh --neovim  (/usr/local/bin/nvim)

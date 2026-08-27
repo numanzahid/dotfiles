@@ -125,6 +125,12 @@ mkcd() {
   mkdir -p -- "$1" && builtin cd -- "$1"
 }
 
+##### trash #############################################################
+
+if command -v trash-put >/dev/null 2>&1; then
+  alias del='trash-put'
+fi
+
 ##### Desktop notification helper ######################################
 
 alias alert='notify-send --urgency=low -i "$([ $? = 0 ] && echo terminal || echo error)" "$(history|tail -n1|sed -e '\''s/^\s*[0-9]\+\s*//;s/[;&|]\s*alert$//'\'')"'

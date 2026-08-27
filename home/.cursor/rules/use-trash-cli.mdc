@@ -1,0 +1,11 @@
+---
+description: Prefer trash-cli for deleting user files
+alwaysApply: true
+---
+
+Prefer `trash-put` over `rm` when deleting user files.
+
+- Use `trash-put PATH` for files under `$HOME` and other user data.
+- Do not use `rm -rf` on home directories, documents, or project source unless the user asked for a permanent delete.
+- `rm` is OK for build/cache/tmp paths (`node_modules`, `dist`, `/tmp`, `/var/tmp`) and when the user asked to destroy a file.
+- If unsure, use `trash-put` and say the file went to trash.

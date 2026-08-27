@@ -16,7 +16,7 @@ cd ~/dotfiles
 ./install.sh --all
 ```
 
-`--all` links configs and installs apt deps, bat, fd, zoxide, eza, lazygit, gh, neovim, btop, TPM, and fzf.
+`--all` links configs and installs apt deps (including trash-cli), bat, fd, zoxide, eza, lazygit, gh, neovim, btop, TPM, and fzf.
 
 It does not install LazyVim, fetch banners, or AI CLIs. Re-running `--all` leaves those extras alone.
 
@@ -35,6 +35,8 @@ After install: copy SSH keys into `~/.ssh/` yourself, then in tmux press `prefix
 
 Default nvim is the plain config (`home/.config/nvim-plain`).
 
+Interactive alias: `del` -> `trash-put` (`rm` is unchanged). Agent trash-cli instructions are copied (not linked) to `~/.cursor/rules/use-trash-cli.mdc`, `~/.codex/AGENTS.md`, and `~/.claude/CLAUDE.md`.
+
 ## Light host
 
 For CTs and machines where you do not want to keep this repo:
@@ -47,7 +49,7 @@ cd ~/dotfiles
 
 Then you can `rm -rf ~/dotfiles`. Upgrade later with `~/neovim-install-update.sh` and `~/pfetch-install-update.sh`.
 
-`--all` copies configs, installs apt deps (tmux, htop, git, jq, locale, ...), pfetch, and the same GitHub Neovim as the main installer.
+`--all` copies configs, installs apt deps (tmux, htop, git, jq, avahi-daemon, locale, ...), pfetch, and the same GitHub Neovim as the main installer.
 
 Copied: `.bashrc`, `.profile`, `.inputrc`, `.tmux.conf` (no TPM; pfetch on new panes), aliases, pfetch config, plain `~/.config/nvim/init.lua`, and `~/.ssh/config` plus `~/.ssh/authorized_keys` if missing.
 

@@ -127,6 +127,8 @@ ensure_sudo_for_install() {
 
 # shellcheck source=scripts/lib/link.sh
 source "$SCRIPTS_DIR/lib/link.sh"
+# shellcheck source=scripts/lib/ai-trash-rules.sh
+source "$SCRIPTS_DIR/lib/ai-trash-rules.sh"
 
 link_path() {
   df_link_path "$@"
@@ -226,6 +228,8 @@ install_dotfiles() {
   copy_if_missing "$SOURCE_DIR/.ssh/authorized_keys.example" "$TARGET_HOME/.ssh/authorized_keys"
   run chmod 600 "$TARGET_HOME/.ssh/config" 2>/dev/null || true
   run chmod 600 "$TARGET_HOME/.ssh/authorized_keys" 2>/dev/null || true
+
+  df_copy_ai_trash_rules
 }
 
 install_tpm() {

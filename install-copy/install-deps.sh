@@ -15,6 +15,7 @@ fi
 df_ensure_sudo
 
 PACKAGES=(
+  avahi-daemon
   bash
   bash-completion
   ca-certificates

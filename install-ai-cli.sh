@@ -16,6 +16,8 @@ SELECTED=()
 source "$SCRIPTS_DIR/lib/platform.sh"
 # shellcheck source=scripts/lib/link.sh
 source "$SCRIPTS_DIR/lib/link.sh"
+# shellcheck source=scripts/lib/ai-trash-rules.sh
+source "$SCRIPTS_DIR/lib/ai-trash-rules.sh"
 # shellcheck disable=SC1091
 source "$SCRIPTS_DIR/lib/github-release.sh"
 df_prepend_local_bin
@@ -328,6 +330,8 @@ for name in "${SELECTED[@]}"; do
   echo
   install_tool "$name"
 done
+
+df_copy_ai_trash_rules
 
 df_prepend_local_bin
 export PATH="${HOME}/.opencode/bin:${PATH}"
