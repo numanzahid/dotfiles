@@ -18,6 +18,10 @@
       "type": "custom"
     },
     {
+      "key": "│ {#33}{icon} model   {#keys}│",
+      "type": "host"
+    },
+    {
       "key": "│ {#34}{icon} distro  {#keys}│",
       "type": "os"
     },
