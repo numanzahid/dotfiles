@@ -8,10 +8,11 @@ if vim.fn.isdirectory(local_bin) == 1 and not vim.env.PATH:find(local_bin, 1, tr
   vim.env.PATH = local_bin .. ":" .. vim.env.PATH
 end
 
--- Optional legacy providers (not used by LazyVim LSP stack on a lean server install).
+-- Optional host providers (LazyVim uses blink/LSP, not these).
 vim.g.loaded_python3_provider = 0
 vim.g.loaded_perl_provider = 0
 vim.g.loaded_ruby_provider = 0
+vim.g.loaded_node_provider = 0
 
 -- OSC52 clipboard over SSH/tmux:
 -- - copy out works (remote -> local clipboard)
