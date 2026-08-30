@@ -109,7 +109,7 @@ Removed only if present:
 
 - `~/.local/share/nvim/site/pack/core` and `nvim-pack-lock.json`
 - Mason `tree-sitter-cli` (this installer uses `~/.local/bin/tree-sitter`)
-- `lua/plugins/nvim-extras.lua` (replaced by `dotfiles-extras.lua`)
+- `lua/plugins/nvim-extras.lua` and `lua/plugins/dotfiles-extras.lua` (extras now load from `lua/config/dotfiles-extras.lua`)
 - Debian apt packages this installer never needs: `libclang-dev`, `llvm-dev`, `clang`, `clangd`
 
 Rust in `~/.cargo` is reported, not deleted.

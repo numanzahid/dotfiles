@@ -16,16 +16,26 @@ vim.opt.rtp:prepend(lazypath)
 
 require("config.treesitter-path").setup()
 
+-- Required order: lazyvim.plugins, then extras, then plugins.
+local spec = {
+  { "LazyVim/LazyVim", import = "lazyvim.plugins" },
+}
+
+local profile = require("config.nvim-profile")
+if profile.is("lazyvim") then
+  local ok, extras = pcall(require, "config.dotfiles-extras")
+  if ok and type(extras) == "table" then
+    vim.list_extend(spec, extras)
+  end
+end
+
+spec[#spec + 1] = { import = "plugins" }
+
 require("lazy").setup({
   rocks = {
     enabled = false,
   },
-  spec = {
-    -- add LazyVim and import its plugins
-    { "LazyVim/LazyVim", import = "lazyvim.plugins" },
-    -- import/override with your plugins
-    { import = "plugins" },
-  },
+  spec = spec,
   defaults = {
     -- By default, only LazyVim plugins will be lazy-loaded. Your custom plugins will load during startup.
     -- If you know what you're doing, you can set this to `true` to have all your custom plugins lazy-loaded by default.

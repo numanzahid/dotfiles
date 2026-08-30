@@ -42,6 +42,7 @@ cleanup_mason_tree_sitter() {
 
 cleanup_legacy_extras_lua() {
   remove_user_path "$NVIM_CONFIG_DIR/lua/plugins/nvim-extras.lua"
+  remove_user_path "$NVIM_CONFIG_DIR/lua/plugins/dotfiles-extras.lua"
 }
 
 # Old installer pulled LLVM/clang for Tree-sitter. This one never installs them.

@@ -120,7 +120,7 @@ Tree-sitter CLI version: try 0.26.11 first, then fall back to an older prebuilt 
 
 ### Not loaded (full LazyVim only)
 
-`lua/plugins/dotfiles-extras.lua` imports lang extras only when profile is `lazyvim` (typescript, python, json, yaml, toml, tailwind, git, docker).
+`lua/config/dotfiles-extras.lua` is imported only when profile is `lazyvim` (typescript, python, json, yaml, toml, tailwind, git, docker).
 
 ## Tree-sitter parsers (ensure_installed)
 
