@@ -156,6 +156,68 @@ configure_avahi_conf() {
   set_avahi_key disable-publishing no
   set_avahi_key publish-addresses yes
   set_avahi_key publish-workstation yes
+  configure_avahi_interfaces
+}
+
+lan_interfaces() {
+  local dev type state
+  if command -v nmcli >/dev/null 2>&1; then
+    while IFS=: read -r dev type state; do
+      [[ "$state" == "connected" ]] || continue
+      case "$type" in
+        wifi | ethernet | wifi-p2p) printf '%s\n' "$dev" ;;
+      esac
+    done < <(nmcli -t -f DEVICE,TYPE,STATE device status 2>/dev/null || true)
+    return 0
+  fi
+  ip -o route show default 2>/dev/null | awk '{
+    for (i = 1; i <= NF; i++) if ($i == "dev") { print $(i + 1); exit }
+  }'
+}
+
+bridge_interfaces() {
+  local name
+  while IFS= read -r name; do
+    name="${name%%@*}"
+    case "$name" in
+      docker* | br-* | veth* | virbr* | lxc* | cni* | flannel* | podman* | tun* | tap*)
+        printf '%s\n' "$name"
+        ;;
+    esac
+  done < <(ip -o link show 2>/dev/null | awk -F': ' '{print $2}')
+}
+
+configure_avahi_interfaces() {
+  local -a lan=() deny=()
+  local n list
+
+  while IFS= read -r n; do
+    [[ -n "$n" ]] && lan+=("$n")
+  done < <(lan_interfaces)
+
+  if ((${#lan[@]} > 0)); then
+    list="$(IFS=,; echo "${lan[*]}")"
+    echo "Avahi allow-interfaces: $list"
+    set_avahi_key allow-interfaces "$list"
+    return 0
+  fi
+
+  while IFS= read -r n; do
+    [[ -n "$n" ]] && deny+=("$n")
+  done < <(bridge_interfaces)
+
+  if ((${#deny[@]} > 0)); then
+    list="$(IFS=,; echo "${deny[*]}")"
+    echo "Avahi deny-interfaces: $list"
+    set_avahi_key deny-interfaces "$list"
+  fi
+}
+
+skip_firewall_zone() {
+  case "$1" in
+    docker | libvirt | libvirt-devel | kube* | podman) return 0 ;;
+  esac
+  return 1
 }
 
 configure_firewalld() {
@@ -168,13 +230,21 @@ configure_firewalld() {
   echo "Allowing firewalld mdns (UDP 5353 multicast)"
   df_run_privileged firewall-cmd --permanent --add-service=mdns || true
 
-  local zone="" line
+  local zone="" line default
+  default="$(firewall-cmd --get-default-zone 2>/dev/null || true)"
+  if [[ -n "$default" ]]; then
+    echo "Allowing mdns on default zone: $default"
+    df_run_privileged firewall-cmd --permanent --zone="$default" --add-service=mdns || true
+  fi
+
   while IFS= read -r line; do
     [[ -n "$line" ]] || continue
     if [[ "$line" =~ ^[[:space:]] ]]; then
       continue
     fi
-    zone="$line"
+    zone="${line%% (*}"
+    zone="${zone%%[[:space:]]*}"
+    skip_firewall_zone "$zone" && continue
     echo "Allowing mdns on zone: $zone"
     df_run_privileged firewall-cmd --permanent --zone="$zone" --add-service=mdns || true
   done < <(firewall-cmd --get-active-zones 2>/dev/null || true)
