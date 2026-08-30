@@ -1,123 +1,116 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Install or upgrade fastfetch using official upstream methods:
-# - Ubuntu 22.04+: maintainer PPA (ppa:zhangsongcui3371/fastfetch)
-# - Fallback: latest .deb from GitHub releases
+# Install or upgrade fastfetch from GitHub releases (never apt, never PPA).
+# https://github.com/fastfetch-cli/fastfetch
 #
-# Re-run this script anytime to upgrade.
+# Removes an apt/PPA fastfetch and the zhangsongcui3371 PPA + keys, then
+# installs the official tarball to /usr/local/bin/fastfetch.
+#
+# Re-run anytime to upgrade.
+# Invoked by: ./install-fetch.sh fastfetch
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck disable=SC1091
+# shellcheck source=scripts/lib/github-release.sh
 source "$SCRIPT_DIR/lib/github-release.sh"
 
 REPO="fastfetch-cli/fastfetch"
+BIN_PATH="/usr/local/bin/fastfetch"
 PPA="ppa:zhangsongcui3371/fastfetch"
 
-need_cmd() { command -v "$1" >/dev/null 2>&1; }
+gr_require_cmds curl jq tar
 
-if ! need_cmd curl && ! need_cmd wget; then
-  echo "ERROR: need curl or wget" >&2
-  exit 1
-fi
-
-SUDO=""
-if [[ "${EUID:-$(id -u)}" -ne 0 ]]; then
-  if need_cmd sudo; then
-    SUDO="sudo"
-  else
-    echo "ERROR: need root or sudo" >&2
-    exit 1
-  fi
-fi
-
-os_id=""
-os_version_id=""
-if [[ -r /etc/os-release ]]; then
-  # shellcheck disable=SC1091
-  source /etc/os-release
-  os_id="${ID:-}"
-  os_version_id="${VERSION_ID:-}"
-fi
-
-ppa_configured() {
-  grep -rq 'zhangsongcui3371/fastfetch' /etc/apt/sources.list /etc/apt/sources.list.d/ 2>/dev/null
-}
-
-use_ubuntu_ppa() {
-  [[ "$os_id" == "ubuntu" ]] || return 1
-  [[ -n "$os_version_id" ]] || return 1
-
-  local major="${os_version_id%%.*}"
-  [[ "$major" =~ ^[0-9]+$ ]] || return 1
-  (( major >= 22 ))
-}
-
-install_via_ppa() {
-  echo "Using official fastfetch PPA on Ubuntu: $PPA"
-
-  if ! need_cmd add-apt-repository; then
-    echo "add-apt-repository not found; installing software-properties-common..."
-    $SUDO apt-get update
-    $SUDO apt-get install -y software-properties-common
-  fi
-
-  if ! ppa_configured; then
-    $SUDO add-apt-repository -y "$PPA"
-  else
-    echo "PPA already configured."
-  fi
-
-  $SUDO apt-get update
-  $SUDO apt-get install -y fastfetch
-}
-
-install_via_github_deb() {
-  local arch_raw arch asset url deb tmpdir
-
-  arch_raw="$(uname -m)"
-  case "$arch_raw" in
-    x86_64 | amd64) arch="amd64" ;;
-    aarch64 | arm64) arch="aarch64" ;;
+linux_arch() {
+  case "$(uname -m)" in
+    x86_64 | amd64) echo "amd64" ;;
+    aarch64 | arm64) echo "aarch64" ;;
+    armv7l) echo "armv7l" ;;
+    i686 | i386) echo "i686" ;;
     *)
-      echo "ERROR: unsupported architecture for .deb install: $arch_raw" >&2
+      echo "ERROR: unsupported architecture for fastfetch: $(uname -m)" >&2
       exit 1
       ;;
   esac
-
-  asset="fastfetch-linux-${arch}.deb"
-  url="https://github.com/${REPO}/releases/latest/download/${asset}"
-
-  tmpdir="$(mktemp -d)"
-  trap "rm -rf '${tmpdir}'" EXIT
-
-  deb="${tmpdir}/${asset}"
-
-  echo "Downloading: $url"
-  if need_cmd curl; then
-    gr_curl -fL -o "$deb" "$url"
-  else
-    gr_wget -O "$deb" "$url"
-  fi
-
-  echo "Installing: $asset"
-  $SUDO apt-get install -y "$deb"
 }
 
-if use_ubuntu_ppa; then
-  set +e
-  install_via_ppa
-  ppa_rc=$?
-  set -e
-  if [[ "$ppa_rc" -ne 0 ]]; then
-    echo "Ubuntu PPA install failed; falling back to GitHub .deb release."
-    install_via_github_deb
+remove_fastfetch_ppa() {
+  if ! command -v apt-get >/dev/null 2>&1; then
+    return 0
   fi
-else
-  echo "Ubuntu PPA not applicable (${os_id:-unknown} ${os_version_id:-}). Using GitHub .deb release."
-  install_via_github_deb
-fi
+
+  local sudo_cmd f changed=0
+  sudo_cmd="$(gr_sudo)"
+
+  if command -v add-apt-repository >/dev/null 2>&1; then
+    if grep -rq 'zhangsongcui3371' /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null; then
+      echo "Removing fastfetch PPA: $PPA"
+      $sudo_cmd add-apt-repository -y --remove "$PPA" || true
+      changed=1
+    fi
+  fi
+
+  if [[ -f /etc/apt/sources.list ]] && grep -q 'zhangsongcui3371' /etc/apt/sources.list; then
+    echo "Removing zhangsongcui3371 line from /etc/apt/sources.list"
+    $sudo_cmd sed -i '/zhangsongcui3371/d' /etc/apt/sources.list
+    changed=1
+  fi
+
+  while IFS= read -r f; do
+    [[ -n "$f" ]] || continue
+    echo "Removing apt source: $f"
+    $sudo_cmd rm -f "$f"
+    changed=1
+  done < <(grep -rl 'zhangsongcui3371' /etc/apt/sources.list.d 2>/dev/null || true)
+
+  for f in \
+    /etc/apt/sources.list.d/zhangsongcui3371* \
+    /etc/apt/trusted.gpg.d/zhangsongcui3371* \
+    /etc/apt/keyrings/zhangsongcui3371* \
+    /usr/share/keyrings/zhangsongcui3371*; do
+    if [[ -e "$f" || -L "$f" ]]; then
+      echo "Removing apt source/key: $f"
+      $sudo_cmd rm -f "$f"
+      changed=1
+    fi
+  done
+
+  if [[ "$changed" -eq 1 ]]; then
+    echo "Refreshing apt lists after PPA removal..."
+    $sudo_cmd apt-get update
+  fi
+}
+
+remove_apt_fastfetch() {
+  if ! command -v dpkg-query >/dev/null 2>&1; then
+    return 0
+  fi
+
+  local pkg="fastfetch" sudo_cmd
+  if ! dpkg-query -W -f='${Status}' "$pkg" 2>/dev/null | grep -q "install ok installed"; then
+    return 0
+  fi
+
+  echo "Removing apt fastfetch (PPA or .deb) to avoid conflicts"
+  sudo_cmd="$(gr_sudo)"
+  $sudo_cmd apt-get remove -y "$pkg"
+}
+
+remove_fastfetch_ppa
+remove_apt_fastfetch
+
+tag="$(gr_latest_tag "$REPO" || true)"
+[[ -n "$tag" && "$tag" != "null" ]] || {
+  gr_exit_if_keeping "$BIN_PATH" "could not resolve latest ${REPO} tag"
+  echo "ERROR: could not resolve latest fastfetch release tag" >&2
+  exit 1
+}
+
+arch="$(linux_arch)"
+asset="fastfetch-linux-${arch}.tar.gz"
+url="https://github.com/${REPO}/releases/download/${tag}/${asset}"
+
+gr_install_from_targz "$url" fastfetch "$BIN_PATH" "$tag"
 
 echo "Done."
 echo "fastfetch path: $(command -v fastfetch || true)"
-fastfetch --version 2>&1 | head -n 1 || true
+gr_print_version_line fastfetch

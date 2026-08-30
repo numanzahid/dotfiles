@@ -1,6 +1,31 @@
 # ~/.bashrc: executed by bash(1) for non-login shells.
 
-# If not running interactively, do not do anything.
+# Fedora/RHEL: system bashrc (completions, umask). Missing on Debian: no-op.
+if [ -f /etc/bashrc ]; then
+  . /etc/bashrc
+fi
+
+# User specific environment (Fedora skel idiom). Harmless on Debian/Ubuntu.
+if ! [[ "$PATH" =~ "$HOME/.local/bin:$HOME/bin:" ]]; then
+  PATH="$HOME/.local/bin:$HOME/bin:$PATH"
+fi
+export PATH
+
+# OpenCode (only if installed; see ./install-ai-cli.sh).
+if [ -d "$HOME/.opencode/bin" ]; then
+  case ":$PATH:" in
+    *":$HOME/.opencode/bin:"*) ;;
+    *) export PATH="$HOME/.opencode/bin:$PATH" ;;
+  esac
+fi
+
+# Optional Rust/cargo (not installed by dotfiles by default).
+[ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
+
+export EDITOR="${EDITOR:-nvim}"
+export COLORTERM=truecolor
+
+# Stop here for non-interactive shells (scp/rsync/sftp/ssh host 'cmd').
 case $- in
 *i*) ;;
 *) return ;;
@@ -26,65 +51,14 @@ shopt -s checkwinsize
 # Make less more friendly for non-text input files.
 [ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
 
-##### Terminal color and Prompt ##########################################
+##### Prompt ############################################################
 
-export COLORTERM=truecolor
-
-# Set variable identifying the chroot.
-if [ -z "${debian_chroot:-}" ] && [ -r /etc/debian_chroot ]; then
-  debian_chroot=$(cat /etc/debian_chroot)
+# Active prompt is ~/.config/dotfiles/prompt.sh (custom or starship).
+# Switch: ln -sfn ~/dotfiles/home/.config/dotfiles/prompt-custom.sh ~/.config/dotfiles/prompt.sh
+#     or: ln -sfn ~/dotfiles/home/.config/dotfiles/prompt-starship.sh ~/.config/dotfiles/prompt.sh
+if [ -f ~/.config/dotfiles/prompt.sh ]; then
+  . ~/.config/dotfiles/prompt.sh
 fi
-
-# Prompt path: full when short (<=2 dirs); else last 2 segments with "..." prefix.
-# Full path stays in the window title below.
-prompt_short_path() {
-  local p parts=() n
-
-  case "$PWD" in
-    "$HOME") p='~' ;;
-    "$HOME"/*) p="~${PWD#$HOME}" ;;
-    *) p="$PWD" ;;
-  esac
-
-  if [[ "$p" == "~" ]]; then
-    printf '~'
-    return
-  fi
-
-  if [[ "$p" == "~/"* ]]; then
-    IFS='/' read -ra parts <<< "${p:2}"
-    if ((${#parts[@]} <= 2)); then
-      printf '%s' "$p"
-    else
-      n=$((${#parts[@]} - 1))
-      printf '.../%s/%s' "${parts[n - 1]}" "${parts[n]}"
-    fi
-    return
-  fi
-
-  if [[ "$p" == "/" ]]; then
-    printf '/'
-    return
-  fi
-
-  IFS='/' read -ra parts <<< "${p:1}"
-  if ((${#parts[@]} <= 2)); then
-    printf '%s' "$p"
-  else
-    n=$((${#parts[@]} - 1))
-    printf '.../%s/%s' "${parts[n - 1]}" "${parts[n]}"
-  fi
-}
-
-# Debian-style prompt: hostname:path ($ for user, # for root). No username.
-PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\h\[\033[00m\]:\[\033[01;34m\]$(prompt_short_path)\[\033[00m\]\$ '
-
-# Window title (xterm / SSH): hostname and directory only.
-case "$TERM" in
-xterm* | rxvt*)
-  PS1="\[\e]0;${debian_chroot:+($debian_chroot)}\h: \w\a\]$PS1"
-  ;;
-esac
 
 ##### Bash aliases ######################################################
 
@@ -104,23 +78,8 @@ if ! shopt -oq posix; then
   fi
 fi
 
-##### Environment #######################################################
+##### nvm ###############################################################
 
-# Default editor.
-export EDITOR=nvim
-
-# User-local binaries.
-export PATH="$HOME/.local/bin:$PATH"
-
-# OpenCode (only if installed; see ./install-ai-cli.sh).
-if [ -d "$HOME/.opencode/bin" ]; then
-  export PATH="$HOME/.opencode/bin:$PATH"
-fi
-
-# Optional Rust/cargo (not installed by dotfiles by default).
-[ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
-
-# nvm.
 export NVM_DIR="$HOME/.nvm"
 
 if [ -s "$NVM_DIR/nvm.sh" ]; then
@@ -130,6 +89,17 @@ fi
 if [ -s "$NVM_DIR/bash_completion" ]; then
   . "$NVM_DIR/bash_completion"
 fi
+
+##### User bashrc.d (Fedora convention; no-op if the directory is empty) #
+
+if [ -d ~/.bashrc.d ]; then
+  for rc in ~/.bashrc.d/*; do
+    if [ -f "$rc" ]; then
+      . "$rc"
+    fi
+  done
+fi
+unset rc
 
 ##### Interactive-only customizations ###################################
 

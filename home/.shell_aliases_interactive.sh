@@ -5,7 +5,13 @@
 ##### fzf ###############################################################
 
 # Set up fzf key bindings and fuzzy completion.
-[ -f ~/.fzf.bash ] && source ~/.fzf.bash
+# Git installer writes ~/.fzf.bash. Fedora dnf fzf uses `fzf --bash`.
+if [ -f ~/.fzf.bash ]; then
+  source ~/.fzf.bash
+elif command -v fzf >/dev/null 2>&1; then
+  _dotfiles_fzf_bash="$(fzf --bash 2>/dev/null)" && eval "$_dotfiles_fzf_bash"
+  unset _dotfiles_fzf_bash
+fi
 
 alias ff="fzf --preview 'bat --style=numbers --color=always {}'"
 

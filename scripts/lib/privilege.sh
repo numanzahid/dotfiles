@@ -31,19 +31,24 @@ df_prompt_yes() {
 }
 
 df_install_sudo_package() {
-  if ! df_need_cmd apt-get; then
-    echo "ERROR: apt-get not found; install sudo manually" >&2
-    return 1
-  fi
-
   if ! df_is_root; then
     echo "ERROR: must be root to install sudo" >&2
     return 1
   fi
 
   echo "Installing sudo..."
-  apt-get update
-  DEBIAN_FRONTEND=noninteractive apt-get install -y sudo
+  if df_need_cmd apt-get; then
+    apt-get update
+    DEBIAN_FRONTEND=noninteractive apt-get install -y sudo
+    return 0
+  fi
+  if df_need_cmd dnf; then
+    dnf install -y sudo
+    return 0
+  fi
+
+  echo "ERROR: apt-get/dnf not found; install sudo manually" >&2
+  return 1
 }
 
 # Ensure we can run privileged steps.
@@ -76,7 +81,11 @@ df_ensure_sudo() {
 
   echo "ERROR: sudo is not installed and you are not root." >&2
   echo "Install sudo as root, then re-run this script:" >&2
-  echo "  apt-get update && apt-get install -y sudo" >&2
+  if df_need_cmd dnf; then
+    echo "  dnf install -y sudo" >&2
+  else
+    echo "  apt-get update && apt-get install -y sudo" >&2
+  fi
   return 1
 }
 

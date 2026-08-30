@@ -9,13 +9,13 @@ source "$SCRIPT_DIR/scripts/lib/privilege.sh"
 
 if ! command -v apt-get >/dev/null 2>&1; then
   echo "install-deps.sh supports apt-based systems only." >&2
+  echo "On Fedora use ./install-fedora.sh --deps" >&2
   exit 1
 fi
 
 df_ensure_sudo
 
 PACKAGES=(
-  avahi-daemon
   bash
   bash-completion
   ca-certificates

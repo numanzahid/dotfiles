@@ -181,6 +181,7 @@ install_configs() {
     local dest
     for dest in \
       "$TARGET_HOME/.bashrc" \
+      "$TARGET_HOME/.config/dotfiles/prompt.sh" \
       "$TARGET_HOME/.shell_aliases_interactive.sh" \
       "$TARGET_HOME/.inputrc" \
       "$TARGET_HOME/.profile" \
@@ -196,6 +197,8 @@ install_configs() {
   fi
 
   copy_file "$SOURCE_DIR/.bashrc" "$TARGET_HOME/.bashrc"
+  mkdir -p "$TARGET_HOME/.config/dotfiles"
+  copy_file "$SOURCE_DIR/.config/dotfiles/prompt-custom.sh" "$TARGET_HOME/.config/dotfiles/prompt.sh"
   copy_file "$COPY_DIR/shell_aliases_interactive.sh" "$TARGET_HOME/.shell_aliases_interactive.sh"
   copy_file "$SOURCE_DIR/.inputrc" "$TARGET_HOME/.inputrc"
   copy_file "$SOURCE_DIR/.profile" "$TARGET_HOME/.profile"
@@ -279,6 +282,7 @@ Not included: gitconfig, fzf, zoxide, lazygit, lazydocker, fastfetch, TPM.
 
 Copied configs:
   ~/.bashrc
+  ~/.config/dotfiles/prompt.sh  (custom prompt)
   ~/.shell_aliases_interactive.sh
   ~/.inputrc
   ~/.profile
@@ -292,7 +296,7 @@ Copied configs:
   ~/pfetch-install-update.sh
 
 Apt deps (--deps / --all):
-  avahi-daemon bash bash-completion ca-certificates curl git gzip htop jq less locales tar tmux wget
+  bash bash-completion ca-certificates curl git gzip htop jq less locales tar tmux wget
 
 Neovim (--neovim / --all):
   same GitHub build as ./install.sh --neovim  (/usr/local/bin/nvim)

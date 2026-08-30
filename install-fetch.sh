@@ -89,6 +89,17 @@ link_fetch_configs() {
 
 install_fastfetch_bin() {
   log "installing fastfetch"
+  if [[ "$(df_host_os_id)" == "fedora" ]]; then
+    # shellcheck source=scripts/lib/privilege.sh
+    source "$SCRIPTS_DIR/lib/privilege.sh"
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+      printf '+ dnf install -y fastfetch\n'
+      return 0
+    fi
+    df_ensure_sudo
+    df_run_privileged dnf install -y fastfetch
+    return 0
+  fi
   if [[ "$DRY_RUN" -eq 1 ]]; then
     run bash "$SCRIPTS_DIR/fastfetch-install-update.sh"
   else
