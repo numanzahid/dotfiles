@@ -104,10 +104,10 @@ _dotfiles_show_fetch_banner
 ##### eza / ls ##########################################################
 
 if command -v eza >/dev/null 2>&1; then
-  alias ls='eza -lh --group-directories-first --icons=auto --git .'
-  alias lsa='eza -lh --group-directories-first --icons=auto --git -a .'
-  alias lt='eza --tree --level=2 --long --icons --git .'
-  alias lta='eza --tree --level=2 --long --icons --git -a .'
+  alias ls='eza -lh --group-directories-first --icons=auto --git'
+  alias lsa='eza -lh --group-directories-first --icons=auto --git -a'
+  alias lt='eza --tree --level=2 --long --icons --git'
+  alias lta='eza --tree --level=2 --long --icons --git -a'
 else
   alias ll='ls -alF'
   alias la='ls -A'
