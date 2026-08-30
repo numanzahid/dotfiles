@@ -2,6 +2,15 @@
 
 return {
   {
+    "LazyVim/LazyVim",
+    opts = {
+      news = {
+        lazyvim = false,
+        neovim = false,
+      },
+    },
+  },
+  {
     "folke/snacks.nvim",
     opts = {
       image = { enabled = false },

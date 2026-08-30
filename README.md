@@ -92,7 +92,7 @@ Tmux only: `./scripts/install-tmux-config.sh`
 Not part of `--all` on any installer:
 
 ```bash
-./lazyvim/install-lazyvim.sh              # LazyVim IDE
+./lazyvim/install-lazyvim.sh              # LazyVim IDE (Debian/Ubuntu and Fedora)
 ./lazyvim-lite/install-lazyvim-lite.sh    # LazyVim editor only (no Mason/LSP/Node)
 ./install-fetch.sh                        # tmux banner: none / fastfetch / pfetch / both
 ./install-ai-cli.sh                       # OpenCode, Cursor, Claude Code, Codex
@@ -107,6 +107,8 @@ See `lazyvim/README.md` and `lazyvim-lite/README.md`.
 cd ~/dotfiles && git pull && ./install.sh           # Debian/Ubuntu
 cd ~/dotfiles && git pull && ./install-fedora.sh    # Fedora
 ```
+
+After pulling a LazyVim lockfile or nvim lua change: `./lazyvim/sync-lazyvim.sh` (full `./lazyvim/install-lazyvim.sh` only on first setup or when deps/extras changed). See `lazyvim/README.md`.
 
 Re-runs overwrite configs the installer already manages (including files you edited). A foreign file is backed up once as `*.pre-dotfiles`. An existing fetch banner, LazyVim nvim config, and AI CLIs are not reset.
 

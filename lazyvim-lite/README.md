@@ -37,32 +37,14 @@ Switch profiles later:
 
 ## System dependencies
 
-Installed by `lazyvim/install-system-deps.sh` (shared with full LazyVim):
-
-### Apt packages
-
-| Package | Purpose |
-|---------|---------|
-| ca-certificates | HTTPS downloads |
-| curl | fetch tree-sitter CLI, git clones |
-| git | lazy.nvim, LazyVim, plugins |
-| unzip, tar | archives |
-| ripgrep | Snacks picker, grug-far search |
-| fd-find | file finding (symlinked to `~/.local/bin/fd`) |
-
-### Compiler (installed if missing)
-
-| Package | Purpose |
-|---------|---------|
-| gcc | build Tree-sitter parsers from source |
-| libc6-dev | C headers for parser builds |
+Installed by `lazyvim/install-system-deps.sh` (shared with full LazyVim). Same command checks on Debian/Ubuntu and Fedora; see `lazyvim/README.md`.
 
 ### User-local binaries
 
 | Binary | Path | Purpose |
 |--------|------|---------|
 | tree-sitter CLI | `~/.local/bin/tree-sitter` | nvim-treesitter parser install/update |
-| fd (compat) | `~/.local/bin/fd` | symlink to `fdfind` when needed |
+| fd (compat) | `~/.local/bin/fd` | Debian `fdfind` symlink only when `fd` is missing |
 
 Tree-sitter CLI version: try 0.26.11 first, then fall back to an older prebuilt that executes (see `lazyvim/install-tree-sitter-cli.sh`).
 
@@ -163,7 +145,7 @@ Compare to full LazyVim with Mason + Node: often 400 MB-1 GB+ extra.
 | install.conf | allow-root, apt cleanup |
 | lib/common.sh | log prefix + reuse lazyvim helpers |
 
-Shared with `lazyvim/`: system deps, tree-sitter CLI, migrate-legacy, nvim-profile.
+Shared with `lazyvim/`: system deps, tree-sitter CLI, leftover cleanup, nvim-profile.
 
 ## Verify
 

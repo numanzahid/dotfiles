@@ -102,9 +102,37 @@ prompt_yes() {
   esac
 }
 
-check_platform() {
+lazyvim_load_platform() {
   # shellcheck source=../../scripts/lib/platform.sh
   source "$DOTFILES_DIR/scripts/lib/platform.sh"
+}
+
+# Last-mile package manager: debian (apt) or fedora (dnf).
+lazyvim_pkg_family() {
+  lazyvim_load_platform
+
+  case "$(df_host_os_id 2>/dev/null || echo unknown)" in
+    fedora | rhel | centos | rocky | almalinux)
+      printf '%s' fedora
+      return 0
+      ;;
+    debian | ubuntu | linuxmint | pop)
+      printf '%s' debian
+      return 0
+      ;;
+  esac
+
+  if command -v dnf >/dev/null 2>&1; then
+    printf '%s' fedora
+  elif command -v apt-get >/dev/null 2>&1; then
+    printf '%s' debian
+  else
+    printf '%s' unknown
+  fi
+}
+
+check_platform() {
+  lazyvim_load_platform
 
   case "$(uname -s)" in
     Linux) ;;
@@ -113,17 +141,22 @@ check_platform() {
       ;;
   esac
 
-  if ! command -v apt-get >/dev/null 2>&1; then
-    die "apt-get not found (Debian/Ubuntu only)"
-  fi
+  local family
+  family="$(lazyvim_pkg_family)"
+  case "$family" in
+    debian | fedora) ;;
+    *)
+      die "need apt-get (Debian/Ubuntu) or dnf (Fedora)"
+      ;;
+  esac
 
   case "$(df_host_os_id 2>/dev/null || echo unknown)" in
-    debian | ubuntu | linuxmint | pop) ;;
+    debian | ubuntu | linuxmint | pop | fedora) ;;
     unknown)
-      warn "unknown /etc/os-release ID; continuing (apt-based Linux assumed)"
+      warn "unknown /etc/os-release ID; continuing ($family packages)"
       ;;
     *)
-      warn "untested OS ID: $(df_host_os_id); continuing (Debian/Ubuntu-like apt assumed)"
+      warn "untested OS ID: $(df_host_os_id); continuing ($family packages)"
       ;;
   esac
 }

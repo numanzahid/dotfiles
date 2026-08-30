@@ -37,3 +37,10 @@ vim.g.clipboard = {
 
 -- Keep default registers for normal `p`; avoid OSC52 clipboard READ attempts
 vim.opt.clipboard = ""
+
+-- Absolute line numbers (Omarchy preference; LazyVim default is relative).
+vim.opt.relativenumber = false
+
+-- Reload from disk when the buffer is unchanged. Conflict prompt when both
+-- the buffer and the file have changed (see lua/config/autocmds.lua).
+vim.opt.autoread = true

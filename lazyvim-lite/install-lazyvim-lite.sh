@@ -20,7 +20,6 @@ Tree-sitter CLI and parsers use the same path as ./lazyvim/install-lazyvim.sh.
 
 Options:
   --dry-run       Print actions without changing the system
-  --migrate       Run legacy cleanup before install
   --skip-sync     Skip headless LazyVim plugin sync
   -h, --help      Show this help
 
@@ -29,13 +28,11 @@ EOF
 }
 
 parse_args() {
-  RUN_MIGRATE=0
   SKIP_SYNC=0
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --dry-run) DRY_RUN=1 ;;
-      --migrate) RUN_MIGRATE=1 ;;
       --skip-sync) SKIP_SYNC=1 ;;
       -h | --help)
         usage
@@ -56,7 +53,7 @@ version_ge() {
 check_neovim() {
   local version luajit_ok=0
 
-  command -v nvim >/dev/null 2>&1 || die "nvim not found. Run: ./install.sh --neovim"
+  command -v nvim >/dev/null 2>&1 || die "nvim not found. Run: ./install.sh --neovim  or  ./install-fedora.sh --neovim"
 
   version="$(nvim --version | head -n 1 | sed -n 's/.*NVIM v\([0-9.]*\).*/\1/p')"
   [[ -n "$version" ]] || die "could not parse nvim version"
@@ -84,15 +81,6 @@ prepare_lazyvim_lite_config() {
     run set_nvim_profile "lazyvim-lite"
   else
     set_nvim_profile "lazyvim-lite"
-  fi
-
-  if [[ -f "$NVIM_CONFIG_DIR/lua/plugins/nvim-extras.lua" ]]; then
-    log "removing legacy nvim-extras.lua (replaced by dotfiles-extras.lua)"
-    if [[ "$DRY_RUN" -eq 1 ]]; then
-      run rm -f "$NVIM_CONFIG_DIR/lua/plugins/nvim-extras.lua"
-    else
-      rm -f "$NVIM_CONFIG_DIR/lua/plugins/nvim-extras.lua"
-    fi
   fi
 }
 
@@ -180,11 +168,7 @@ main() {
   check_not_root_for_user_phase "$@"
   parse_args "$@"
 
-  if [[ "$RUN_MIGRATE" -eq 1 ]]; then
-    bash "$LAZYVIM_DIR/migrate-legacy.sh"
-  else
-    bash "$LAZYVIM_DIR/migrate-legacy.sh" --pack-only
-  fi
+  DRY_RUN="$DRY_RUN" bash "$LAZYVIM_DIR/cleanup-leftovers.sh"
 
   disk_before="$(disk_usage_bytes "${XDG_DATA_HOME:-$HOME/.local/share}/nvim")"
   disk_before=$((disk_before + $(disk_usage_bytes "${XDG_CACHE_HOME:-$HOME/.cache}/nvim")))

@@ -5,7 +5,8 @@ Optional bootstrap for web, config, shell, Python, and Markdown editing.
 Neovim itself is installed separately:
 
 ```bash
-./install.sh --neovim   # or --all
+./install.sh --neovim           # Debian/Ubuntu, or --all
+./install-fedora.sh --neovim    # Fedora, or --all
 ```
 
 Then:
@@ -22,13 +23,14 @@ LAZYVIM_ALLOW_ROOT=true ./lazyvim/install-lazyvim.sh
 
 ## What it does
 
-1. Validates Neovim (>= 0.11.2, LuaJIT)
-2. Installs only missing apt packages (no build-essential, no LLVM)
-3. Installs prebuilt Tree-sitter CLI (no Rust/Cargo)
-4. Ensures minimal `gcc` + `libc6-dev` only if no working C compiler exists
-5. Links the LazyVim nvim config and enables the LazyVim profile
-6. Runs headless `Lazy! sync` + `Lazy! load all`
-7. Verifies health and prints disk usage
+1. Validates Neovim (>= 0.11.2, LuaJIT); does not assume a previous LazyVim
+2. Drops leftovers if they exist (Mason tree-sitter CLI, vim.pack, old extras lua, unused Debian clang/llvm)
+3. Installs only missing packages (apt or dnf; no build-essential, no LLVM)
+4. Installs prebuilt Tree-sitter CLI (no Rust/Cargo)
+5. Ensures a working C compiler only if none exists (`gcc` + libc headers)
+6. Links the LazyVim nvim config and enables the LazyVim profile
+7. Runs headless `Lazy! sync` + `Lazy! load all`
+8. Verifies health and prints disk usage
 
 ## Configuration
 
@@ -43,33 +45,41 @@ Edit `lazyvim/install.conf` for feature flags:
 | `INSTALL_NVM_IF_MISSING` | true | Offer nvm when node/npm missing |
 | `PROMPT_NVM_INSTALL` | true | Ask before running nvm installer from LazyVim |
 | `LAZYVIM_ALLOW_ROOT` | false | Allow setup as root |
-| `APT_CLEAN_AFTER_INSTALL` | true | apt clean for containers |
+| `APT_CLEAN_AFTER_INSTALL` | true | apt clean for containers (Debian/Ubuntu only) |
 
 ## Scripts
 
 | Script | Purpose |
 |--------|---------|
 | `install-lazyvim.sh` | Main installer |
-| `install-system-deps.sh` | Minimal apt + gcc check |
+| `install-system-deps.sh` | Missing commands via apt or dnf + gcc check |
 | `install-nvm-node.sh` | LazyVim wrapper (calls `scripts/nvm-install-update.sh`) |
 | `install-tree-sitter-cli.sh` | Prebuilt Tree-sitter CLI |
 | `sync-lazyvim.sh` | Headless LazyVim sync |
-| `migrate-legacy.sh` | Remove old LLVM/Rust leftovers |
+| `cleanup-leftovers.sh` | Idempotent leftover cleanup (no-op on a fresh host) |
 | `uninstall-lazyvim.sh` | Switch to plain nvim + remove nvim data |
 | `measure-disk.sh` | Disk footprint report |
 
-## Apt packages (only if missing)
+## System packages (only if the command is missing)
 
-| Package | Why |
-|---------|-----|
-| `ca-certificates` | HTTPS downloads |
-| `curl` | LazyVim / Mason downloads |
-| `git` | lazy.nvim, plugins |
-| `unzip` | Tree-sitter CLI zip |
-| `tar` | archives |
-| `ripgrep` | LazyVim search |
-| `fd-find` | file finding (`fd` symlink in `~/.local/bin`) |
-| `gcc` + `libc6-dev` | only if no working C compiler (Tree-sitter parsers) |
+Same script on Debian/Ubuntu and Fedora. It checks commands first, then installs the matching package.
+
+| Command | Debian/Ubuntu | Fedora | Why |
+|---------|---------------|--------|-----|
+| CA certs | `ca-certificates` | `ca-certificates` | HTTPS downloads |
+| `curl` | `curl` | `curl` | LazyVim / Mason downloads |
+| `git` | `git` | `git` | lazy.nvim, plugins |
+| `unzip` | `unzip` | `unzip` | Tree-sitter CLI zip |
+| `tar` | `tar` | `tar` | archives |
+| `rg` | `ripgrep` | `ripgrep` | LazyVim search |
+| `fd` | `fd-find` (`fdfind` symlink) | `fd-find` (binary is already `fd`) | file finding |
+| `cc` / `gcc` | `gcc` + `libc6-dev` | `gcc` + `glibc-devel` | Tree-sitter parser builds |
+
+Debian-only extras that Fedora does not get:
+
+- `~/.local/bin/fd` -> `fdfind` (only when `fd` is missing and `fdfind` exists)
+- `apt-get clean` when `APT_CLEAN_AFTER_INSTALL=true`
+- older Tree-sitter CLI fallbacks (only if the current GitHub binary will not execute, typically old glibc)
 
 Not installed: `build-essential`, `g++`, `clang`, `libclang-dev`, `llvm`, `python3-dev`, Rust.
 
@@ -89,15 +99,20 @@ On modern hosts (glibc >= 2.39), step 1 succeeds and matches nvim-treesitter's C
 
 On Debian bookworm / Ubuntu 22.04, step 1 usually fails to execute; step 2 installs and **the install still completes**. The installer reports **WARN (degraded CLI)** because `:checkhealth nvim-treesitter` will ERROR. Highlighting, folds, and `:TSUpdate` still work.
 
-`gcc` + `libc6-dev` stay installed when needed; they are not removed after parser builds.
+`gcc` and libc headers stay installed when needed; they are not removed after parser builds.
 
-## Migration from old installer
+## Leftovers
 
-```bash
-./lazyvim/install-lazyvim.sh --migrate
-```
+Every run of `./lazyvim/install-lazyvim.sh` calls `cleanup-leftovers.sh`. Missing paths and packages are a no-op, so a new machine and a re-run on an old box use the same command.
 
-Removes broken Mason tree-sitter, optional `libclang-dev`/`clang` apt packages, reports Rust leftovers.
+Removed only if present:
+
+- `~/.local/share/nvim/site/pack/core` and `nvim-pack-lock.json`
+- Mason `tree-sitter-cli` (this installer uses `~/.local/bin/tree-sitter`)
+- `lua/plugins/nvim-extras.lua` (replaced by `dotfiles-extras.lua`)
+- Debian apt packages this installer never needs: `libclang-dev`, `llvm-dev`, `clang`, `clangd`
+
+Rust in `~/.cargo` is reported, not deleted.
 
 ## Uninstall
 
@@ -148,3 +163,27 @@ Skip Node entirely:
 ```bash
 REQUIRE_NODE=false ./lazyvim/install-lazyvim.sh
 ```
+
+## Staying in sync with upstream LazyVim
+
+This repo does not vendor LazyVim as a second git clone. `home/.config/nvim` is the LazyVim starter plus our overlays (`lua/plugins/dotfiles-*.lua`, profile/treesitter helpers). Upstream LazyVim is a plugin (`LazyVim/LazyVim`) pinned in `home/.config/nvim/lazy-lock.json`.
+
+### Plugin updates (usual path)
+
+1. On one machine, update plugins (`:Lazy update` in nvim, or `./lazyvim/sync-lazyvim.sh`).
+2. Commit `home/.config/nvim/lazy-lock.json` (and any lua you changed).
+3. On other machines: `git pull`, then `./lazyvim/sync-lazyvim.sh`.
+
+`sync-lazyvim.sh` is enough after a pull if Neovim, system deps, and Tree-sitter CLI are already in place.
+
+### Full installer again
+
+Re-run `./lazyvim/install-lazyvim.sh` on a machine when:
+
+- first LazyVim setup on that host
+- system deps, Tree-sitter CLI, or `install.conf` extras need to be applied
+- you pulled starter/overlay lua that the installer links or rewrites
+
+### Starter template updates (rare)
+
+When [LazyVim/starter](https://github.com/LazyVim/starter) changes `init.lua` / `lua/config/lazy.lua`, merge those files by hand. Keep our overlays. Do not replace `lua/plugins/dotfiles-*.lua` or `lua/config/nvim-profile.lua`.
