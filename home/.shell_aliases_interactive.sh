@@ -69,7 +69,11 @@ _dotfiles_show_fetch_banner() {
   case "$mode" in
     fastfetch)
       if command -v fastfetch >/dev/null 2>&1; then
-        fastfetch --config "${XDG_CONFIG_HOME:-$HOME}/.config/tmux/fastfetch.jsonc"
+        if [[ -x "${XDG_CONFIG_HOME:-$HOME}/.config/tmux/fastfetch-banner.sh" ]]; then
+          "${XDG_CONFIG_HOME:-$HOME}/.config/tmux/fastfetch-banner.sh"
+        else
+          fastfetch --config "${XDG_CONFIG_HOME:-$HOME}/.config/tmux/fastfetch.jsonc"
+        fi
         DOTFILES_FETCH_SHOWN=1
       fi
       ;;
@@ -87,8 +91,13 @@ fetch() {
   mode="$(_dotfiles_fetch_mode)"
   case "$mode" in
     fastfetch)
-      command -v fastfetch >/dev/null 2>&1 &&
-        fastfetch --config "${XDG_CONFIG_HOME:-$HOME}/.config/tmux/fastfetch.jsonc"
+      if command -v fastfetch >/dev/null 2>&1; then
+        if [[ -x "${XDG_CONFIG_HOME:-$HOME}/.config/tmux/fastfetch-banner.sh" ]]; then
+          "${XDG_CONFIG_HOME:-$HOME}/.config/tmux/fastfetch-banner.sh"
+        else
+          fastfetch --config "${XDG_CONFIG_HOME:-$HOME}/.config/tmux/fastfetch.jsonc"
+        fi
+      fi
       ;;
     pfetch)
       command -v pfetch >/dev/null 2>&1 && pfetch

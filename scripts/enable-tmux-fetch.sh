@@ -5,6 +5,7 @@ set -euo pipefail
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TMUX_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/tmux"
 FETCH_CONF="$TMUX_CONFIG_DIR/fetch.conf"
+FASTFETCH_ART_FILE="${XDG_DATA_HOME:-$HOME/.local/share}/dotfiles/fastfetch-art"
 
 usage() {
   cat <<EOF
@@ -14,16 +15,25 @@ Modes:
   none        Plain panes (default, no fetch banner)
   fastfetch   Show fastfetch on new window/pane (needs fastfetch installed)
   pfetch      Show pfetch on new window/pane (needs pfetch installed)
+  art <0|1|2> Text art for the fastfetch banner
   status      Show current mode
+
+Text art (tmux / new-terminal banner only):
+  0  no logo
+  1  current tmux logo (~/.config/tmux/tmux-logo.txt)
+  2  custom (~/.config/fastfetch/logo.txt)
+
+Plain fastfetch uses the built-in default config and distro logo.
 
 Examples:
   $(basename "$0") fastfetch
   $(basename "$0") pfetch
   $(basename "$0") none
+  $(basename "$0") art 2
 
 Edit layouts:
-  fastfetch: $TMUX_CONFIG_DIR/fastfetch.jsonc
-  pfetch:    ${XDG_CONFIG_HOME:-$HOME/.config}/pfetch/pfetchrc
+  banner: $TMUX_CONFIG_DIR/fastfetch.jsonc
+  pfetch: ${XDG_CONFIG_HOME:-$HOME}/.config/pfetch/pfetchrc
 
 Re-run after changing mode, or reload tmux: tmux source-file ~/.tmux.conf
 EOF
@@ -54,6 +64,31 @@ link_fetch_mode() {
   ln -sfn "$src" "$FETCH_CONF"
 }
 
+fastfetch_art_current() {
+  if [[ -f "$FASTFETCH_ART_FILE" ]]; then
+    tr -d '[:space:]' <"$FASTFETCH_ART_FILE"
+    return 0
+  fi
+  printf '1'
+}
+
+set_fastfetch_art() {
+  local choice="$1"
+  case "$choice" in
+    0 | 1 | 2) ;;
+    none) choice="0" ;;
+    tmux | current) choice="1" ;;
+    custom | logo) choice="2" ;;
+    *)
+      echo "Unknown text art: $choice (use 0, 1, or 2)" >&2
+      return 1
+      ;;
+  esac
+  mkdir -p "$(dirname "$FASTFETCH_ART_FILE")"
+  printf '%s\n' "$choice" >"$FASTFETCH_ART_FILE"
+  echo "Fastfetch text art: $choice"
+}
+
 tmux_fetch_current_mode() {
   if [[ ! -e "$FETCH_CONF" ]]; then
     printf '%s\n' "none"
@@ -71,6 +106,7 @@ tmux_fetch_current_mode() {
 
 show_status() {
   printf 'mode: %s\n' "$(tmux_fetch_current_mode)"
+  printf 'art:  %s\n' "$(fastfetch_art_current)"
 }
 
 reload_tmux() {
@@ -99,12 +135,13 @@ apply_tmux_fetch_mode() {
       link_fetch_mode "fetch-fastfetch.conf"
       echo "Tmux fetch mode: fastfetch"
       echo "Config: $TMUX_CONFIG_DIR/fastfetch.jsonc"
+      echo "Art: $(fastfetch_art_current)"
       ;;
     pfetch)
       require_cmd pfetch
       link_fetch_mode "fetch-pfetch.conf"
       echo "Tmux fetch mode: pfetch"
-      echo "Config: ${XDG_CONFIG_HOME:-$HOME/.config}/pfetch/pfetchrc"
+      echo "Config: ${XDG_CONFIG_HOME:-$HOME}/.config/pfetch/pfetchrc"
       ;;
     *)
       echo "Unknown mode: $mode" >&2
@@ -118,7 +155,7 @@ apply_tmux_fetch_mode() {
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-  if [[ $# -ne 1 ]]; then
+  if [[ $# -lt 1 ]]; then
     usage >&2
     exit 1
   fi
@@ -126,6 +163,13 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   case "$1" in
     none | off | disable | fastfetch | pfetch)
       apply_tmux_fetch_mode "$1"
+      ;;
+    art)
+      if [[ $# -ne 2 ]]; then
+        echo "Usage: $(basename "$0") art <0|1|2>" >&2
+        exit 1
+      fi
+      set_fastfetch_art "$2"
       ;;
     status)
       show_status

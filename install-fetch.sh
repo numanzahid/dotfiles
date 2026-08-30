@@ -9,6 +9,7 @@ SCRIPTS_DIR="$DOTFILES_DIR/scripts"
 TARGET_HOME="${HOME:?}"
 DRY_RUN=0
 MODE=""
+ART=""
 
 # shellcheck source=scripts/lib/platform.sh
 source "$SCRIPTS_DIR/lib/platform.sh"
@@ -34,12 +35,15 @@ If mode is omitted and stdin is a TTY, an interactive prompt is shown.
 If mode is omitted and stdin is not a TTY, the current setup is left unchanged.
 
 Options:
+  --art 0|1|2 Text art for the tmux/new-terminal banner
+              0=none  1=current tmux logo  2=custom logo.txt
   --dry-run   Print actions without changing anything
   -h, --help  Show this help
 
 Examples:
   ./install-fetch.sh
   ./install-fetch.sh fastfetch
+  ./install-fetch.sh fastfetch --art 1
   ./install-fetch.sh both
   ./install-fetch.sh none
 EOF
@@ -72,6 +76,7 @@ link_fetch_configs() {
   link_path "$SOURCE_DIR/.config/tmux/fastfetch.jsonc" "$TARGET_HOME/.config/tmux/fastfetch.jsonc"
   link_path "$SOURCE_DIR/.config/tmux/fastfetch.jsonc" "$TARGET_HOME/.config/fastfetch/tmux2.jsonc"
   link_path "$SOURCE_DIR/.config/tmux/tmux-logo.txt" "$TARGET_HOME/.config/tmux/tmux-logo.txt"
+  link_path "$SCRIPTS_DIR/fastfetch-banner.sh" "$TARGET_HOME/.config/tmux/fastfetch-banner.sh"
   link_path "$SOURCE_DIR/.config/tmux/fetch-none.conf" "$TARGET_HOME/.config/tmux/fetch-none.conf"
   link_path "$SOURCE_DIR/.config/tmux/fetch-fastfetch.conf" "$TARGET_HOME/.config/tmux/fetch-fastfetch.conf"
   link_path "$SOURCE_DIR/.config/tmux/fetch-pfetch.conf" "$TARGET_HOME/.config/tmux/fetch-pfetch.conf"
@@ -113,6 +118,53 @@ install_pfetch_bin() {
     run bash "$SCRIPTS_DIR/pfetch-install-update.sh"
   else
     bash "$SCRIPTS_DIR/pfetch-install-update.sh"
+  fi
+}
+
+prompt_art() {
+  local current choice
+  current="$(fastfetch_art_current)"
+
+  echo >&2
+  echo "Fastfetch text art (tmux / new terminal banner):" >&2
+  echo "  current: $current" >&2
+  echo "  0) none" >&2
+  echo "  1) current tmux logo" >&2
+  echo "  2) custom (~/.config/fastfetch/logo.txt)" >&2
+  echo >&2
+  echo "Plain 'fastfetch' uses the built-in default config and distro logo." >&2
+  echo >&2
+  read -r -p "Choose [0-2] (default: $current): " choice
+
+  case "${choice:-$current}" in
+    0 | 1 | 2) printf '%s\n' "${choice:-$current}" ;;
+    "") printf '%s\n' "$current" ;;
+    *)
+      echo "Invalid choice: $choice" >&2
+      exit 1
+      ;;
+  esac
+}
+
+maybe_set_art() {
+  local choice="$1"
+
+  if [[ -n "$choice" ]]; then
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+      log "would set text art: $choice"
+      return 0
+    fi
+    set_fastfetch_art "$choice"
+    return 0
+  fi
+
+  if [[ -t 0 ]]; then
+    choice="$(prompt_art)"
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+      log "would set text art: $choice"
+      return 0
+    fi
+    set_fastfetch_art "$choice"
   fi
 }
 
@@ -194,6 +246,7 @@ apply_fetch_mode() {
       log "fetch banner unchanged: $current"
       if [[ "$mode" == "status" ]]; then
         printf 'mode: %s\n' "$current"
+        printf 'art:  %s\n' "$(fastfetch_art_current)"
       fi
       ;;
     none | off | disable)
@@ -201,6 +254,7 @@ apply_fetch_mode() {
       ;;
     fastfetch)
       install_fastfetch_bin
+      maybe_set_art "$ART"
       enable_mode fastfetch
       ;;
     pfetch)
@@ -210,7 +264,12 @@ apply_fetch_mode() {
     both)
       install_fastfetch_bin
       install_pfetch_bin
-      enable_mode "$(prompt_active_after_both)"
+      local active
+      active="$(prompt_active_after_both)"
+      if [[ "$active" == "fastfetch" ]]; then
+        maybe_set_art "$ART"
+      fi
+      enable_mode "$active"
       ;;
     *)
       echo "Unknown mode: $mode" >&2
@@ -227,6 +286,21 @@ while [[ $# -gt 0 ]]; do
       exit 0
       ;;
     --dry-run) DRY_RUN=1 ;;
+    --art)
+      if [[ $# -lt 2 ]]; then
+        echo "ERROR: --art needs 0, 1, or 2" >&2
+        exit 1
+      fi
+      ART="$2"
+      case "$ART" in
+        0 | 1 | 2) ;;
+        *)
+          echo "ERROR: --art must be 0, 1, or 2" >&2
+          exit 1
+          ;;
+      esac
+      shift
+      ;;
     none | off | disable | fastfetch | pfetch | both | status)
       MODE="$1"
       ;;
