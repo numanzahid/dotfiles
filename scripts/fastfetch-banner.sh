@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
-# Compact boxed fastfetch layout: ~/.config/fastfetch/banner.jsonc
+# One fastfetch layout: ~/.config/fastfetch/config.jsonc (fastfetch default).
 # Arts: ~/.config/fastfetch/artN.txt  (0=none, 1=default). Add art4.txt etc.
 # Custom art (not in git): ~/.config/custom-fetch-art.txt  (choice: c)
 # Local padding overlay (not in git): ~/.config/custom-fetch-padding.jsonc
 # Choice: ~/.local/share/dotfiles/fastfetch-art
-# Plain `fastfetch` uses the built-in default (no config.jsonc).
 #
-# Sourced by ./install-fetch.sh for listing/preview. Executed as the banner.
-# Fastfetch allows only one --config, so padding jsonc is applied via CLI flags.
+# Sourced by install-fetch.sh and install-copy for listing/preview.
+# Executed as the banner. Logo art is --logo; padding is CLI flags.
 
 df_ff_art_choice_file() {
   printf '%s/dotfiles/fastfetch-art\n' "${XDG_DATA_HOME:-$HOME/.local/share}"
@@ -67,7 +66,7 @@ df_ff_art_ensure_custom() {
   fi
 }
 
-# Placeholder matches banner.jsonc. Edit locally; never overwrite.
+# Placeholder matches config.jsonc. Edit locally; never overwrite.
 df_ff_padding_ensure() {
   local dest
   dest="$(df_ff_padding_path)"
@@ -259,6 +258,51 @@ df_ff_logo_arg() {
   printf 'none\n'
 }
 
+df_ff_prompt_art() {
+  local current choice csv
+  current="$(df_ff_art_current)"
+  csv="$(df_ff_art_choices_csv)"
+
+  echo >&2
+  echo "Fastfetch text art:" >&2
+  echo "  current: $current" >&2
+  df_ff_art_show_all >&2
+  read -r -p "Choose [$csv] (default: $current): " choice
+
+  choice="${choice:-$current}"
+  if df_ff_art_valid "$choice"; then
+    printf '%s\n' "$choice"
+    return 0
+  fi
+  echo "Invalid choice: $choice" >&2
+  return 1
+}
+
+# $1 = art id, or empty to prompt on a tty.
+df_ff_maybe_set_art() {
+  local choice="${1:-}"
+
+  if [[ -n "$choice" ]]; then
+    if [[ "${DRY_RUN:-0}" -eq 1 ]]; then
+      echo "would set text art: $choice" >&2
+      return 0
+    fi
+    df_ff_art_set "$choice"
+    echo "text art: $choice" >&2
+    return 0
+  fi
+
+  if [[ -t 0 ]]; then
+    choice="$(df_ff_prompt_art)" || exit 1
+    if [[ "${DRY_RUN:-0}" -eq 1 ]]; then
+      echo "would set text art: $choice" >&2
+      return 0
+    fi
+    df_ff_art_set "$choice"
+    echo "text art: $choice" >&2
+  fi
+}
+
 if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then
   return 0
 fi
@@ -273,9 +317,8 @@ fi
 
 command -v fastfetch >/dev/null 2>&1 || exit 0
 
-CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/fastfetch/banner.jsonc"
 logo="$(df_ff_logo_arg)"
-args=(--config "$CONFIG" --logo "$logo")
+args=(--logo "$logo")
 df_ff_padding_ensure
 df_ff_padding_append_args
 exec fastfetch "${args[@]}"

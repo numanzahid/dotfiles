@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install fastfetch and the compact tmux/shell banner.
+# Install fastfetch and the boxed config (~/.config/fastfetch/config.jsonc).
 # Not part of ./install.sh --all.
 set -euo pipefail
 
@@ -22,17 +22,16 @@ usage() {
   cat <<'EOF'
 Usage: ./install-fetch.sh [options]
 
-Install fastfetch and the compact boxed banner (`banner.jsonc`).
-Plain `fastfetch` uses the built-in default. Extra layouts are more
-jsonc files under ~/.config/fastfetch/, not other fetch tools.
+Install fastfetch and the boxed layout (~/.config/fastfetch/config.jsonc).
+Plain `fastfetch`, tmux, and `fetch` all use that one config.
+Art is chosen here (or --art) and applied via --logo.
 
 Text art files are ~/.config/fastfetch/artN.txt (1 is default).
 Add art4.txt, art5.txt, ... and they show up automatically. 0 is none.
 Custom art (not in git): ~/.config/custom-fetch-art.txt  (--art c)
 Created from art1 if missing, never overwritten.
 Local padding (not in git): ~/.config/custom-fetch-padding.jsonc
-Created with banner defaults if missing, never overwritten. Edit right
-to change the gap between art and the box.
+Created with config defaults if missing, never overwritten.
 
 Options:
   --art N     Set text art (0=none, 1=default, artN.txt, or c=custom)
@@ -94,50 +93,6 @@ install_fastfetch_bin() {
   fi
 }
 
-prompt_art() {
-  local current choice csv
-  current="$(df_ff_art_current)"
-  csv="$(df_ff_art_choices_csv)"
-
-  echo >&2
-  echo "Fastfetch text art (tmux / new terminal banner):" >&2
-  echo "  current: $current" >&2
-  df_ff_art_show_all >&2
-  read -r -p "Choose [$csv] (default: $current): " choice
-
-  choice="${choice:-$current}"
-  if df_ff_art_valid "$choice"; then
-    printf '%s\n' "$choice"
-    return 0
-  fi
-  echo "Invalid choice: $choice" >&2
-  exit 1
-}
-
-maybe_set_art() {
-  local choice="$1"
-
-  if [[ -n "$choice" ]]; then
-    if [[ "$DRY_RUN" -eq 1 ]]; then
-      log "would set text art: $choice"
-      return 0
-    fi
-    df_ff_art_set "$choice"
-    log "text art: $choice"
-    return 0
-  fi
-
-  if [[ -t 0 ]]; then
-    choice="$(prompt_art)"
-    if [[ "$DRY_RUN" -eq 1 ]]; then
-      log "would set text art: $choice"
-      return 0
-    fi
-    df_ff_art_set "$choice"
-    log "text art: $choice"
-  fi
-}
-
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -h | --help)
@@ -186,5 +141,5 @@ link_fetch_configs
 install_fastfetch_bin
 df_ff_art_ensure_custom
 df_ff_padding_ensure
-maybe_set_art "$ART"
-log "banner: ~/.config/fastfetch/banner.jsonc"
+df_ff_maybe_set_art "$ART"
+log "config: ~/.config/fastfetch/config.jsonc"

@@ -19,6 +19,7 @@ df_reexec_from_hidden_clone "$DOTFILES_DIR" "${BASH_SOURCE[0]}" "$@"
 INSTALL_DEPS=0
 INSTALL_NEOVIM=0
 DRY_RUN=0
+ART=""
 
 usage() {
   cat <<'EOF'
@@ -30,8 +31,9 @@ remove the dotfiles folder.
 Does not install or copy: gitconfig, fzf, zoxide, lazygit, lazydocker,
 or TPM/tmux plugins.
 
-Hardcoded fastfetch: copies the compact boxed banner and installs
-fastfetch via scripts/fastfetch-install-update.sh.
+Hardcoded fastfetch: copies ~/.config/fastfetch/config.jsonc (boxed
+layout), arts, and the banner script. Same look for `fastfetch`, tmux,
+and `fetch`. Art picker runs on a tty (or --art N).
 Updater: ~/.install-scripts/fastfetch-install-update.sh
 
 Always copies the Neovim and fastfetch updaters into ~/.install-scripts
@@ -43,6 +45,7 @@ Options:
   --deps       Run install-copy/install-deps.sh (apt packages + locale)
   --neovim     Install latest Neovim (same GitHub build as ./install.sh)
   --all        Copy configs, --deps, and --neovim
+  --art N      Set text art (0=none, 1=default, artN.txt, or c=custom)
   --dry-run    Print actions without changing anything
   -h, --help   Show this help
 EOF
@@ -64,6 +67,8 @@ run() {
 
 # shellcheck source=../scripts/lib/link.sh
 source "$SCRIPTS_DIR/lib/link.sh"
+# shellcheck source=../scripts/fastfetch-banner.sh
+source "$SCRIPTS_DIR/fastfetch-banner.sh"
 
 # True when dest is a real file/dir that lives in the clone (unsafe to
 # overwrite). A symlink at dest is a leftover home link; replace it.
@@ -239,18 +244,18 @@ copy_nvim_plain() {
 }
 
 copy_fastfetch_banner() {
-  local art src_banner
-  src_banner="$SOURCE_DIR/.config/fastfetch/banner.jsonc"
-  if [[ ! -f "$src_banner" ]]; then
-    log "ERROR: missing $src_banner"
-    log "Restore it: git -C $DOTFILES_DIR checkout -- home/.config/fastfetch/banner.jsonc"
+  local art src_config
+  src_config="$SOURCE_DIR/.config/fastfetch/config.jsonc"
+  if [[ ! -f "$src_config" ]]; then
+    log "ERROR: missing $src_config"
+    log "Restore it: git -C $DOTFILES_DIR checkout -- home/.config/fastfetch/config.jsonc"
     exit 1
   fi
 
   ensure_real_dir "$TARGET_HOME/.config/tmux"
   ensure_real_dir "$TARGET_HOME/.config/fastfetch"
 
-  copy_file "$src_banner" "$TARGET_HOME/.config/fastfetch/banner.jsonc"
+  copy_file "$src_config" "$TARGET_HOME/.config/fastfetch/config.jsonc"
   copy_file "$SOURCE_DIR/.config/tmux/tmux-logo.txt" "$TARGET_HOME/.config/tmux/tmux-logo.txt"
   for art in "$SOURCE_DIR/.config/fastfetch"/art*.txt; do
     [[ -f "$art" ]] || continue
@@ -259,6 +264,14 @@ copy_fastfetch_banner() {
   copy_overwrite "$SCRIPTS_DIR/fastfetch-banner.sh" "$TARGET_HOME/.config/tmux/fastfetch-banner.sh"
   run chmod 755 "$TARGET_HOME/.config/tmux/fastfetch-banner.sh"
   run bash "$SCRIPTS_DIR/fastfetch-banner.sh" --ensure-local
+
+  DF_FF_ART_DIR="$SOURCE_DIR/.config/fastfetch"
+  export DF_FF_ART_DIR
+  if [[ -n "$ART" ]] && ! df_ff_art_valid "$ART"; then
+    echo "ERROR: --art $ART is not available (use $(df_ff_art_choices_csv))" >&2
+    exit 1
+  fi
+  df_ff_maybe_set_art "$ART"
 
   local art_file="${XDG_DATA_HOME:-$TARGET_HOME/.local/share}/dotfiles/fastfetch-art"
   if [[ ! -e "$art_file" ]]; then
@@ -288,7 +301,7 @@ install_configs() {
       "$TARGET_HOME/.profile" \
       "$TARGET_HOME/.tmux.conf" \
       "$TARGET_HOME/.config/nvim" \
-      "$TARGET_HOME/.config/fastfetch/banner.jsonc"; do
+      "$TARGET_HOME/.config/fastfetch/config.jsonc"; do
       if [[ -e "$dest" && ! -L "$dest" ]]; then
         df_track_path "$dest"
       fi
@@ -323,6 +336,14 @@ while [[ $# -gt 0 ]]; do
     --all)
       INSTALL_DEPS=1
       INSTALL_NEOVIM=1
+      ;;
+    --art)
+      if [[ $# -lt 2 ]]; then
+        echo "ERROR: --art needs 0, N, or c (custom)" >&2
+        exit 1
+      fi
+      ART="$2"
+      shift
       ;;
     --dry-run) DRY_RUN=1 ;;
     -h | --help)
@@ -383,7 +404,7 @@ Copied configs:
   ~/.inputrc
   ~/.profile
   ~/.tmux.conf  (no TPM; fastfetch on new window/pane)
-  ~/.config/fastfetch/banner.jsonc
+  ~/.config/fastfetch/config.jsonc
   ~/.config/nvim/init.lua  (plain nvim, if LazyVim was not already there)
   ~/.ssh/config  (only if missing)
   ~/.ssh/authorized_keys  (only if missing)

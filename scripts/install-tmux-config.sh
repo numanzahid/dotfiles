@@ -78,7 +78,7 @@ done
 copy_file "$SOURCE_DIR/.tmux.conf" "$TARGET_HOME/.tmux.conf"
 
 mkdir -p "$TARGET_HOME/.config/tmux" "$TARGET_HOME/.config/fastfetch"
-copy_file "$SOURCE_DIR/.config/fastfetch/banner.jsonc" "$TARGET_HOME/.config/fastfetch/banner.jsonc"
+copy_file "$SOURCE_DIR/.config/fastfetch/config.jsonc" "$TARGET_HOME/.config/fastfetch/config.jsonc"
 copy_file "$SOURCE_DIR/.config/tmux/tmux-logo.txt" "$TARGET_HOME/.config/tmux/tmux-logo.txt"
 for art in "$SOURCE_DIR/.config/fastfetch"/art*.txt; do
   [[ -f "$art" ]] || continue

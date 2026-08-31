@@ -34,7 +34,7 @@ These stay optional on every installer. Run them when you want them.
 ./scripts/install-tmux-config.sh        # tmux only; clone can go after
 ```
 
-Fetch: plain `fastfetch` is the built-in look. Tmux / `fetch` uses the boxed banner. Art is `./install-fetch.sh` (`--art 1` is default, `--art c` is custom). Custom art and padding are local only: `~/.config/custom-fetch-art.txt` and `~/.config/custom-fetch-padding.jsonc`.
+Fetch: one boxed layout (`~/.config/fastfetch/config.jsonc`) for `fastfetch`, tmux, and `fetch`. Art is `./install-fetch.sh` or `./install-copy/install.sh` (`--art 1` is default, `--art c` is custom). Custom art and padding are local only: `~/.config/custom-fetch-art.txt` and `~/.config/custom-fetch-padding.jsonc`.
 
 Default nvim is the plain editor. LazyVim is linked only by the lazyvim scripts. See `lazyvim/README.md` if you go that route.
 

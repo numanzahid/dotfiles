@@ -64,26 +64,35 @@ alias lta='_dotfiles_lta'
 
 ##### fetch banner (fastfetch) ##########################################
 
+_dotfiles_ff_banner() {
+  local sh="${XDG_CONFIG_HOME:-$HOME}/.config/tmux/fastfetch-banner.sh"
+  if [[ -x "$sh" ]]; then
+    "$sh"
+  else
+    command fastfetch
+  fi
+}
+
+fastfetch() {
+  if [[ $# -eq 0 ]]; then
+    _dotfiles_ff_banner
+  else
+    command fastfetch "$@"
+  fi
+}
+
 _dotfiles_show_fetch_banner() {
   [[ -n "${DOTFILES_FETCH_SHOWN:-}" || -n "${NO_FETCH:-}" ]] && return 0
   [[ -n "${TMUX:-}" ]] && return 0
   if command -v fastfetch >/dev/null 2>&1; then
-    if [[ -x "${XDG_CONFIG_HOME:-$HOME}/.config/tmux/fastfetch-banner.sh" ]]; then
-      "${XDG_CONFIG_HOME:-$HOME}/.config/tmux/fastfetch-banner.sh"
-    else
-      fastfetch --config "${XDG_CONFIG_HOME:-$HOME}/.config/fastfetch/banner.jsonc"
-    fi
+    _dotfiles_ff_banner
     DOTFILES_FETCH_SHOWN=1
   fi
 }
 
 fetch() {
   if command -v fastfetch >/dev/null 2>&1; then
-    if [[ -x "${XDG_CONFIG_HOME:-$HOME}/.config/tmux/fastfetch-banner.sh" ]]; then
-      "${XDG_CONFIG_HOME:-$HOME}/.config/tmux/fastfetch-banner.sh"
-    else
-      fastfetch --config "${XDG_CONFIG_HOME:-$HOME}/.config/fastfetch/banner.jsonc"
-    fi
+    _dotfiles_ff_banner
   else
     echo "fastfetch not installed. Run: ~/.install-scripts/fastfetch-install-update.sh"
   fi

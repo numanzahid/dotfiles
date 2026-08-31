@@ -46,7 +46,7 @@ LazyVim extras (optional, not part of --all):
   ./lazyvim-lite/install-lazyvim-lite.sh # editor-only profile (no Mason/LSP/Node)
 
 Tmux fetch banner (optional, not part of --all):
-  ./install-fetch.sh                    # install fastfetch + compact banner
+  ./install-fetch.sh                    # install fastfetch + boxed config + art
   ./install-fetch.sh --art 1
 
 AI coding CLIs (optional, not part of --all):
@@ -396,7 +396,7 @@ Next steps:
        ./lazyvim-lite/install-lazyvim-lite.sh
        ./lazyvim/install-lazyvim.sh
      Without them, nvim uses the plain editor config from this install.
-  4. Optional fetch banner (not part of --all):
+  4. Optional fetch (not part of --all):
        ./install-fetch.sh
        ./install-fetch.sh --art 1
   5. Optional AI CLIs (not part of --all):
