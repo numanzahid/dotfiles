@@ -124,6 +124,19 @@ clone_dir() {
   printf '%s' "$d"
 }
 
+# True when dest is a real file/dir inside the clone (via a parent symlink).
+# Removing it would delete repo files. A symlink at dest itself is OK to rm.
+resolves_inside_clone() {
+  local dest="$1"
+  local clone real
+  [[ -L "$dest" ]] && return 1
+  clone="$(clone_dir)"
+  [[ -n "$clone" ]] || return 1
+  real="$(readlink -f "$dest" 2>/dev/null || true)"
+  [[ -n "$real" ]] || return 1
+  [[ "$real" == "$clone" || "$real" == "$clone"/* ]]
+}
+
 needs_sudo_for_tools() {
   local journal p
   journal="$(df_journal_file)"
@@ -149,6 +162,11 @@ remove_home_path() {
   if [[ "$dest" == "$TARGET_HOME" || "$dest" == "/" ]]; then
     log "refusing to remove: $dest"
     return 1
+  fi
+
+  if resolves_inside_clone "$dest"; then
+    log "skip (inside clone, not a home symlink): $dest -> $(readlink -f "$dest")"
+    return 0
   fi
 
   if [[ -L "$dest" ]]; then
@@ -200,6 +218,11 @@ restore_dest() {
   local dest="$1"
   local backup
   backup="$(df_original_backup_path "$dest")"
+
+  if resolves_inside_clone "$dest"; then
+    log "skip restore (would delete clone file): $dest"
+    return 0
+  fi
 
   if [[ ! -e "$dest" && ! -L "$dest" && ! -e "$backup" && ! -L "$backup" ]]; then
     log "nothing to undo: $dest"

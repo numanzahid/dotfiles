@@ -68,10 +68,19 @@ source "$SCRIPTS_DIR/lib/link.sh"
 copy_file() {
   local src="$1"
   local dest="$2"
+  local dest_real clone_real
 
   if [[ ! -e "$src" ]]; then
     log "skip missing source: $src"
     return 0
+  fi
+
+  clone_real="$(readlink -f "$DOTFILES_DIR" 2>/dev/null || true)"
+  dest_real="$(readlink -f "$dest" 2>/dev/null || true)"
+  if [[ -n "$clone_real" && -n "$dest_real" && ( "$dest_real" == "$clone_real" || "$dest_real" == "$clone_real"/* ) ]]; then
+    log "ERROR: dest is inside the clone (parent is probably a symlink): $dest"
+    log "Replace the symlink with a real directory, then re-run."
+    return 1
   fi
 
   mkdir -p "$(dirname "$dest")"
@@ -184,11 +193,30 @@ copy_nvim_plain() {
   df_journal_once copy "$dest/init.lua" "$src/init.lua"
 }
 
-copy_fastfetch_banner() {
-  local art
-  mkdir -p "$TARGET_HOME/.config/tmux" "$TARGET_HOME/.config/fastfetch"
+# If dest is a leftover symlink (often into the clone), replace it with a
+# real directory so copies do not write through into the repo.
+ensure_real_dir() {
+  local dest="$1"
+  if [[ -L "$dest" ]]; then
+    log "replace symlink with directory: $dest"
+    run rm -f "$dest"
+  fi
+  run mkdir -p "$dest"
+}
 
-  copy_file "$SOURCE_DIR/.config/fastfetch/banner.jsonc" "$TARGET_HOME/.config/fastfetch/banner.jsonc"
+copy_fastfetch_banner() {
+  local art src_banner
+  src_banner="$SOURCE_DIR/.config/fastfetch/banner.jsonc"
+  if [[ ! -f "$src_banner" ]]; then
+    log "ERROR: missing $src_banner"
+    log "Restore it: git -C $DOTFILES_DIR checkout -- home/.config/fastfetch/banner.jsonc"
+    exit 1
+  fi
+
+  ensure_real_dir "$TARGET_HOME/.config/tmux"
+  ensure_real_dir "$TARGET_HOME/.config/fastfetch"
+
+  copy_file "$src_banner" "$TARGET_HOME/.config/fastfetch/banner.jsonc"
   copy_file "$SOURCE_DIR/.config/tmux/tmux-logo.txt" "$TARGET_HOME/.config/tmux/tmux-logo.txt"
   for art in "$SOURCE_DIR/.config/fastfetch"/art*.txt; do
     [[ -f "$art" ]] || continue
