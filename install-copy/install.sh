@@ -18,7 +18,7 @@ df_reexec_from_hidden_clone "$DOTFILES_DIR" "${BASH_SOURCE[0]}" "$@"
 
 INSTALL_DEPS=0
 INSTALL_NEOVIM=0
-INSTALL_BANNER=0
+INSTALL_FETCH=0
 DRY_RUN=0
 ART=""
 
@@ -33,23 +33,23 @@ Does not install or copy: gitconfig, fzf, zoxide, lazygit, lazydocker,
 or TPM/tmux plugins.
 
 Fastfetch banner is optional (not part of --all):
-  ./install-copy/install.sh --banner
-  ./install-copy/install.sh --banner --art 1
+  ./install-copy/install.sh --fetch
+  ./install-copy/install.sh --fetch --art 1
 That copies ~/.config/fastfetch/config.jsonc, arts, the banner script,
 installs fastfetch, and runs the art picker on a tty.
 
 Always copies the Neovim updater into ~/.install-scripts
 (overwrite, no backups) so you can upgrade after deleting this clone:
   ~/.install-scripts/neovim-install-update.sh
-With --banner also:
+With --fetch also:
   ~/.install-scripts/fastfetch-install-update.sh
 
 Options:
   --deps       Run install-copy/install-deps.sh (apt packages + locale)
   --neovim     Install latest Neovim (same GitHub build as ./install.sh)
-  --all        Copy configs, --deps, and --neovim (no banner)
-  --banner     Fastfetch boxed banner + art picker (or --art N)
-  --art N      Set text art (implies --banner)
+  --all        Copy configs, --deps, and --neovim (no fetch)
+  --fetch      Fastfetch boxed config + art picker (or --art N)
+  --art N      Set text art (implies --fetch)
   --dry-run    Print actions without changing anything
   -h, --help   Show this help
 EOF
@@ -199,7 +199,7 @@ copy_install_scripts() {
   copy_overwrite "$SCRIPTS_DIR/lib/github-release.sh" "$dest_lib"
   copy_overwrite "$SCRIPTS_DIR/lib/journal.sh" "$dest_journal"
   run chmod 755 "$dest_nvim"
-  if [[ "$INSTALL_BANNER" -eq 1 ]]; then
+  if [[ "$INSTALL_FETCH" -eq 1 ]]; then
     copy_overwrite "$SCRIPTS_DIR/fastfetch-install-update.sh" "$dest_fetch"
     run chmod 755 "$dest_fetch"
   fi
@@ -349,7 +349,7 @@ install_configs() {
   copy_file "$SOURCE_DIR/.profile" "$TARGET_HOME/.profile"
   copy_file "$COPY_DIR/tmux.conf" "$TARGET_HOME/.tmux.conf"
 
-  if [[ "$INSTALL_BANNER" -eq 1 ]]; then
+  if [[ "$INSTALL_FETCH" -eq 1 ]]; then
     copy_fastfetch_banner
   fi
   copy_nvim_plain
@@ -371,14 +371,14 @@ while [[ $# -gt 0 ]]; do
       INSTALL_DEPS=1
       INSTALL_NEOVIM=1
       ;;
-    --banner) INSTALL_BANNER=1 ;;
+    --fetch) INSTALL_FETCH=1 ;;
     --art)
       if [[ $# -lt 2 ]]; then
         echo "ERROR: --art needs 0, N, or c (custom)" >&2
         exit 1
       fi
       ART="$2"
-      INSTALL_BANNER=1
+      INSTALL_FETCH=1
       shift
       ;;
     --dry-run) DRY_RUN=1 ;;
@@ -414,14 +414,14 @@ if [[ "$INSTALL_NEOVIM" -eq 1 ]]; then
   fi
 fi
 
-if [[ "$INSTALL_BANNER" -eq 1 ]]; then
+if [[ "$INSTALL_FETCH" -eq 1 ]]; then
   log "installing fastfetch via ~/.install-scripts/fastfetch-install-update.sh"
   if [[ "$DRY_RUN" -eq 1 ]]; then
     run bash "$INSTALL_SCRIPTS_DIR/fastfetch-install-update.sh"
   elif command -v git >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
     bash "$INSTALL_SCRIPTS_DIR/fastfetch-install-update.sh"
   else
-    log "WARN: git and jq required for fastfetch; run ./install-copy/install.sh --banner"
+    log "WARN: git and jq required for fastfetch; run ./install-copy/install.sh --fetch"
   fi
 fi
 
@@ -455,8 +455,8 @@ Neovim (--neovim / --all):
   later: ~/.install-scripts/neovim-install-update.sh
 
 Fastfetch banner (optional, not part of --all):
-  ./install-copy/install.sh --banner
-  ./install-copy/install.sh --banner --art 1
+  ./install-copy/install.sh --fetch
+  ./install-copy/install.sh --fetch --art 1
   ~/.config/fastfetch/config.jsonc
   later: ~/.install-scripts/fastfetch-install-update.sh
 
