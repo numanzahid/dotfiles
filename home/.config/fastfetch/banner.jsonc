@@ -1,0 +1,84 @@
+{
+  "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+  "logo": {
+    "type": "file",
+    "source": "~/.config/tmux/tmux-logo.txt",
+    "padding": {
+      "top": 0,
+      "left": 1,
+      "right": 2
+    }
+  },
+  "display": {
+    "separator": " "
+  },
+  "modules": [
+    {
+      "key": "╭───────────╮",
+      "type": "custom"
+    },
+    {
+      "key": "│ {#33}{icon} model   {#keys}│",
+      "type": "host"
+    },
+    {
+      "key": "│ {#34}{icon} distro  {#keys}│",
+      "type": "os"
+    },
+    {
+      "key": "│ {#35} kernel  {#keys}│",
+      "type": "kernel"
+    },
+    {
+      "key": "│ {#31} term    {#keys}│",
+      "type": "terminal"
+    },
+    {
+      "key": "│ {#32} shell   {#keys}│",
+      "type": "shell"
+    },
+    {
+      "key": "│ {#33}󰍛 cpu     {#keys}│",
+      "type": "cpu",
+      "showPeCoreCount": true
+    },
+    {
+      "key": "│ {#36} memory  {#keys}│",
+      "type": "memory"
+    },
+    {
+      "key": "│ {#34}󰉉 disk    {#keys}│",
+      "type": "disk"
+    },
+    {
+      "key": "│ {#35}󰍹 display {#keys}│",
+      "type": "display",
+      "compactType": "none",
+      "preciseRefreshRate": true
+    },
+    {
+      "key": "│ {#31}󱦂 ip      {#keys}│",
+      "type": "localip",
+      "showIpv4": true,
+      "showIpv6": false,
+      "defaultRouteOnly": true
+    },
+    {
+      "key": "│ {#36}⏻ uptime  {#keys}│",
+      "type": "uptime"
+    },
+    {
+      "key": "├───────────┤",
+      "type": "custom"
+    },
+    {
+      "key": "│ {#39} colors  {#keys}│",
+      "type": "colors",
+      "symbol": "circle"
+    },
+    {
+      "key": "╰───────────╯",
+      "type": "custom"
+    }
+  ]
+}

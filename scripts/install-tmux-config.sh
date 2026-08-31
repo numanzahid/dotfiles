@@ -7,9 +7,6 @@ set -euo pipefail
 # Not called by ./install.sh. Tmux-only hosts:
 #   ./scripts/install-tmux-config.sh
 #   rm -rf ~/dotfiles
-#
-# Default fetch mode is none. Existing ~/.config/tmux/fetch.conf is kept
-# if it is already a regular file.
 
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SOURCE_DIR="$DOTFILES_DIR/home"
@@ -80,23 +77,11 @@ done
 
 copy_file "$SOURCE_DIR/.tmux.conf" "$TARGET_HOME/.tmux.conf"
 
-mkdir -p "$TARGET_HOME/.config/tmux"
-copy_file "$SOURCE_DIR/.config/tmux/fetch-none.conf" "$TARGET_HOME/.config/tmux/fetch-none.conf"
-copy_file "$SOURCE_DIR/.config/tmux/fetch-fastfetch.conf" "$TARGET_HOME/.config/tmux/fetch-fastfetch.conf"
-copy_file "$SOURCE_DIR/.config/tmux/fetch-pfetch.conf" "$TARGET_HOME/.config/tmux/fetch-pfetch.conf"
-copy_file "$SOURCE_DIR/.config/tmux/fastfetch.jsonc" "$TARGET_HOME/.config/tmux/fastfetch.jsonc"
+mkdir -p "$TARGET_HOME/.config/tmux" "$TARGET_HOME/.config/fastfetch"
+copy_file "$SOURCE_DIR/.config/fastfetch/banner.jsonc" "$TARGET_HOME/.config/fastfetch/banner.jsonc"
 copy_file "$SOURCE_DIR/.config/tmux/tmux-logo.txt" "$TARGET_HOME/.config/tmux/tmux-logo.txt"
-
-fetch_conf="$TARGET_HOME/.config/tmux/fetch.conf"
-if [[ -L "$fetch_conf" ]]; then
-  log "fetch.conf is a symlink; replacing with a real file"
-  rm -f "$fetch_conf"
-fi
-if [[ ! -e "$fetch_conf" ]]; then
-  copy_file "$SOURCE_DIR/.config/tmux/fetch-none.conf" "$fetch_conf"
-else
-  log "keeping existing fetch mode: $fetch_conf"
-fi
+copy_file "$DOTFILES_DIR/scripts/fastfetch-banner.sh" "$TARGET_HOME/.config/tmux/fastfetch-banner.sh"
+chmod 755 "$TARGET_HOME/.config/tmux/fastfetch-banner.sh"
 
 if [[ "$INSTALL_TPM" -eq 1 ]]; then
   tpm_dir="$TARGET_HOME/.tmux/plugins/tpm"

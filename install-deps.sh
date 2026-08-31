@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Base apt packages for dotfiles (not user CLI tools).
-# Neovim, bat, fd, fzf, lazygit, fastfetch, pfetch, etc. use scripts/ instead.
+# Neovim, bat, fd, fzf, lazygit, fastfetch, etc. use scripts/ instead.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -66,9 +66,7 @@ echo "Done. CLI tools (bat, fd, zoxide, eza): ./install-tools.sh"
 echo "Lazygit:   ./scripts/lazygit-install-update.sh"
 echo "Gh:        ./scripts/gh-install-update.sh"
 echo "Fzf:       ./install.sh --fzf  (git install, recommended)"
-echo "Fastfetch: ./install-fetch.sh fastfetch"
-echo "Pfetch:    ./install-fetch.sh pfetch"
-echo "Both:      ./install-fetch.sh both"
+echo "Fastfetch: ./install-fetch.sh"
 echo "Neovim:    ./install.sh --neovim  (or --all)"
 echo "Btop:      ./install.sh --btop    (or --all)"
 echo "Nvm/Node:  ./scripts/nvm-install-update.sh"

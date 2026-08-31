@@ -45,7 +45,7 @@ df_run_privileged dnf install -y "${PACKAGES[@]}"
 
 echo "Done. Tool binaries: ./install-fedora.sh --tools --neovim --btop --fzf --gh --lazygit --starship"
 echo "dnf: bat fd-find eza btop fzf gh neovim. GitHub: zoxide lazygit starship."
-echo "Fetch banners: ./install-fetch.sh"
+echo "Fastfetch: ./install-fetch.sh"
 echo "Nvm/Node:      ./scripts/nvm-install-update.sh"
 echo "AI CLIs:       ./install-ai-cli.sh"
 echo "LazyVim:       ./lazyvim/install-lazyvim.sh or ./lazyvim-lite/install-lazyvim-lite.sh"

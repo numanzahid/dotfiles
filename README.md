@@ -75,15 +75,15 @@ cd ~/dotfiles
 ./install-copy/install.sh --all
 ```
 
-Then you can `rm -rf ~/dotfiles`. Upgrade later with `~/neovim-install-update.sh` and `~/pfetch-install-update.sh`.
+Then you can `rm -rf ~/dotfiles`. Upgrade later with `~/neovim-install-update.sh` and `~/fastfetch-install-update.sh`.
 
-`--all` copies configs, installs apt deps (tmux, htop, git, jq, locale, ...), pfetch, and the same GitHub Neovim as the main installer.
+`--all` copies configs, installs apt deps (tmux, htop, git, jq, locale, ...), fastfetch, and the same GitHub Neovim as the main installer.
 
-Copied: `.bashrc`, prompt, `.profile`, `.inputrc`, `.tmux.conf` (no TPM; pfetch on new panes), aliases, pfetch config, plain `~/.config/nvim/init.lua`, and `~/.ssh/config` plus `~/.ssh/authorized_keys` if missing.
+Copied: `.bashrc`, prompt, `.profile`, `.inputrc`, `.tmux.conf` (no TPM; same boxed fastfetch banner), aliases, plain `~/.config/nvim/init.lua`, and `~/.ssh/config` plus `~/.ssh/authorized_keys` if missing.
 
-Not included: gitconfig, fzf, zoxide, eza, lazygit, gh, btop, fastfetch, TPM.
+Not included: gitconfig, fzf, zoxide, eza, lazygit, gh, btop, TPM.
 
-No flags copies configs and still installs pfetch if `git` and `jq` are present (no apt, no nvim binary).
+No flags copies configs and still installs fastfetch if `git` and `jq` are present (no apt, no nvim binary).
 
 Tmux only: `./scripts/install-tmux-config.sh`
 
@@ -94,12 +94,14 @@ Not part of `--all` on any installer:
 ```bash
 ./lazyvim/install-lazyvim.sh              # LazyVim IDE (Debian/Ubuntu and Fedora)
 ./lazyvim-lite/install-lazyvim-lite.sh    # LazyVim editor only (no Mason/LSP/Node)
-./install-fetch.sh                        # tmux banner: none / fastfetch / pfetch / both
+./install-fetch.sh                        # install fastfetch + compact banner
 ./install-ai-cli.sh                       # OpenCode, Cursor, Claude Code, Codex
 ./scripts/nvm-install-update.sh           # Node via nvm
 ```
 
 See `lazyvim/README.md` and `lazyvim-lite/README.md`.
+
+Fetch is fastfetch only. Plain `fastfetch` uses the built-in default. Tmux and new terminals use `~/.config/fastfetch/banner.jsonc`. Extra layouts are more jsonc files in that folder.
 
 ## Updates
 
@@ -110,7 +112,7 @@ cd ~/dotfiles && git pull && ./install-fedora.sh    # Fedora
 
 After pulling a LazyVim lockfile or nvim lua change: `./lazyvim/sync-lazyvim.sh` (full `./lazyvim/install-lazyvim.sh` only on first setup or when deps/extras changed). See `lazyvim/README.md`.
 
-Re-runs overwrite configs the installer already manages (including files you edited). A foreign file is backed up once as `*.pre-dotfiles`. An existing fetch banner, LazyVim nvim config, and AI CLIs are not reset.
+Re-runs overwrite configs the installer already manages (including files you edited). A foreign file is backed up once as `*.pre-dotfiles`. LazyVim nvim config and AI CLIs are not reset.
 
 Upgrade one tool with `./scripts/<name>-install-update.sh`.
 

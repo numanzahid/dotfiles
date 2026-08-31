@@ -1,6 +1,6 @@
 # ~/.shell_aliases_interactive.sh
 # Interactive-only shell customizations for install-copy.
-# No fzf, zoxide, eza, or fastfetch. pfetch is hardcoded.
+# No fzf, zoxide, or eza. Fastfetch banner uses the same boxed config.
 
 # Main install used: alias cd="zd" (zoxide). source ~/.bashrc does not drop
 # old aliases/functions, so cd would still call zoxide after a copy-install.
@@ -62,28 +62,34 @@ _dotfiles_lta() { _ls_two_level 1 "${1:-.}"; }
 alias lt='_dotfiles_lt'
 alias lta='_dotfiles_lta'
 
-##### pfetch ############################################################
+##### fetch banner (fastfetch) ##########################################
 
-export PF_SOURCE="${XDG_CONFIG_HOME:-$HOME}/.config/pfetch/pfetchrc"
-
-_dotfiles_show_pfetch() {
+_dotfiles_show_fetch_banner() {
   [[ -n "${DOTFILES_FETCH_SHOWN:-}" || -n "${NO_FETCH:-}" ]] && return 0
   [[ -n "${TMUX:-}" ]] && return 0
-  if command -v pfetch >/dev/null 2>&1; then
-    pfetch
+  if command -v fastfetch >/dev/null 2>&1; then
+    if [[ -x "${XDG_CONFIG_HOME:-$HOME}/.config/tmux/fastfetch-banner.sh" ]]; then
+      "${XDG_CONFIG_HOME:-$HOME}/.config/tmux/fastfetch-banner.sh"
+    else
+      fastfetch --config "${XDG_CONFIG_HOME:-$HOME}/.config/fastfetch/banner.jsonc"
+    fi
     DOTFILES_FETCH_SHOWN=1
   fi
 }
 
 fetch() {
-  if command -v pfetch >/dev/null 2>&1; then
-    pfetch
+  if command -v fastfetch >/dev/null 2>&1; then
+    if [[ -x "${XDG_CONFIG_HOME:-$HOME}/.config/tmux/fastfetch-banner.sh" ]]; then
+      "${XDG_CONFIG_HOME:-$HOME}/.config/tmux/fastfetch-banner.sh"
+    else
+      fastfetch --config "${XDG_CONFIG_HOME:-$HOME}/.config/fastfetch/banner.jsonc"
+    fi
   else
-    echo "pfetch not installed. Run: ~/pfetch-install-update.sh"
+    echo "fastfetch not installed. Run: ~/fastfetch-install-update.sh"
   fi
 }
 
-_dotfiles_show_pfetch
+_dotfiles_show_fetch_banner
 
 ##### grep ##############################################################
 

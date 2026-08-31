@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# Compact fastfetch banner for new terminals and tmux panes.
+# Compact boxed fastfetch layout: ~/.config/fastfetch/banner.jsonc
 # Text art: ~/.local/share/dotfiles/fastfetch-art  (0=none, 1=tmux logo, 2=custom)
+# Plain `fastfetch` uses the built-in default (no config.jsonc).
 set -euo pipefail
 
 command -v fastfetch >/dev/null 2>&1 || exit 0
 
-CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/tmux/fastfetch.jsonc"
+CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/fastfetch/banner.jsonc"
 ART_FILE="${XDG_DATA_HOME:-$HOME/.local/share}/dotfiles/fastfetch-art"
 LOGO_TMUX="${XDG_CONFIG_HOME:-$HOME/.config}/tmux/tmux-logo.txt"
 LOGO_CUSTOM="${XDG_CONFIG_HOME:-$HOME/.config}/fastfetch/logo.txt"

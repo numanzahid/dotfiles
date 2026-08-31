@@ -37,7 +37,7 @@ Official dnf or GitHub only. Never COPR.
 Edit the dnf vs GitHub lists in this script if a package falls behind.
 
 dnf:     bat, fd-find, eza, btop, fzf, gh, neovim
-GitHub:  zoxide, lazygit, starship, pfetch (via ./install-fetch.sh)
+GitHub:  zoxide, lazygit, starship, fastfetch (via ./install-fetch.sh)
 
 Options:
   --deps       Run install-fedora-deps.sh (base dnf packages)
@@ -57,7 +57,7 @@ LazyVim extras (optional, not part of --all):
   ./lazyvim/install-lazyvim.sh
   ./lazyvim-lite/install-lazyvim-lite.sh
 
-Tmux fetch banners (optional, not part of --all):
+Tmux fetch banner (optional, not part of --all):
   ./install-fetch.sh
 
 AI coding CLIs (optional, not part of --all):
@@ -182,21 +182,6 @@ link_btop_conf() {
   link_path "$src" "$dest"
 }
 
-link_fetch_conf_default() {
-  local dest="$TARGET_HOME/.config/tmux/fetch.conf"
-  local src="$SOURCE_DIR/.config/tmux/fetch-none.conf"
-
-  mkdir -p "$TARGET_HOME/.config/tmux"
-
-  if [[ -e "$dest" || -L "$dest" ]]; then
-    log "fetch banner left untouched: $dest"
-    return 0
-  fi
-
-  log "default tmux fetch mode: none -> $dest"
-  run ln -sfn "$src" "$dest"
-}
-
 link_prompt_default() {
   local dest="$TARGET_HOME/.config/dotfiles/prompt.sh"
   local src="$SOURCE_DIR/.config/dotfiles/prompt-starship.sh"
@@ -261,17 +246,9 @@ install_dotfiles() {
   link_plain_nvim
   link_path "$SOURCE_DIR/.config/fastfetch" "$TARGET_HOME/.config/fastfetch"
 
-  link_path "$SOURCE_DIR/.config/tmux/fastfetch.jsonc" "$TARGET_HOME/.config/tmux/fastfetch.jsonc"
-  link_path "$SOURCE_DIR/.config/tmux/fastfetch.jsonc" "$TARGET_HOME/.config/fastfetch/tmux2.jsonc"
   link_path "$SOURCE_DIR/.config/tmux/tmux-logo.txt" "$TARGET_HOME/.config/tmux/tmux-logo.txt"
   link_path "$DOTFILES_DIR/scripts/fastfetch-banner.sh" "$TARGET_HOME/.config/tmux/fastfetch-banner.sh"
-  link_path "$SOURCE_DIR/.config/tmux/fetch-none.conf" "$TARGET_HOME/.config/tmux/fetch-none.conf"
-  link_path "$SOURCE_DIR/.config/tmux/fetch-fastfetch.conf" "$TARGET_HOME/.config/tmux/fetch-fastfetch.conf"
-  link_path "$SOURCE_DIR/.config/tmux/fetch-pfetch.conf" "$TARGET_HOME/.config/tmux/fetch-pfetch.conf"
-  link_fetch_conf_default
 
-  mkdir -p "$TARGET_HOME/.config/pfetch"
-  link_path "$SOURCE_DIR/.config/pfetch/pfetchrc" "$TARGET_HOME/.config/pfetch/pfetchrc"
   link_btop_conf
   mkdir -p "$TARGET_HOME/.config/lazygit"
   link_path "$SOURCE_DIR/.config/lazygit/config.yml" "$TARGET_HOME/.config/lazygit/config.yml"

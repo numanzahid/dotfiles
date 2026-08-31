@@ -23,14 +23,16 @@ Copy shell/tmux/nvim configs into $HOME as real files, then you can
 remove the dotfiles folder.
 
 Does not install or copy: gitconfig, fzf, zoxide, lazygit, lazydocker,
-fastfetch, TPM/tmux plugins.
+or TPM/tmux plugins.
 
-Hardcoded pfetch: copies tmux/bash banner config and installs pfetch
-via scripts/pfetch-install-update.sh. Updater: ~/pfetch-install-update.sh
+Hardcoded fastfetch: copies the compact boxed banner and installs
+fastfetch via scripts/fastfetch-install-update.sh.
+Updater: ~/fastfetch-install-update.sh
 
-Always copies the Neovim updater into $HOME (overwrite, no backups)
-so you can upgrade nvim after deleting this clone:
+Always copies the Neovim and fastfetch updaters into $HOME (overwrite,
+no backups) so you can upgrade after deleting this clone:
   ~/neovim-install-update.sh
+  ~/fastfetch-install-update.sh
 
 Options:
   --deps       Run install-copy/install-deps.sh (apt packages + locale)
@@ -111,15 +113,6 @@ copy_overwrite() {
   log "copied: $dest"
 }
 
-copy_pfetch_updater() {
-  local dest_script="$TARGET_HOME/pfetch-install-update.sh"
-  local dest_lib="$TARGET_HOME/pfetch-install-update.lib.sh"
-
-  copy_overwrite "$SCRIPTS_DIR/pfetch-install-update.sh" "$dest_script"
-  copy_overwrite "$SCRIPTS_DIR/lib/github-release.sh" "$dest_lib"
-  run chmod 755 "$dest_script"
-}
-
 copy_neovim_updater() {
   local dest_script="$TARGET_HOME/neovim-install-update.sh"
   local dest_lib="$TARGET_HOME/neovim-install-update.lib.sh"
@@ -171,6 +164,36 @@ copy_nvim_plain() {
   df_track_path "$dest"
 }
 
+copy_fastfetch_updater() {
+  local dest_script="$TARGET_HOME/fastfetch-install-update.sh"
+  local dest_lib="$TARGET_HOME/fastfetch-install-update.lib.sh"
+
+  copy_overwrite "$SCRIPTS_DIR/fastfetch-install-update.sh" "$dest_script"
+  copy_overwrite "$SCRIPTS_DIR/lib/github-release.sh" "$dest_lib"
+  run chmod 755 "$dest_script"
+}
+
+copy_fastfetch_banner() {
+  mkdir -p "$TARGET_HOME/.config/tmux" "$TARGET_HOME/.config/fastfetch"
+
+  copy_file "$SOURCE_DIR/.config/fastfetch/banner.jsonc" "$TARGET_HOME/.config/fastfetch/banner.jsonc"
+  copy_file "$SOURCE_DIR/.config/tmux/tmux-logo.txt" "$TARGET_HOME/.config/tmux/tmux-logo.txt"
+  copy_file "$SOURCE_DIR/.config/fastfetch/logo.txt" "$TARGET_HOME/.config/fastfetch/logo.txt"
+  copy_overwrite "$SCRIPTS_DIR/fastfetch-banner.sh" "$TARGET_HOME/.config/tmux/fastfetch-banner.sh"
+  run chmod 755 "$TARGET_HOME/.config/tmux/fastfetch-banner.sh"
+
+  local art_file="${XDG_DATA_HOME:-$TARGET_HOME/.local/share}/dotfiles/fastfetch-art"
+  if [[ ! -e "$art_file" ]]; then
+    mkdir -p "$(dirname "$art_file")"
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+      log "would set fastfetch text art: 1 -> $art_file"
+    else
+      printf '1\n' >"$art_file"
+      log "fastfetch text art: 1 -> $art_file"
+    fi
+  fi
+}
+
 install_configs() {
   log "source: $SOURCE_DIR"
   log "target: $TARGET_HOME"
@@ -187,9 +210,7 @@ install_configs() {
       "$TARGET_HOME/.profile" \
       "$TARGET_HOME/.tmux.conf" \
       "$TARGET_HOME/.config/nvim" \
-      "$TARGET_HOME/.config/tmux/fetch.conf" \
-      "$TARGET_HOME/.config/tmux/fetch-pfetch.conf" \
-      "$TARGET_HOME/.config/pfetch/pfetchrc"; do
+      "$TARGET_HOME/.config/fastfetch/banner.jsonc"; do
       if [[ -e "$dest" && ! -L "$dest" ]]; then
         df_track_path "$dest"
       fi
@@ -204,14 +225,10 @@ install_configs() {
   copy_file "$SOURCE_DIR/.profile" "$TARGET_HOME/.profile"
   copy_file "$COPY_DIR/tmux.conf" "$TARGET_HOME/.tmux.conf"
 
-  mkdir -p "$TARGET_HOME/.config/tmux" "$TARGET_HOME/.config/pfetch"
-  copy_file "$SOURCE_DIR/.config/tmux/fetch-pfetch.conf" "$TARGET_HOME/.config/tmux/fetch-pfetch.conf"
-  copy_file "$SOURCE_DIR/.config/tmux/fetch-pfetch.conf" "$TARGET_HOME/.config/tmux/fetch.conf"
-  copy_file "$SOURCE_DIR/.config/pfetch/pfetchrc" "$TARGET_HOME/.config/pfetch/pfetchrc"
-
+  copy_fastfetch_banner
   copy_nvim_plain
   copy_neovim_updater
-  copy_pfetch_updater
+  copy_fastfetch_updater
 
   mkdir -p "$TARGET_HOME/.ssh"
   run chmod 700 "$TARGET_HOME/.ssh"
@@ -262,13 +279,13 @@ if [[ "$INSTALL_NEOVIM" -eq 1 ]]; then
   fi
 fi
 
-log "installing pfetch via ~/pfetch-install-update.sh"
+log "installing fastfetch via ~/fastfetch-install-update.sh"
 if [[ "$DRY_RUN" -eq 1 ]]; then
-  run bash "$TARGET_HOME/pfetch-install-update.sh"
+  run bash "$TARGET_HOME/fastfetch-install-update.sh"
 elif command -v git >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
-  bash "$TARGET_HOME/pfetch-install-update.sh"
+  bash "$TARGET_HOME/fastfetch-install-update.sh"
 else
-  log "WARN: git and jq required for pfetch; run ./install-copy/install.sh --all or ~/pfetch-install-update.sh"
+  log "WARN: git and jq required for fastfetch; run ./install-copy/install.sh --all or ~/fastfetch-install-update.sh"
 fi
 
 cat <<'EOF'
@@ -278,7 +295,7 @@ You can delete the dotfiles clone:
 
   rm -rf ~/dotfiles
 
-Not included: gitconfig, fzf, zoxide, lazygit, lazydocker, fastfetch, TPM.
+Not included: gitconfig, fzf, zoxide, lazygit, lazydocker, TPM.
 
 Copied configs:
   ~/.bashrc
@@ -286,14 +303,13 @@ Copied configs:
   ~/.shell_aliases_interactive.sh
   ~/.inputrc
   ~/.profile
-  ~/.tmux.conf  (no TPM; pfetch on new window/pane)
-  ~/.config/tmux/fetch.conf  (pfetch)
-  ~/.config/pfetch/pfetchrc
+  ~/.tmux.conf  (no TPM; fastfetch on new window/pane)
+  ~/.config/fastfetch/banner.jsonc
   ~/.config/nvim/init.lua  (plain nvim, if LazyVim was not already there)
   ~/.ssh/config  (only if missing)
   ~/.ssh/authorized_keys  (only if missing)
   ~/neovim-install-update.sh
-  ~/pfetch-install-update.sh
+  ~/fastfetch-install-update.sh
 
 Apt deps (--deps / --all):
   bash bash-completion ca-certificates curl git gzip htop jq less locales tar tmux wget
@@ -302,9 +318,9 @@ Neovim (--neovim / --all):
   same GitHub build as ./install.sh --neovim  (/usr/local/bin/nvim)
   later: neovim-install-update
 
-pfetch (always):
-  /usr/local/bin/pfetch
-  later: pfetch-install-update
+fastfetch (always):
+  /usr/local/bin/fastfetch
+  later: fastfetch-install-update
 
 If tmux is already running: tmux source-file ~/.tmux.conf
 EOF
