@@ -62,7 +62,7 @@ fetch() {
       fastfetch --config "${XDG_CONFIG_HOME:-$HOME}/.config/fastfetch/banner.jsonc"
     fi
   else
-    echo "fastfetch not installed. Run: ~/dotfiles/install-fetch.sh"
+    echo "fastfetch not installed. Run: ~/.dotfiles/install-fetch.sh"
   fi
 }
 

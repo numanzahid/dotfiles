@@ -12,6 +12,9 @@ TARGET_HOME="${HOME:?}"
 source "$SCRIPTS_DIR/lib/platform.sh"
 # shellcheck source=scripts/lib/privilege.sh
 source "$SCRIPTS_DIR/lib/privilege.sh"
+# shellcheck source=scripts/lib/hide-clone.sh
+source "$SCRIPTS_DIR/lib/hide-clone.sh"
+df_reexec_from_hidden_clone "$DOTFILES_DIR" "${BASH_SOURCE[0]}" "$@"
 df_prepend_local_bin
 
 INSTALL_DEPS=0
@@ -391,7 +394,7 @@ cat <<'EOF'
 
 Next steps:
   1. Prompt is ~/.config/dotfiles/prompt.sh (starship on Fedora).
-     Custom prompt: ln -sfn ~/dotfiles/home/.config/dotfiles/prompt-custom.sh ~/.config/dotfiles/prompt.sh
+     Custom prompt: ln -sfn ~/.dotfiles/home/.config/dotfiles/prompt-custom.sh ~/.config/dotfiles/prompt.sh
   2. Copy SSH private keys into ~/.ssh/ manually (never commit keys).
   3. Open tmux and press prefix + Shift + I to install tmux plugins.
   4. Optional LazyVim (not part of --all):

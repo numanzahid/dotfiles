@@ -166,14 +166,29 @@ install_nvm() {
   tag="$(resolve_nvm_tag)"
   [[ -n "$tag" && "$tag" != "null" ]] || die "could not resolve nvm release tag"
 
-  url="https://raw.githubusercontent.com/nvm-sh/nvm/${tag}/install.sh"
   log "installing nvm ${tag} into $NVM_DIR"
 
   if [[ "$DRY_RUN" -eq 1 ]]; then
-    run gr_curl -fsSL "$url"
+    printf '+ git clone --depth 1 --branch %q https://github.com/nvm-sh/nvm.git %q\n' "$tag" "$NVM_DIR"
     return 0
   fi
 
+  # nvm's own install.sh clones this repo at the release tag.
+  if command -v git >/dev/null 2>&1 && \
+    git clone --depth 1 --branch "$tag" https://github.com/nvm-sh/nvm.git "$NVM_DIR"; then
+    return 0
+  fi
+
+  if [[ -d "$NVM_DIR" && ! -f "$NVM_DIR/nvm.sh" ]]; then
+    if command -v trash-put >/dev/null 2>&1; then
+      trash-put "$NVM_DIR"
+    else
+      rm -rf "$NVM_DIR"
+    fi
+  fi
+
+  log "git clone failed; using upstream install.sh (TLS to GitHub, no checksum)"
+  url="https://raw.githubusercontent.com/nvm-sh/nvm/${tag}/install.sh"
   tmp="$(mktemp)"
   gr_curl -fsSL -o "$tmp" "$url"
   bash "$tmp"

@@ -6,7 +6,7 @@ set -euo pipefail
 #
 # Not called by ./install.sh. Tmux-only hosts:
 #   ./scripts/install-tmux-config.sh
-#   rm -rf ~/dotfiles
+#   rm -rf ~/.dotfiles
 
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SOURCE_DIR="$DOTFILES_DIR/home"
@@ -111,7 +111,7 @@ cat <<'EOF'
 
 Tmux config is now real files in $HOME. You can delete the dotfiles clone.
 
-  rm -rf ~/dotfiles
+  rm -rf ~/.dotfiles
 
 If tmux is already running: tmux source-file ~/.tmux.conf
 Then prefix + Shift + I once to install TPM plugins.

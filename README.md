@@ -2,9 +2,11 @@
 
 Bash, tmux, nvim, and CLI tools. One `main` branch. Clone it, pick an installer, run `--all`.
 
+The clone lives at `~/.dotfiles` (hidden). If you clone to `~/dotfiles`, the installer renames it on first run and continues from there.
+
 ```bash
-git clone git@github.com:numanzahid/dotfiles.git ~/dotfiles
-cd ~/dotfiles
+git clone git@github.com:numanzahid/dotfiles.git ~/.dotfiles
+cd ~/.dotfiles
 
 ./install.sh --all                 # Debian/Ubuntu. Keep the clone. Configs are symlinks.
 ./install-fedora.sh --all          # Fedora. Same bashrc. dnf or GitHub only, never COPR.
@@ -15,7 +17,7 @@ cd ~/dotfiles
 
 Want a subset? `./install.sh -h` (or the fedora/copy script). After a workstation install, copy SSH keys into `~/.ssh/` yourself, then in tmux hit `prefix + Shift + I` once.
 
-Light host: `rm -rf ~/dotfiles` when you are done. Later upgrades live in `~/.install-scripts/` (`neovim-install-update.sh`, `fastfetch-install-update.sh`).
+Light host: `rm -rf ~/.dotfiles` when you are done. Later upgrades live in `~/.install-scripts/` (`neovim-install-update.sh`, `fastfetch-install-update.sh`).
 
 ## Not part of --all
 
@@ -39,7 +41,7 @@ Default nvim is the plain editor. LazyVim is linked only by the lazyvim scripts.
 ## Day to day
 
 ```bash
-cd ~/dotfiles && git pull && ./install.sh          # or ./install-fedora.sh
+cd ~/.dotfiles && git pull && ./install.sh          # or ./install-fedora.sh
 ```
 
 Re-runs overwrite files this repo already manages. Something it did not put there gets one `*.pre-dotfiles` backup. LazyVim and AI CLIs are left alone unless you run those scripts.

@@ -60,8 +60,8 @@ shopt -s checkwinsize
 ##### Prompt ############################################################
 
 # Active prompt is ~/.config/dotfiles/prompt.sh (custom or starship).
-# Switch: ln -sfn ~/dotfiles/home/.config/dotfiles/prompt-custom.sh ~/.config/dotfiles/prompt.sh
-#     or: ln -sfn ~/dotfiles/home/.config/dotfiles/prompt-starship.sh ~/.config/dotfiles/prompt.sh
+# Switch: ln -sfn ~/.dotfiles/home/.config/dotfiles/prompt-custom.sh ~/.config/dotfiles/prompt.sh
+#     or: ln -sfn ~/.dotfiles/home/.config/dotfiles/prompt-starship.sh ~/.config/dotfiles/prompt.sh
 if [ -f ~/.config/dotfiles/prompt.sh ]; then
   . ~/.config/dotfiles/prompt.sh
 fi

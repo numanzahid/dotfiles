@@ -87,6 +87,123 @@ gr_git() {
   git -c http.version=HTTP/1.1 "$@"
 }
 
+gr_managed_paths_file() {
+  printf '%s/dotfiles/managed-paths' "${XDG_DATA_HOME:-$HOME/.local/share}"
+}
+
+gr_path_is_tracked() {
+  local dest="$1"
+  local file
+  file="$(gr_managed_paths_file)"
+  [[ -f "$file" ]] || return 1
+  grep -Fxq -- "$dest" "$file"
+}
+
+gr_track_path() {
+  local dest="$1"
+  local file dir
+  file="$(gr_managed_paths_file)"
+  dir="$(dirname "$file")"
+  if [[ "${DRY_RUN:-0}" -eq 1 ]]; then
+    return 0
+  fi
+  if gr_path_is_tracked "$dest"; then
+    return 0
+  fi
+  mkdir -p "$dir"
+  printf '%s\n' "$dest" >>"$file"
+}
+
+gr_sha256_file() {
+  if gr_need_cmd sha256sum; then
+    sha256sum "$1" | awk '{print $1}'
+    return 0
+  fi
+  if gr_need_cmd shasum; then
+    shasum -a 256 "$1" | awk '{print $1}'
+    return 0
+  fi
+  return 1
+}
+
+# SHA256 from a GitHub release asset digest or a SHA256SUMS/checksums file.
+# Prints hex on stdout. Returns 1 if upstream has nothing we can use.
+gr_github_asset_sha256() {
+  local repo="$1"
+  local tag="$2"
+  local filename="$3"
+  local json digest sums_url line hash
+  local tmp=""
+
+  gr_need_cmd jq || return 1
+
+  json="$(gr_curl -fsSL "https://api.github.com/repos/${repo}/releases/tags/${tag}")" || return 1
+
+  digest="$(printf '%s\n' "$json" | jq -r --arg n "$filename" '
+    .assets[]? | select(.name == $n) | .digest // empty
+  ')"
+  if [[ "$digest" == sha256:* || "$digest" == SHA256:* ]]; then
+    printf '%s\n' "${digest#*:}"
+    return 0
+  fi
+
+  sums_url="$(printf '%s\n' "$json" | jq -r '
+    [
+      .assets[]?
+      | select(.name | test("(?i)(sha256sums|sha256sum|checksums\\.txt|SHA256SUMS)"))
+      | .browser_download_url
+    ] | first // empty
+  ')"
+  [[ -n "$sums_url" && "$sums_url" != "null" ]] || return 1
+
+  tmp="$(mktemp)"
+  if ! gr_curl -fsSL -o "$tmp" "$sums_url"; then
+    rm -f "$tmp"
+    return 1
+  fi
+  line="$(grep -F -- "$filename" "$tmp" | head -n 1 || true)"
+  rm -f "$tmp"
+  [[ -n "$line" ]] || return 1
+  hash="$(printf '%s\n' "$line" | awk '{print $1}')"
+  [[ "$hash" =~ ^[0-9a-fA-F]{64}$ ]] || return 1
+  printf '%s\n' "$hash"
+}
+
+# Verify when GitHub publishes a checksum. Mismatch aborts.
+# No checksum: continue (TLS only). Does not invent hashes.
+gr_verify_or_continue() {
+  local file="$1"
+  local url="$2"
+  local repo tag filename expected actual
+
+  if [[ ! "$url" =~ github\.com/([^/]+/[^/]+)/releases/download/([^/]+)/([^/?]+) ]]; then
+    echo "No GitHub checksum lookup for this URL; continuing"
+    return 0
+  fi
+  repo="${BASH_REMATCH[1]}"
+  tag="${BASH_REMATCH[2]}"
+  filename="${BASH_REMATCH[3]}"
+
+  expected="$(gr_github_asset_sha256 "$repo" "$tag" "$filename" || true)"
+  if [[ -z "$expected" ]]; then
+    echo "No upstream SHA256 for ${filename}; continuing"
+    return 0
+  fi
+
+  actual="$(gr_sha256_file "$file" || true)"
+  if [[ -z "$actual" ]]; then
+    echo "ERROR: cannot compute SHA256 (need sha256sum or shasum)" >&2
+    exit 1
+  fi
+  if [[ "${actual,,}" != "${expected,,}" ]]; then
+    echo "ERROR: SHA256 mismatch for ${filename}" >&2
+    echo "  expected: ${expected}" >&2
+    echo "  actual:   ${actual}" >&2
+    exit 1
+  fi
+  echo "SHA256 ok: ${filename}"
+}
+
 gr_bin_has_tag() {
   local dest="$1"
   local tag="$2"
@@ -126,7 +243,8 @@ gr_download() {
   local url="$1"
   local dest="$2"
   echo "Downloading: $url"
-  gr_curl -fL -o "$dest" "$url"
+  gr_curl -fL -o "$dest" "$url" || return 1
+  gr_verify_or_continue "$dest" "$url"
 }
 
 gr_find_binary() {

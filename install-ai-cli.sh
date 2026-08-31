@@ -204,6 +204,8 @@ run_official_installer() {
 
   tmp="$(mktemp)"
   # Download first so a failed fetch cannot pipe HTML into a shell.
+  # These vendor URLs are unsigned moving installers (TLS only, no checksum).
+  log "no upstream checksum for $name installer; trusting TLS to $url"
   gr_curl -fsSL "$url" -o "$tmp"
   if [[ ! -s "$tmp" ]]; then
     rm -f "$tmp"

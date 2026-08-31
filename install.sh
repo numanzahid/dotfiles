@@ -9,6 +9,9 @@ TARGET_HOME="${HOME:?}"
 
 # shellcheck source=scripts/lib/platform.sh
 source "$SCRIPTS_DIR/lib/platform.sh"
+# shellcheck source=scripts/lib/hide-clone.sh
+source "$SCRIPTS_DIR/lib/hide-clone.sh"
+df_reexec_from_hidden_clone "$DOTFILES_DIR" "${BASH_SOURCE[0]}" "$@"
 df_prepend_local_bin
 
 INSTALL_DEPS=0

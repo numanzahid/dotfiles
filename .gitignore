@@ -3,11 +3,24 @@
 **/hosts.yml
 **/.env
 **/.env.*
+**/.netrc
+**/.npmrc
+**/credentials.json
+**/credentials.yml
+**/credentials.yaml
+**/*.pem
+**/*.p12
+**/*.pfx
+**/*.p8
 **/id_*
 **/id_*.pub
 **/known_hosts
 **/known_hosts.old
 **/authorized_keys
+
+# Keep tracked templates
+!**/*.example
+!**/*.example.*
 
 # Runtime / generated
 **/node_modules/

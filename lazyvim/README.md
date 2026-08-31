@@ -24,7 +24,7 @@ LAZYVIM_ALLOW_ROOT=true ./lazyvim/install-lazyvim.sh
 ## What it does
 
 1. Validates Neovim (>= 0.11.2, LuaJIT); does not assume a previous LazyVim
-2. Drops leftovers if they exist (Mason tree-sitter CLI, vim.pack, old extras lua, unused Debian clang/llvm)
+2. Drops leftovers if they exist (Mason tree-sitter CLI, vim.pack, old extras lua). Does not remove compilers.
 3. Installs only missing packages (apt or dnf; no build-essential, no LLVM)
 4. Installs prebuilt Tree-sitter CLI (no Rust/Cargo)
 5. Ensures a working C compiler only if none exists (`gcc` + libc headers)
@@ -103,14 +103,13 @@ On Debian bookworm / Ubuntu 22.04, step 1 usually fails to execute; step 2 insta
 
 ## Leftovers
 
-Every run of `./lazyvim/install-lazyvim.sh` calls `cleanup-leftovers.sh`. Missing paths and packages are a no-op, so a new machine and a re-run on an old box use the same command.
+Every run of `./lazyvim/install-lazyvim.sh` calls `cleanup-leftovers.sh`. Missing paths are a no-op. Compilers and apt packages are left alone.
 
 Removed only if present:
 
 - `~/.local/share/nvim/site/pack/core` and `nvim-pack-lock.json`
 - Mason `tree-sitter-cli` (this installer uses `~/.local/bin/tree-sitter`)
 - `lua/plugins/nvim-extras.lua` and `lua/plugins/dotfiles-extras.lua` (extras now load from `lua/config/dotfiles-extras.lua`)
-- Debian apt packages this installer never needs: `libclang-dev`, `llvm-dev`, `clang`, `clangd`
 
 Rust in `~/.cargo` is reported, not deleted.
 

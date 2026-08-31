@@ -7,10 +7,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/common.sh
 source "$SCRIPT_DIR/lib/common.sh"
 
-DOTFILES_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-# shellcheck source=../scripts/lib/privilege.sh
-source "$DOTFILES_DIR/scripts/lib/privilege.sh"
-
 remove_user_path() {
   local path="$1"
 
@@ -45,31 +41,6 @@ cleanup_legacy_extras_lua() {
   remove_user_path "$NVIM_CONFIG_DIR/lua/plugins/dotfiles-extras.lua"
 }
 
-# Old installer pulled LLVM/clang for Tree-sitter. This one never installs them.
-cleanup_unneeded_compiler_packages() {
-  local pkg removed=0
-
-  if ! command -v dpkg-query >/dev/null 2>&1; then
-    return 0
-  fi
-
-  for pkg in libclang-dev llvm-dev clang clangd; do
-    if dpkg-query -W -f='${Status}' "$pkg" 2>/dev/null | grep -q "install ok installed"; then
-      if [[ "$DRY_RUN" -eq 1 ]]; then
-        log "would apt remove leftover $pkg"
-      else
-        log "removing leftover apt package: $pkg"
-        df_run_privileged apt-get remove -y "$pkg" || true
-      fi
-      removed=1
-    fi
-  done
-
-  if [[ "$removed" -eq 1 && "$DRY_RUN" -eq 0 ]]; then
-    df_run_privileged apt-get autoremove -y || true
-  fi
-}
-
 report_rust_leftovers() {
   if [[ -d "${HOME}/.cargo" ]]; then
     warn "Rust toolchain is present in ~/.cargo (not required for LazyVim; remove manually if unused):"
@@ -84,7 +55,6 @@ main() {
   cleanup_vim_pack
   cleanup_mason_tree_sitter
   cleanup_legacy_extras_lua
-  cleanup_unneeded_compiler_packages
   report_rust_leftovers
 }
 

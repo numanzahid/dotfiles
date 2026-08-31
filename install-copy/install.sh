@@ -12,6 +12,10 @@ SCRIPTS_DIR="$DOTFILES_DIR/scripts"
 TARGET_HOME="${HOME:?}"
 INSTALL_SCRIPTS_DIR="$TARGET_HOME/.install-scripts"
 
+# shellcheck source=../scripts/lib/hide-clone.sh
+source "$SCRIPTS_DIR/lib/hide-clone.sh"
+df_reexec_from_hidden_clone "$DOTFILES_DIR" "${BASH_SOURCE[0]}" "$@"
+
 INSTALL_DEPS=0
 INSTALL_NEOVIM=0
 DRY_RUN=0
@@ -298,7 +302,7 @@ cat <<'EOF'
 install-copy finished. Configs are real files in $HOME.
 You can delete the dotfiles clone:
 
-  rm -rf ~/dotfiles
+  rm -rf ~/.dotfiles
 
 Not included: gitconfig, fzf, zoxide, lazygit, lazydocker, TPM.
 

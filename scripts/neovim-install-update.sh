@@ -94,6 +94,12 @@ if [[ "$download_ok" -ne 1 || ! -s "$tarball" ]]; then
   exit 1
 fi
 
+if [[ -n "${final_url:-}" ]]; then
+  gr_verify_or_continue "$tarball" "$final_url"
+else
+  echo "No redirect URL for checksum lookup; continuing"
+fi
+
 remove_apt_neovim
 
 version="latest"
@@ -121,14 +127,24 @@ symlink_dir="/opt/nvim"
 echo "Installing to: $install_dir"
 $SUDO mkdir -p /opt
 
-# Replace existing install dir if present.
+# Adopt the current /opt/nvim target if this installer created it.
+current=""
+if [[ -L "$symlink_dir" ]]; then
+  current="$(readlink -f "$symlink_dir" 2>/dev/null || true)"
+  if [[ -n "$current" && "$current" == /opt/nvim-* && -d "$current" ]]; then
+    gr_track_path "$current"
+  fi
+fi
+
+# Replace this versioned dir only (we are about to install here).
 $SUDO rm -rf "$install_dir"
 $SUDO mv "$topdir" "$install_dir"
+gr_track_path "$install_dir"
 
 # Update symlink /opt/nvim -> install_dir (atomic-ish).
 $SUDO ln -sfn "$install_dir" "$symlink_dir"
 
-# Drop leftover versioned trees from earlier upgrades (no extra copies).
+# Drop older trees this installer recorded. Leave anything else in /opt.
 old_nullglob=0
 if shopt -q nullglob; then
   old_nullglob=1
@@ -138,8 +154,12 @@ for old in /opt/nvim-*; do
   if [[ "$old" == "$install_dir" || -L "$old" ]]; then
     continue
   fi
-  echo "Removing old neovim tree: $old"
-  $SUDO rm -rf "$old"
+  if gr_path_is_tracked "$old"; then
+    echo "Removing old neovim tree we installed: $old"
+    $SUDO rm -rf "$old"
+  else
+    echo "Leaving unmanaged neovim tree: $old"
+  fi
 done
 if [[ "$old_nullglob" -eq 0 ]]; then
   shopt -u nullglob
