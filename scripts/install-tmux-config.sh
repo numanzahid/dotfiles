@@ -80,8 +80,13 @@ copy_file "$SOURCE_DIR/.tmux.conf" "$TARGET_HOME/.tmux.conf"
 mkdir -p "$TARGET_HOME/.config/tmux" "$TARGET_HOME/.config/fastfetch"
 copy_file "$SOURCE_DIR/.config/fastfetch/banner.jsonc" "$TARGET_HOME/.config/fastfetch/banner.jsonc"
 copy_file "$SOURCE_DIR/.config/tmux/tmux-logo.txt" "$TARGET_HOME/.config/tmux/tmux-logo.txt"
+for art in "$SOURCE_DIR/.config/fastfetch"/art*.txt; do
+  [[ -f "$art" ]] || continue
+  copy_file "$art" "$TARGET_HOME/.config/fastfetch/$(basename "$art")"
+done
 copy_file "$DOTFILES_DIR/scripts/fastfetch-banner.sh" "$TARGET_HOME/.config/tmux/fastfetch-banner.sh"
 chmod 755 "$TARGET_HOME/.config/tmux/fastfetch-banner.sh"
+bash "$DOTFILES_DIR/scripts/fastfetch-banner.sh" --ensure-local
 
 if [[ "$INSTALL_TPM" -eq 1 ]]; then
   tpm_dir="$TARGET_HOME/.tmux/plugins/tpm"

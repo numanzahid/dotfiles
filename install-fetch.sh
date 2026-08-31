@@ -10,12 +10,13 @@ TARGET_HOME="${HOME:?}"
 DRY_RUN=0
 ART=""
 STATUS=0
-FASTFETCH_ART_FILE="${XDG_DATA_HOME:-$HOME/.local/share}/dotfiles/fastfetch-art"
 
 # shellcheck source=scripts/lib/platform.sh
 source "$SCRIPTS_DIR/lib/platform.sh"
 # shellcheck source=scripts/lib/link.sh
 source "$SCRIPTS_DIR/lib/link.sh"
+# shellcheck source=scripts/fastfetch-banner.sh
+source "$SCRIPTS_DIR/fastfetch-banner.sh"
 
 usage() {
   cat <<'EOF'
@@ -25,16 +26,24 @@ Install fastfetch and the compact boxed banner (`banner.jsonc`).
 Plain `fastfetch` uses the built-in default. Extra layouts are more
 jsonc files under ~/.config/fastfetch/, not other fetch tools.
 
+Text art files are ~/.config/fastfetch/artN.txt (1 is default).
+Add art4.txt, art5.txt, ... and they show up automatically. 0 is none.
+Custom art (not in git): ~/.config/custom-fetch-art.txt  (--art c)
+Created from art1 if missing, never overwritten.
+Local padding (not in git): ~/.config/custom-fetch-padding.jsonc
+Created with banner defaults if missing, never overwritten. Edit right
+to change the gap between art and the box.
+
 Options:
-  --art 0|1|2 Text art for the banner
-              0=none  1=current tmux logo  2=custom logo.txt
-  --status    Show current text art
+  --art N     Set text art (0=none, 1=default, artN.txt, or c=custom)
+  --status    Show current text art (with preview)
   --dry-run   Print actions without changing anything
   -h, --help  Show this help
 
 Examples:
   ./install-fetch.sh
   ./install-fetch.sh --art 1
+  ./install-fetch.sh --art c
 EOF
 }
 
@@ -54,31 +63,6 @@ run() {
 
 link_path() {
   df_link_path "$@"
-}
-
-fastfetch_art_current() {
-  if [[ -f "$FASTFETCH_ART_FILE" ]]; then
-    tr -d '[:space:]' <"$FASTFETCH_ART_FILE"
-    return 0
-  fi
-  printf '1'
-}
-
-set_fastfetch_art() {
-  local choice="$1"
-  case "$choice" in
-    0 | 1 | 2) ;;
-    none) choice="0" ;;
-    tmux | current) choice="1" ;;
-    custom | logo) choice="2" ;;
-    *)
-      echo "Unknown text art: $choice (use 0, 1, or 2)" >&2
-      return 1
-      ;;
-  esac
-  mkdir -p "$(dirname "$FASTFETCH_ART_FILE")"
-  printf '%s\n' "$choice" >"$FASTFETCH_ART_FILE"
-  log "text art: $choice"
 }
 
 link_fetch_configs() {
@@ -111,26 +95,23 @@ install_fastfetch_bin() {
 }
 
 prompt_art() {
-  local current choice
-  current="$(fastfetch_art_current)"
+  local current choice csv
+  current="$(df_ff_art_current)"
+  csv="$(df_ff_art_choices_csv)"
 
   echo >&2
   echo "Fastfetch text art (tmux / new terminal banner):" >&2
   echo "  current: $current" >&2
-  echo "  0) none" >&2
-  echo "  1) current tmux logo" >&2
-  echo "  2) custom (~/.config/fastfetch/logo.txt)" >&2
-  echo >&2
-  read -r -p "Choose [0-2] (default: $current): " choice
+  df_ff_art_show_all >&2
+  read -r -p "Choose [$csv] (default: $current): " choice
 
-  case "${choice:-$current}" in
-    0 | 1 | 2) printf '%s\n' "${choice:-$current}" ;;
-    "") printf '%s\n' "$current" ;;
-    *)
-      echo "Invalid choice: $choice" >&2
-      exit 1
-      ;;
-  esac
+  choice="${choice:-$current}"
+  if df_ff_art_valid "$choice"; then
+    printf '%s\n' "$choice"
+    return 0
+  fi
+  echo "Invalid choice: $choice" >&2
+  exit 1
 }
 
 maybe_set_art() {
@@ -141,7 +122,8 @@ maybe_set_art() {
       log "would set text art: $choice"
       return 0
     fi
-    set_fastfetch_art "$choice"
+    df_ff_art_set "$choice"
+    log "text art: $choice"
     return 0
   fi
 
@@ -151,7 +133,8 @@ maybe_set_art() {
       log "would set text art: $choice"
       return 0
     fi
-    set_fastfetch_art "$choice"
+    df_ff_art_set "$choice"
+    log "text art: $choice"
   fi
 }
 
@@ -165,21 +148,14 @@ while [[ $# -gt 0 ]]; do
     --status) STATUS=1 ;;
     --art)
       if [[ $# -lt 2 ]]; then
-        echo "ERROR: --art needs 0, 1, or 2" >&2
+        echo "ERROR: --art needs 0, N, or c (custom)" >&2
         exit 1
       fi
       ART="$2"
-      case "$ART" in
-        0 | 1 | 2) ;;
-        *)
-          echo "ERROR: --art must be 0, 1, or 2" >&2
-          exit 1
-          ;;
-      esac
       shift
       ;;
     none | off | disable | pfetch | both | fastfetch | status)
-      echo "Banner is always fastfetch. Use: ./install-fetch.sh   or   ./install-fetch.sh --art 0|1|2" >&2
+      echo "Banner is always fastfetch. Use: ./install-fetch.sh   or   ./install-fetch.sh --art N" >&2
       exit 1
       ;;
     *)
@@ -191,12 +167,24 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
+# List/preview the files in this clone (same names after link).
+DF_FF_ART_DIR="$SOURCE_DIR/.config/fastfetch"
+export DF_FF_ART_DIR
+
 if [[ "$STATUS" -eq 1 ]]; then
-  printf 'art: %s\n' "$(fastfetch_art_current)"
+  printf 'art: %s\n' "$(df_ff_art_current)"
+  df_ff_art_preview "$(df_ff_art_current)"
   exit 0
+fi
+
+if [[ -n "$ART" ]] && ! df_ff_art_valid "$ART"; then
+  echo "ERROR: --art $ART is not available (use $(df_ff_art_choices_csv))" >&2
+  exit 1
 fi
 
 link_fetch_configs
 install_fastfetch_bin
+df_ff_art_ensure_custom
+df_ff_padding_ensure
 maybe_set_art "$ART"
 log "banner: ~/.config/fastfetch/banner.jsonc"

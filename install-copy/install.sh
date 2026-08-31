@@ -174,13 +174,18 @@ copy_nvim_plain() {
 }
 
 copy_fastfetch_banner() {
+  local art
   mkdir -p "$TARGET_HOME/.config/tmux" "$TARGET_HOME/.config/fastfetch"
 
   copy_file "$SOURCE_DIR/.config/fastfetch/banner.jsonc" "$TARGET_HOME/.config/fastfetch/banner.jsonc"
   copy_file "$SOURCE_DIR/.config/tmux/tmux-logo.txt" "$TARGET_HOME/.config/tmux/tmux-logo.txt"
-  copy_file "$SOURCE_DIR/.config/fastfetch/logo.txt" "$TARGET_HOME/.config/fastfetch/logo.txt"
+  for art in "$SOURCE_DIR/.config/fastfetch"/art*.txt; do
+    [[ -f "$art" ]] || continue
+    copy_file "$art" "$TARGET_HOME/.config/fastfetch/$(basename "$art")"
+  done
   copy_overwrite "$SCRIPTS_DIR/fastfetch-banner.sh" "$TARGET_HOME/.config/tmux/fastfetch-banner.sh"
   run chmod 755 "$TARGET_HOME/.config/tmux/fastfetch-banner.sh"
+  run bash "$SCRIPTS_DIR/fastfetch-banner.sh" --ensure-local
 
   local art_file="${XDG_DATA_HOME:-$TARGET_HOME/.local/share}/dotfiles/fastfetch-art"
   if [[ ! -e "$art_file" ]]; then
