@@ -75,7 +75,7 @@ cd ~/dotfiles
 ./install-copy/install.sh --all
 ```
 
-Then you can `rm -rf ~/dotfiles`. Upgrade later with `~/neovim-install-update.sh` and `~/fastfetch-install-update.sh`.
+Then you can `rm -rf ~/dotfiles`. Upgrade later with `~/.install-scripts/neovim-install-update.sh` and `~/.install-scripts/fastfetch-install-update.sh`.
 
 `--all` copies configs, installs apt deps (tmux, htop, git, jq, locale, ...), fastfetch, and the same GitHub Neovim as the main installer.
 

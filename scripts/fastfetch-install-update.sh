@@ -9,7 +9,7 @@ set -euo pipefail
 #
 # Re-run anytime to upgrade.
 # Invoked by: ./install-fetch.sh fastfetch
-# Light host: ~/fastfetch-install-update.sh
+# Light host: ~/.install-scripts/fastfetch-install-update.sh
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1091

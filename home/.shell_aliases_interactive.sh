@@ -87,6 +87,11 @@ alias grep='grep --color=auto'
 alias fgrep='fgrep --color=auto'
 alias egrep='egrep --color=auto'
 
+##### tmux ##############################################################
+
+# Fresh CTs often start tmux while LANG is still C; -u forces UTF-8 drawing.
+alias tmux='command tmux -u'
+
 ##### Navigation aliases ###############################################
 
 alias ..='cd ..'

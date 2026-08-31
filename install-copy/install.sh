@@ -10,6 +10,7 @@ DOTFILES_DIR="$(cd "$COPY_DIR/.." && pwd)"
 SOURCE_DIR="$DOTFILES_DIR/home"
 SCRIPTS_DIR="$DOTFILES_DIR/scripts"
 TARGET_HOME="${HOME:?}"
+INSTALL_SCRIPTS_DIR="$TARGET_HOME/.install-scripts"
 
 INSTALL_DEPS=0
 INSTALL_NEOVIM=0
@@ -27,12 +28,12 @@ or TPM/tmux plugins.
 
 Hardcoded fastfetch: copies the compact boxed banner and installs
 fastfetch via scripts/fastfetch-install-update.sh.
-Updater: ~/fastfetch-install-update.sh
+Updater: ~/.install-scripts/fastfetch-install-update.sh
 
-Always copies the Neovim and fastfetch updaters into $HOME (overwrite,
-no backups) so you can upgrade after deleting this clone:
-  ~/neovim-install-update.sh
-  ~/fastfetch-install-update.sh
+Always copies the Neovim and fastfetch updaters into ~/.install-scripts
+(overwrite, no backups) so you can upgrade after deleting this clone:
+  ~/.install-scripts/neovim-install-update.sh
+  ~/.install-scripts/fastfetch-install-update.sh
 
 Options:
   --deps       Run install-copy/install-deps.sh (apt packages + locale)
@@ -113,19 +114,27 @@ copy_overwrite() {
   log "copied: $dest"
 }
 
-copy_neovim_updater() {
-  local dest_script="$TARGET_HOME/neovim-install-update.sh"
-  local dest_lib="$TARGET_HOME/neovim-install-update.lib.sh"
+copy_install_scripts() {
+  local dest_nvim="$INSTALL_SCRIPTS_DIR/neovim-install-update.sh"
+  local dest_fetch="$INSTALL_SCRIPTS_DIR/fastfetch-install-update.sh"
+  local dest_lib="$INSTALL_SCRIPTS_DIR/lib/github-release.sh"
   local old_share="$TARGET_HOME/.local/share/dotfiles"
   local old_hidden="$TARGET_HOME/.local/bin/neovim-install-update"
   local old_bin="$TARGET_HOME/bin/neovim-install-update"
 
-  copy_overwrite "$SCRIPTS_DIR/neovim-install-update.sh" "$dest_script"
+  mkdir -p "$INSTALL_SCRIPTS_DIR/lib"
+  copy_overwrite "$SCRIPTS_DIR/neovim-install-update.sh" "$dest_nvim"
+  copy_overwrite "$SCRIPTS_DIR/fastfetch-install-update.sh" "$dest_fetch"
   copy_overwrite "$SCRIPTS_DIR/lib/github-release.sh" "$dest_lib"
-  run chmod 755 "$dest_script"
+  run chmod 755 "$dest_nvim" "$dest_fetch"
 
-  # Drop earlier copy locations (~/.local and ~/bin).
-  run rm -f "$old_hidden" \
+  # Drop earlier copy locations ($HOME, ~/.local, ~/bin).
+  run rm -f \
+    "$TARGET_HOME/neovim-install-update.sh" \
+    "$TARGET_HOME/neovim-install-update.lib.sh" \
+    "$TARGET_HOME/fastfetch-install-update.sh" \
+    "$TARGET_HOME/fastfetch-install-update.lib.sh" \
+    "$old_hidden" \
     "$old_share/neovim-install-update.sh" \
     "$old_share/lib/github-release.sh" \
     "$old_bin" \
@@ -164,15 +173,6 @@ copy_nvim_plain() {
   df_track_path "$dest"
 }
 
-copy_fastfetch_updater() {
-  local dest_script="$TARGET_HOME/fastfetch-install-update.sh"
-  local dest_lib="$TARGET_HOME/fastfetch-install-update.lib.sh"
-
-  copy_overwrite "$SCRIPTS_DIR/fastfetch-install-update.sh" "$dest_script"
-  copy_overwrite "$SCRIPTS_DIR/lib/github-release.sh" "$dest_lib"
-  run chmod 755 "$dest_script"
-}
-
 copy_fastfetch_banner() {
   mkdir -p "$TARGET_HOME/.config/tmux" "$TARGET_HOME/.config/fastfetch"
 
@@ -200,7 +200,7 @@ install_configs() {
 
   # Previous copy-install left real files and the updater. Those dests are
   # ours even if the user edited them; do not treat edits as the original.
-  if [[ -f "$TARGET_HOME/neovim-install-update.sh" ]]; then
+  if [[ -f "$INSTALL_SCRIPTS_DIR/neovim-install-update.sh" || -f "$TARGET_HOME/neovim-install-update.sh" ]]; then
     local dest
     for dest in \
       "$TARGET_HOME/.bashrc" \
@@ -220,6 +220,7 @@ install_configs() {
   copy_file "$SOURCE_DIR/.bashrc" "$TARGET_HOME/.bashrc"
   mkdir -p "$TARGET_HOME/.config/dotfiles"
   copy_file "$SOURCE_DIR/.config/dotfiles/prompt-custom.sh" "$TARGET_HOME/.config/dotfiles/prompt.sh"
+  copy_file "$SOURCE_DIR/.config/dotfiles/locale.sh" "$TARGET_HOME/.config/dotfiles/locale.sh"
   copy_file "$COPY_DIR/shell_aliases_interactive.sh" "$TARGET_HOME/.shell_aliases_interactive.sh"
   copy_file "$SOURCE_DIR/.inputrc" "$TARGET_HOME/.inputrc"
   copy_file "$SOURCE_DIR/.profile" "$TARGET_HOME/.profile"
@@ -227,8 +228,7 @@ install_configs() {
 
   copy_fastfetch_banner
   copy_nvim_plain
-  copy_neovim_updater
-  copy_fastfetch_updater
+  copy_install_scripts
 
   mkdir -p "$TARGET_HOME/.ssh"
   run chmod 700 "$TARGET_HOME/.ssh"
@@ -271,21 +271,21 @@ if [[ "$INSTALL_DEPS" -eq 1 ]]; then
 fi
 
 if [[ "$INSTALL_NEOVIM" -eq 1 ]]; then
-  log "installing neovim via ~/neovim-install-update.sh"
+  log "installing neovim via ~/.install-scripts/neovim-install-update.sh"
   if [[ "$DRY_RUN" -eq 1 ]]; then
-    run bash "$TARGET_HOME/neovim-install-update.sh"
+    run bash "$INSTALL_SCRIPTS_DIR/neovim-install-update.sh"
   else
-    bash "$TARGET_HOME/neovim-install-update.sh"
+    bash "$INSTALL_SCRIPTS_DIR/neovim-install-update.sh"
   fi
 fi
 
-log "installing fastfetch via ~/fastfetch-install-update.sh"
+log "installing fastfetch via ~/.install-scripts/fastfetch-install-update.sh"
 if [[ "$DRY_RUN" -eq 1 ]]; then
-  run bash "$TARGET_HOME/fastfetch-install-update.sh"
+  run bash "$INSTALL_SCRIPTS_DIR/fastfetch-install-update.sh"
 elif command -v git >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
-  bash "$TARGET_HOME/fastfetch-install-update.sh"
+  bash "$INSTALL_SCRIPTS_DIR/fastfetch-install-update.sh"
 else
-  log "WARN: git and jq required for fastfetch; run ./install-copy/install.sh --all or ~/fastfetch-install-update.sh"
+  log "WARN: git and jq required for fastfetch; run ./install-copy/install.sh --all or ~/.install-scripts/fastfetch-install-update.sh"
 fi
 
 cat <<'EOF'
@@ -300,6 +300,7 @@ Not included: gitconfig, fzf, zoxide, lazygit, lazydocker, TPM.
 Copied configs:
   ~/.bashrc
   ~/.config/dotfiles/prompt.sh  (custom prompt)
+  ~/.config/dotfiles/locale.sh
   ~/.shell_aliases_interactive.sh
   ~/.inputrc
   ~/.profile
@@ -308,19 +309,25 @@ Copied configs:
   ~/.config/nvim/init.lua  (plain nvim, if LazyVim was not already there)
   ~/.ssh/config  (only if missing)
   ~/.ssh/authorized_keys  (only if missing)
-  ~/neovim-install-update.sh
-  ~/fastfetch-install-update.sh
+  ~/.install-scripts/neovim-install-update.sh
+  ~/.install-scripts/fastfetch-install-update.sh
 
 Apt deps (--deps / --all):
   bash bash-completion ca-certificates curl git gzip htop jq less locales tar tmux wget
 
 Neovim (--neovim / --all):
   same GitHub build as ./install.sh --neovim  (/usr/local/bin/nvim)
-  later: neovim-install-update
+  later: ~/.install-scripts/neovim-install-update.sh
 
 fastfetch (always):
   /usr/local/bin/fastfetch
-  later: fastfetch-install-update
+  later: ~/.install-scripts/fastfetch-install-update.sh
 
 If tmux is already running: tmux source-file ~/.tmux.conf
+
+UTF-8 glyphs (box drawing, nerd icons): reconnect SSH, or exec bash -l
+A CT reboot is not required. If tmux was started with LANG=C:
+  export LANG=en_US.UTF-8
+  tmux kill-server
+  tmux
 EOF

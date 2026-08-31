@@ -25,6 +25,12 @@ fi
 export EDITOR="${EDITOR:-nvim}"
 export COLORTERM=truecolor
 
+# UTF-8 for interactive and `ssh host cmd` (tmux often inherits LANG=C from
+# the session that ran before locale-gen).
+if [ -f "$HOME/.config/dotfiles/locale.sh" ]; then
+  . "$HOME/.config/dotfiles/locale.sh"
+fi
+
 # Stop here for non-interactive shells (scp/rsync/sftp/ssh host 'cmd').
 case $- in
 *i*) ;;

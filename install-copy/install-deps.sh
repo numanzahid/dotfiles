@@ -49,6 +49,15 @@ setup_utf8_locale() {
 
   df_run_privileged locale-gen en_US.UTF-8
   df_run_privileged update-locale LANG=en_US.UTF-8 LC_ALL=
+
+  if locale -a 2>/dev/null | grep -qE 'en_US\.(utf8|UTF-8)'; then
+    export LANG=en_US.UTF-8
+    unset LC_ALL || true
+  fi
+  if [[ -n "${TMUX:-}" ]] && command -v tmux >/dev/null 2>&1; then
+    tmux set-environment -g LANG en_US.UTF-8 2>/dev/null || true
+    tmux set-environment -gu LC_ALL 2>/dev/null || true
+  fi
 }
 
 echo "Configuring UTF-8 locale..."
@@ -58,6 +67,11 @@ locale_rc=$?
 set -e
 if [[ "$locale_rc" -ne 0 ]]; then
   echo "WARN: UTF-8 locale setup failed; continuing (set LANG manually if needed)" >&2
+else
+  echo "UTF-8 locale is generated. This SSH/tmux session may still have LANG=C."
+  echo "  New glyphs: exec bash -l"
+  echo "  Already in tmux: open a new pane, or tmux kill-server && tmux"
+  echo "A CT reboot is not required."
 fi
 
 echo "install-copy deps done."

@@ -9,14 +9,10 @@
 #umask 022
 
 # UTF-8 locale (minimal Debian/CT images often default to C/POSIX).
-# LANG is the default. Do not set LC_ALL: it overrides every LC_* and
-# leaks into `pct enter` / LXC attach on the host.
-if [ -z "${LANG:-}" ] || [ "$LANG" = "C" ] || [ "$LANG" = "POSIX" ]; then
-  if locale -a 2>/dev/null | grep -qE 'en_US\.(utf8|UTF-8)'; then
-    export LANG=en_US.UTF-8
-  fi
+# See ~/.config/dotfiles/locale.sh
+if [ -f "$HOME/.config/dotfiles/locale.sh" ]; then
+  . "$HOME/.config/dotfiles/locale.sh"
 fi
-unset LC_ALL
 
 # if running bash
 if [ -n "$BASH_VERSION" ]; then

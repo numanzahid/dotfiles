@@ -85,7 +85,7 @@ fetch() {
       fastfetch --config "${XDG_CONFIG_HOME:-$HOME}/.config/fastfetch/banner.jsonc"
     fi
   else
-    echo "fastfetch not installed. Run: ~/fastfetch-install-update.sh"
+    echo "fastfetch not installed. Run: ~/.install-scripts/fastfetch-install-update.sh"
   fi
 }
 
@@ -96,6 +96,11 @@ _dotfiles_show_fetch_banner
 alias grep='grep --color=auto'
 alias fgrep='fgrep --color=auto'
 alias egrep='egrep --color=auto'
+
+##### tmux ##############################################################
+
+# Fresh CTs often start tmux while LANG is still C; -u forces UTF-8 drawing.
+alias tmux='command tmux -u'
 
 ##### Navigation aliases ###############################################
 

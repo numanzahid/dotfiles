@@ -202,6 +202,7 @@ install_dotfiles() {
   link_path "$SOURCE_DIR/.gitconfig" "$TARGET_HOME/.gitconfig"
   link_path "$SOURCE_DIR/.tmux.conf" "$TARGET_HOME/.tmux.conf"
   link_prompt_default
+  link_path "$SOURCE_DIR/.config/dotfiles/locale.sh" "$TARGET_HOME/.config/dotfiles/locale.sh"
 
   link_plain_nvim
   link_path "$SOURCE_DIR/.config/fastfetch" "$TARGET_HOME/.config/fastfetch"
