@@ -35,8 +35,10 @@ or TPM/tmux plugins.
 Fastfetch banner is optional (not part of --all):
   ./install-copy/install.sh --fetch
   ./install-copy/install.sh --fetch --art 1
-That copies ~/.config/fastfetch/config.jsonc, arts, the banner script,
-installs fastfetch, and runs the art picker on a tty.
+That copies ~/.config/fastfetch/config.jsonc, arts, example
+templates, the banner script, installs fastfetch, and runs the art
+picker on a tty. Custom art/padding in ~/.config are seeded once
+from those templates and never overwritten.
 
 Always copies the Neovim updater into ~/.install-scripts
 (overwrite, no backups) so you can upgrade after deleting this clone:
@@ -250,7 +252,8 @@ copy_nvim_plain() {
   df_journal_once copy "$dest/init.lua" "$src/init.lua"
 }
 
-# Drop leftover layouts (banner.jsonc, tmux2.jsonc). Keep config.jsonc + art*.txt.
+# Drop leftover layouts (banner.jsonc, tmux2.jsonc).
+# Keep config.jsonc, art*.txt, and *.example.jsonc templates.
 clean_fastfetch_extra_jsonc() {
   local dir="$1"
   local f base
@@ -261,7 +264,7 @@ clean_fastfetch_extra_jsonc() {
   shopt -s nullglob
   for f in "$dir"/*.jsonc; do
     base="$(basename "$f")"
-    if [[ "$base" == "config.jsonc" ]]; then
+    if [[ "$base" == "config.jsonc" || "$base" == *.example.jsonc ]]; then
       continue
     fi
     log "remove extra fastfetch config: $f"
@@ -293,6 +296,12 @@ copy_fastfetch_banner() {
     [[ -f "$art" ]] || continue
     copy_file "$art" "$TARGET_HOME/.config/fastfetch/$(basename "$art")"
   done
+  copy_file \
+    "$SOURCE_DIR/.config/fastfetch/custom-fetch-art.example.txt" \
+    "$TARGET_HOME/.config/fastfetch/custom-fetch-art.example.txt"
+  copy_file \
+    "$SOURCE_DIR/.config/fastfetch/custom-fetch-padding.example.jsonc" \
+    "$TARGET_HOME/.config/fastfetch/custom-fetch-padding.example.jsonc"
   copy_overwrite "$SCRIPTS_DIR/fastfetch-banner.sh" "$TARGET_HOME/.config/tmux/fastfetch-banner.sh"
   run chmod 755 "$TARGET_HOME/.config/tmux/fastfetch-banner.sh"
   run bash "$SCRIPTS_DIR/fastfetch-banner.sh" --ensure-local

@@ -35,7 +35,7 @@ These stay optional on every installer. Run them when you want them.
 ./scripts/install-tmux-config.sh        # tmux only; clone can go after
 ```
 
-Fetch: one boxed layout (`~/.config/fastfetch/config.jsonc`) for `fastfetch`, tmux, and `fetch`. Workstation: `./install-fetch.sh`. Light host: `./install-copy/install.sh --fetch` (not part of `--all`). Art: `--art 1` is default, `--art c` is custom. Custom art and padding are local only: `~/.config/custom-fetch-art.txt` and `~/.config/custom-fetch-padding.jsonc`. The banner script applies those on top of `config.jsonc` (`--logo` and `--logo-padding-*`).
+Fetch: one boxed layout (`~/.config/fastfetch/config.jsonc`) for `fastfetch`, tmux, and `fetch`. Workstation: `./install-fetch.sh`. Light host: `./install-copy/install.sh --fetch` (not part of `--all`). Art: `--art 1` is default, `--art c` is custom. Repo templates: `home/.config/fastfetch/custom-fetch-art.example.txt` and `custom-fetch-padding.example.jsonc`. First `--fetch` copies those to `~/.config/custom-fetch-art.txt` and `~/.config/custom-fetch-padding.jsonc` if missing, then never overwrites. The banner script applies the live files on top of `config.jsonc` (`--logo` and `--logo-padding-*`).
 
 Default nvim is the plain editor. LazyVim is linked only by the lazyvim scripts. See `lazyvim/README.md` if you go that route.
 

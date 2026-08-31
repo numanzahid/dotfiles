@@ -28,10 +28,12 @@ Art is chosen here (or --art) and applied via --logo.
 
 Text art files are ~/.config/fastfetch/artN.txt (1 is default).
 Add art4.txt, art5.txt, ... and they show up automatically. 0 is none.
-Custom art (not in git): ~/.config/custom-fetch-art.txt  (--art c)
-Created from art1 if missing, never overwritten.
-Local padding (not in git): ~/.config/custom-fetch-padding.jsonc
-Created with config defaults if missing, never overwritten.
+Repo templates (edit these):
+  home/.config/fastfetch/custom-fetch-art.example.txt
+  home/.config/fastfetch/custom-fetch-padding.example.jsonc
+Live copies (not in git), seeded once, never overwritten:
+  ~/.config/custom-fetch-art.txt  (--art c)
+  ~/.config/custom-fetch-padding.jsonc
 
 Options:
   --art N     Set text art (0=none, 1=default, artN.txt, or c=custom)

@@ -1,0 +1,12 @@
+// Repo template for ~/.config/custom-fetch-padding.jsonc
+// Copied once on --fetch if that file is missing; never overwritten.
+// right = gap between the art and the boxed keys.
+{
+  "logo": {
+    "padding": {
+      "top": 0,
+      "left": 1,
+      "right": 2
+    }
+  }
+}

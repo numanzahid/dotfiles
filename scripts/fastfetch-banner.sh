@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # One fastfetch layout: ~/.config/fastfetch/config.jsonc (fastfetch default).
 # Arts: ~/.config/fastfetch/artN.txt  (0=none, 1=default). Add art4.txt etc.
-# Custom art (not in git): ~/.config/custom-fetch-art.txt  (choice: c)
-# Local padding overlay (not in git): ~/.config/custom-fetch-padding.jsonc
+# Templates in git: custom-fetch-art.example.txt, custom-fetch-padding.example.jsonc
+# Live copies (not in git): ~/.config/custom-fetch-art.txt  (choice: c)
+#   and ~/.config/custom-fetch-padding.jsonc
+# Seeded once from the templates; never overwritten.
 # Choice: ~/.local/share/dotfiles/fastfetch-art
 #
 # Sourced by install-fetch.sh and install-copy for listing/preview.
@@ -20,13 +22,21 @@ df_ff_art_dir() {
   printf '%s/fastfetch\n' "${XDG_CONFIG_HOME:-$HOME/.config}"
 }
 
-# Untracked local files. Never under ~/.config/fastfetch (that dir is the repo).
+# Untracked live files. Never under ~/.config/fastfetch (that dir is the repo).
 df_ff_art_custom_path() {
   printf '%s/custom-fetch-art.txt\n' "${XDG_CONFIG_HOME:-$HOME/.config}"
 }
 
 df_ff_padding_path() {
   printf '%s/custom-fetch-padding.jsonc\n' "${XDG_CONFIG_HOME:-$HOME/.config}"
+}
+
+df_ff_art_template_path() {
+  printf '%s/custom-fetch-art.example.txt\n' "$(df_ff_art_dir)"
+}
+
+df_ff_padding_template_path() {
+  printf '%s/custom-fetch-padding.example.jsonc\n' "$(df_ff_art_dir)"
 }
 
 df_ff_art_path() {
@@ -46,7 +56,7 @@ df_ff_art_normalize() {
   esac
 }
 
-# Copy art1 into the custom file only when it does not exist.
+# Copy the repo template into the custom file only when it does not exist.
 df_ff_art_ensure_custom() {
   local dest src old
   dest="$(df_ff_art_custom_path)"
@@ -58,7 +68,10 @@ df_ff_art_ensure_custom() {
     return 0
   fi
   mkdir -p "$(dirname "$dest")"
-  src="$(df_ff_art_path 1)"
+  src="$(df_ff_art_template_path)"
+  if [[ ! -f "$src" ]]; then
+    src="$(df_ff_art_path 1)"
+  fi
   if [[ -f "$src" ]]; then
     cp -f "$src" "$dest"
   else
@@ -66,14 +79,19 @@ df_ff_art_ensure_custom() {
   fi
 }
 
-# Placeholder matches config.jsonc. Edit locally; never overwrite.
+# Copy the repo padding template only when the live file does not exist.
 df_ff_padding_ensure() {
-  local dest
+  local dest src
   dest="$(df_ff_padding_path)"
   if [[ -e "$dest" || -L "$dest" ]]; then
     return 0
   fi
   mkdir -p "$(dirname "$dest")"
+  src="$(df_ff_padding_template_path)"
+  if [[ -f "$src" ]]; then
+    cp -f "$src" "$dest"
+    return 0
+  fi
   cat >"$dest" <<'EOF'
 // Local fastfetch logo padding. Not in git.
 // right = gap between the art and the boxed keys.

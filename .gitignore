@@ -35,7 +35,7 @@ home/.tmux/plugins/
 home/.fzf/
 home/.fzf.bash
 
-# Per-machine fastfetch art/padding (lives in ~/.config, not this clone)
+# Per-machine fastfetch live copies (seeded from *.example.* templates)
 **/custom-fetch-art.txt
 **/custom-fetch-padding.jsonc
 **/.custom-fetch-art.txt
