@@ -325,9 +325,7 @@ fastfetch (always):
 
 If tmux is already running: tmux source-file ~/.tmux.conf
 
-UTF-8 glyphs (box drawing, nerd icons): reconnect SSH, or exec bash -l
-A CT reboot is not required. If tmux was started with LANG=C:
-  export LANG=en_US.UTF-8
-  tmux kill-server
-  tmux
+UTF-8 glyphs (box drawing, nerd icons): close this SSH client and ssh in again.
+exec bash / tmux kill-server is not enough (the pty keeps the old encoding).
+A CT reboot is not required.
 EOF

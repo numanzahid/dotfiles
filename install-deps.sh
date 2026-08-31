@@ -70,9 +70,8 @@ set -e
 if [[ "$locale_rc" -ne 0 ]]; then
   echo "WARN: UTF-8 locale setup failed; continuing (set LANG manually if needed)" >&2
 else
-  echo "UTF-8 locale is generated. This SSH/tmux session may still have LANG=C."
-  echo "  New glyphs: exec bash -l"
-  echo "  Already in tmux: open a new pane, or tmux kill-server && tmux"
+  echo "UTF-8 locale is generated. This SSH session still has the old pty encoding."
+  echo "  Close the SSH client and ssh in again (exec bash / tmux kill is not enough)."
   echo "A CT reboot is not required."
 fi
 

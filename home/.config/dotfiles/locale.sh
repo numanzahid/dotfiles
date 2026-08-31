@@ -3,6 +3,7 @@
 # leaks into `pct enter` / LXC attach on the host.
 #
 # Sourced from ~/.profile and ~/.bashrc. Safe to source more than once.
+# Does not fix glyphs in the current SSH connection; reconnect after locale-gen.
 
 _df_locale="${LC_ALL:-${LC_CTYPE:-${LANG:-}}}"
 case "$_df_locale" in
