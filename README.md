@@ -1,138 +1,49 @@
 # dotfiles
 
-Bash, tmux, neovim, and CLI configs. Pick one installer:
-
-| | Workstation | Fedora | Light host |
-|---|---|---|---|
-| Script | `./install.sh` | `./install-fedora.sh` | `./install-copy/install.sh` |
-| Configs | symlinks into `$HOME` | same shared bashrc; starship prompt | real files in `$HOME` |
-| Clone | keep it | keep it | safe to delete after install |
-
-Same git branch (`main`) for all three. Distro differences live in the installer, not a fork.
-
-## Workstation
+Bash, tmux, nvim, and CLI tools. One `main` branch. Clone it, pick an installer, run `--all`.
 
 ```bash
 git clone git@github.com:numanzahid/dotfiles.git ~/dotfiles
 cd ~/dotfiles
-./install.sh --all
+
+./install.sh --all                 # Debian/Ubuntu. Keep the clone. Configs are symlinks.
+./install-fedora.sh --all          # Fedora. Same bashrc. dnf or GitHub only, never COPR.
+./install-copy/install.sh --all    # Light host / CT. Real files. Safe to delete the clone after.
 ```
 
-`--all` links configs and installs apt deps (including trash-cli), bat, fd, zoxide, eza, lazygit, gh, neovim, btop, TPM, and fzf.
+`--all` is the daily box: configs, packages, bat/fd/zoxide/eza, lazygit, gh, neovim, btop, fzf, tmux plugins. Fedora also gets starship. Light host is slimmer (configs, apt, fastfetch, neovim) and skips gitconfig, fzf, zoxide, lazygit, gh, btop, and TPM.
 
-It does not install LazyVim, fetch banners, or AI CLIs. Re-running `--all` leaves those extras alone.
+Want a subset? `./install.sh -h` (or the fedora/copy script). After a workstation install, copy SSH keys into `~/.ssh/` yourself, then in tmux hit `prefix + Shift + I` once.
 
-| Flag | Action |
-|------|--------|
-| `--deps` | apt packages + locale |
-| `--tools` | bat, fd, zoxide, eza |
-| `--lazygit` / `--gh` | lazygit, GitHub CLI |
-| `--neovim` | Neovim from GitHub (`/usr/local/bin/nvim`) |
-| `--btop` | btop from GitHub |
-| `--tpm` / `--fzf` | tmux plugin manager, fzf |
-| `--all` | all of the above |
-| `--dry-run` | print actions only |
+Light host: `rm -rf ~/dotfiles` when you are done. Later upgrades live in `~/.install-scripts/` (`neovim-install-update.sh`, `fastfetch-install-update.sh`).
 
-After install: copy SSH keys into `~/.ssh/` yourself, then in tmux press `prefix + Shift + I` once.
+## Not part of --all
 
-Prompt is `~/.config/dotfiles/prompt.sh` (custom hostname:path on Debian). Fedora uses starship via the same file.
-
-Default nvim is the plain config (`home/.config/nvim-plain`).
-
-Interactive alias: `del` -> `trash-put` (`rm` is unchanged). Agent trash-cli instructions are copied (not linked) to `~/.cursor/rules/use-trash-cli.mdc`, `~/.codex/AGENTS.md`, and `~/.claude/CLAUDE.md`.
-
-## Fedora
-
-Links the same `~/.bashrc` as the workstation (Fedora `/etc/bashrc`, PATH, and `~/.bashrc.d` are in that file). Prompt is a separate symlink, `~/.config/dotfiles/prompt.sh`. Official dnf or GitHub only. Never COPR.
+These stay optional on every installer. Run them when you want them.
 
 ```bash
-git clone git@github.com:numanzahid/dotfiles.git ~/dotfiles
-cd ~/dotfiles
-./install-fedora.sh --all
+./install-fetch.sh                      # fastfetch + boxed banner + art picker
+./install-ai-cli.sh                     # OpenCode, Cursor, Claude Code, Codex
+./lazyvim/install-lazyvim.sh            # LazyVim IDE
+./lazyvim-lite/install-lazyvim-lite.sh  # LazyVim, no Mason/LSP/Node
+./scripts/nvm-install-update.sh         # Node via nvm
+./scripts/lazydocker-install-update.sh
+./scripts/avahi-install-update.sh       # hostname.local
+./scripts/install-tmux-config.sh        # tmux only; clone can go after
 ```
 
-`--all` also installs starship from GitHub and points the prompt at it. Switch later:
+Fetch: plain `fastfetch` is the built-in look. Tmux / `fetch` uses the boxed banner. Art is `./install-fetch.sh` (`--art 1` is default, `--art c` is custom). Custom art and padding are local only: `~/.config/custom-fetch-art.txt` and `~/.config/custom-fetch-padding.jsonc`.
+
+Default nvim is the plain editor. LazyVim is linked only by the lazyvim scripts. See `lazyvim/README.md` if you go that route.
+
+## Day to day
 
 ```bash
-ln -sfn ~/dotfiles/home/.config/dotfiles/prompt-custom.sh ~/.config/dotfiles/prompt.sh
-ln -sfn ~/dotfiles/home/.config/dotfiles/prompt-starship.sh ~/.config/dotfiles/prompt.sh
+cd ~/dotfiles && git pull && ./install.sh          # or ./install-fedora.sh
 ```
 
-Static split (edit `install-fedora.sh` if a package falls behind):
+Re-runs overwrite files this repo already manages. Something it did not put there gets one `*.pre-dotfiles` backup. LazyVim and AI CLIs are left alone unless you run those scripts.
 
-- dnf: bat, fd-find, eza, btop, fzf, gh, neovim, plus `--deps`
-- GitHub: zoxide, lazygit, starship
+Prompt is `~/.config/dotfiles/prompt.sh` (custom on Debian, starship on Fedora). `del` is `trash-put`. `rm` is still `rm`.
 
-`--all` flags: `--deps --tools --lazygit --gh --neovim --btop --tpm --fzf --starship`.
-
-## Light host
-
-For CTs and machines where you do not want to keep this repo:
-
-```bash
-git clone git@github.com:numanzahid/dotfiles.git ~/dotfiles
-cd ~/dotfiles
-./install-copy/install.sh --all
-```
-
-Then you can `rm -rf ~/dotfiles`. Upgrade later with `~/.install-scripts/neovim-install-update.sh` and `~/.install-scripts/fastfetch-install-update.sh`.
-
-`--all` copies configs, installs apt deps (tmux, htop, git, jq, locale, ...), fastfetch, and the same GitHub Neovim as the main installer.
-
-Copied: `.bashrc`, prompt, `.profile`, `.inputrc`, `.tmux.conf` (no TPM; same boxed fastfetch banner), aliases, plain `~/.config/nvim/init.lua`, and `~/.ssh/config` plus `~/.ssh/authorized_keys` if missing.
-
-Not included: gitconfig, fzf, zoxide, eza, lazygit, gh, btop, TPM.
-
-No flags copies configs and still installs fastfetch if `git` and `jq` are present (no apt, no nvim binary).
-
-Tmux only: `./scripts/install-tmux-config.sh`
-
-## Optional extras
-
-Not part of `--all` on any installer:
-
-```bash
-./lazyvim/install-lazyvim.sh              # LazyVim IDE (Debian/Ubuntu and Fedora)
-./lazyvim-lite/install-lazyvim-lite.sh    # LazyVim editor only (no Mason/LSP/Node)
-./install-fetch.sh                        # install fastfetch + compact banner
-./install-ai-cli.sh                       # OpenCode, Cursor, Claude Code, Codex
-./scripts/nvm-install-update.sh           # Node via nvm
-```
-
-See `lazyvim/README.md` and `lazyvim-lite/README.md`.
-
-Fetch is fastfetch only. Plain `fastfetch` uses the built-in default. Tmux and new terminals use `~/.config/fastfetch/banner.jsonc`. Extra layouts are more jsonc files in that folder.
-
-## Updates
-
-```bash
-cd ~/dotfiles && git pull && ./install.sh           # Debian/Ubuntu
-cd ~/dotfiles && git pull && ./install-fedora.sh    # Fedora
-```
-
-After pulling a LazyVim lockfile or nvim lua change: `./lazyvim/sync-lazyvim.sh` (full `./lazyvim/install-lazyvim.sh` only on first setup or when deps/extras changed). See `lazyvim/README.md`.
-
-Re-runs overwrite configs the installer already manages (including files you edited). A foreign file is backed up once as `*.pre-dotfiles`. LazyVim nvim config and AI CLIs are not reset.
-
-Upgrade one tool with `./scripts/<name>-install-update.sh`.
-
-## Layout
-
-```text
-install.sh            symlink installer (Debian/Ubuntu; keep the clone)
-install-fedora.sh     symlink installer (Fedora; shared bashrc, starship prompt)
-install-copy/         copy installer (clone can be deleted)
-install-fetch.sh
-install-ai-cli.sh
-lazyvim/   lazyvim-lite/
-scripts/              per-tool GitHub installers
-home/                 source configs
-  .config/dotfiles/prompt-*.sh  custom vs starship; linked as prompt.sh
-  .config/nvim-plain/ linked by ./install.sh and ./install-fedora.sh
-  .config/nvim/       LazyVim; linked only by lazyvim scripts
-```
-
-## Security
-
-Do not commit SSH private keys, tokens, `auth.json`, `hosts.yml`, `.env*`, or plugin caches.
-`home/.ssh/config.example` and `home/.ssh/authorized_keys.example` are the SSH templates. Real keys stay out of git.
+Do not commit keys, tokens, `auth.json`, `hosts.yml`, or `.env*`. SSH templates are `home/.ssh/*.example`.
