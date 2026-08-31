@@ -18,6 +18,7 @@ df_reexec_from_hidden_clone "$DOTFILES_DIR" "${BASH_SOURCE[0]}" "$@"
 
 INSTALL_DEPS=0
 INSTALL_NEOVIM=0
+INSTALL_BANNER=0
 DRY_RUN=0
 ART=""
 
@@ -31,21 +32,24 @@ remove the dotfiles folder.
 Does not install or copy: gitconfig, fzf, zoxide, lazygit, lazydocker,
 or TPM/tmux plugins.
 
-Hardcoded fastfetch: copies ~/.config/fastfetch/config.jsonc (boxed
-layout), arts, and the banner script. Same look for `fastfetch`, tmux,
-and `fetch`. Art picker runs on a tty (or --art N).
-Updater: ~/.install-scripts/fastfetch-install-update.sh
+Fastfetch banner is optional (not part of --all):
+  ./install-copy/install.sh --banner
+  ./install-copy/install.sh --banner --art 1
+That copies ~/.config/fastfetch/config.jsonc, arts, the banner script,
+installs fastfetch, and runs the art picker on a tty.
 
-Always copies the Neovim and fastfetch updaters into ~/.install-scripts
+Always copies the Neovim updater into ~/.install-scripts
 (overwrite, no backups) so you can upgrade after deleting this clone:
   ~/.install-scripts/neovim-install-update.sh
+With --banner also:
   ~/.install-scripts/fastfetch-install-update.sh
 
 Options:
   --deps       Run install-copy/install-deps.sh (apt packages + locale)
   --neovim     Install latest Neovim (same GitHub build as ./install.sh)
-  --all        Copy configs, --deps, and --neovim
-  --art N      Set text art (0=none, 1=default, artN.txt, or c=custom)
+  --all        Copy configs, --deps, and --neovim (no banner)
+  --banner     Fastfetch boxed banner + art picker (or --art N)
+  --art N      Set text art (implies --banner)
   --dry-run    Print actions without changing anything
   -h, --help   Show this help
 EOF
@@ -192,10 +196,13 @@ copy_install_scripts() {
 
   mkdir -p "$INSTALL_SCRIPTS_DIR/lib"
   copy_overwrite "$SCRIPTS_DIR/neovim-install-update.sh" "$dest_nvim"
-  copy_overwrite "$SCRIPTS_DIR/fastfetch-install-update.sh" "$dest_fetch"
   copy_overwrite "$SCRIPTS_DIR/lib/github-release.sh" "$dest_lib"
   copy_overwrite "$SCRIPTS_DIR/lib/journal.sh" "$dest_journal"
-  run chmod 755 "$dest_nvim" "$dest_fetch"
+  run chmod 755 "$dest_nvim"
+  if [[ "$INSTALL_BANNER" -eq 1 ]]; then
+    copy_overwrite "$SCRIPTS_DIR/fastfetch-install-update.sh" "$dest_fetch"
+    run chmod 755 "$dest_fetch"
+  fi
 
   # Drop earlier copy locations ($HOME, ~/.local, ~/bin).
   run rm -f \
@@ -243,6 +250,30 @@ copy_nvim_plain() {
   df_journal_once copy "$dest/init.lua" "$src/init.lua"
 }
 
+# Drop leftover layouts (banner.jsonc, tmux2.jsonc). Keep config.jsonc + art*.txt.
+clean_fastfetch_extra_jsonc() {
+  local dir="$1"
+  local f base
+
+  if [[ -L "$dir" || ! -d "$dir" ]]; then
+    return 0
+  fi
+  shopt -s nullglob
+  for f in "$dir"/*.jsonc; do
+    base="$(basename "$f")"
+    if [[ "$base" == "config.jsonc" ]]; then
+      continue
+    fi
+    log "remove extra fastfetch config: $f"
+    if command -v trash-put >/dev/null 2>&1; then
+      run trash-put "$f"
+    else
+      run rm -f "$f"
+    fi
+  done
+  shopt -u nullglob
+}
+
 copy_fastfetch_banner() {
   local art src_config
   src_config="$SOURCE_DIR/.config/fastfetch/config.jsonc"
@@ -254,6 +285,7 @@ copy_fastfetch_banner() {
 
   ensure_real_dir "$TARGET_HOME/.config/tmux"
   ensure_real_dir "$TARGET_HOME/.config/fastfetch"
+  clean_fastfetch_extra_jsonc "$TARGET_HOME/.config/fastfetch"
 
   copy_file "$src_config" "$TARGET_HOME/.config/fastfetch/config.jsonc"
   copy_file "$SOURCE_DIR/.config/tmux/tmux-logo.txt" "$TARGET_HOME/.config/tmux/tmux-logo.txt"
@@ -317,7 +349,9 @@ install_configs() {
   copy_file "$SOURCE_DIR/.profile" "$TARGET_HOME/.profile"
   copy_file "$COPY_DIR/tmux.conf" "$TARGET_HOME/.tmux.conf"
 
-  copy_fastfetch_banner
+  if [[ "$INSTALL_BANNER" -eq 1 ]]; then
+    copy_fastfetch_banner
+  fi
   copy_nvim_plain
   copy_install_scripts
 
@@ -337,12 +371,14 @@ while [[ $# -gt 0 ]]; do
       INSTALL_DEPS=1
       INSTALL_NEOVIM=1
       ;;
+    --banner) INSTALL_BANNER=1 ;;
     --art)
       if [[ $# -lt 2 ]]; then
         echo "ERROR: --art needs 0, N, or c (custom)" >&2
         exit 1
       fi
       ART="$2"
+      INSTALL_BANNER=1
       shift
       ;;
     --dry-run) DRY_RUN=1 ;;
@@ -378,13 +414,15 @@ if [[ "$INSTALL_NEOVIM" -eq 1 ]]; then
   fi
 fi
 
-log "installing fastfetch via ~/.install-scripts/fastfetch-install-update.sh"
-if [[ "$DRY_RUN" -eq 1 ]]; then
-  run bash "$INSTALL_SCRIPTS_DIR/fastfetch-install-update.sh"
-elif command -v git >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
-  bash "$INSTALL_SCRIPTS_DIR/fastfetch-install-update.sh"
-else
-  log "WARN: git and jq required for fastfetch; run ./install-copy/install.sh --all or ~/.install-scripts/fastfetch-install-update.sh"
+if [[ "$INSTALL_BANNER" -eq 1 ]]; then
+  log "installing fastfetch via ~/.install-scripts/fastfetch-install-update.sh"
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    run bash "$INSTALL_SCRIPTS_DIR/fastfetch-install-update.sh"
+  elif command -v git >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
+    bash "$INSTALL_SCRIPTS_DIR/fastfetch-install-update.sh"
+  else
+    log "WARN: git and jq required for fastfetch; run ./install-copy/install.sh --banner"
+  fi
 fi
 
 cat <<'EOF'
@@ -403,13 +441,11 @@ Copied configs:
   ~/.shell_aliases_interactive.sh
   ~/.inputrc
   ~/.profile
-  ~/.tmux.conf  (no TPM; fastfetch on new window/pane)
-  ~/.config/fastfetch/config.jsonc
+  ~/.tmux.conf  (no TPM)
   ~/.config/nvim/init.lua  (plain nvim, if LazyVim was not already there)
   ~/.ssh/config  (only if missing)
   ~/.ssh/authorized_keys  (only if missing)
   ~/.install-scripts/neovim-install-update.sh
-  ~/.install-scripts/fastfetch-install-update.sh
 
 Apt deps (--deps / --all):
   bash bash-completion ca-certificates curl git gzip htop jq less locales tar tmux wget
@@ -418,8 +454,10 @@ Neovim (--neovim / --all):
   same GitHub build as ./install.sh --neovim  (/usr/local/bin/nvim)
   later: ~/.install-scripts/neovim-install-update.sh
 
-fastfetch (always):
-  /usr/local/bin/fastfetch
+Fastfetch banner (optional, not part of --all):
+  ./install-copy/install.sh --banner
+  ./install-copy/install.sh --banner --art 1
+  ~/.config/fastfetch/config.jsonc
   later: ~/.install-scripts/fastfetch-install-update.sh
 
 If tmux is already running: tmux source-file ~/.tmux.conf

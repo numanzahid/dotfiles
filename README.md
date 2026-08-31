@@ -13,7 +13,7 @@ cd ~/.dotfiles
 ./install-copy/install.sh --all    # Light host / CT. Real files. Safe to delete the clone after.
 ```
 
-`--all` is the daily box: configs, packages, bat/fd/zoxide/eza, lazygit, gh, neovim, btop, fzf, tmux plugins. Fedora also gets starship. Light host is slimmer (configs, apt, fastfetch, neovim) and skips gitconfig, fzf, zoxide, lazygit, gh, btop, and TPM.
+`--all` is the daily box: configs, packages, bat/fd/zoxide/eza, lazygit, gh, neovim, btop, fzf, tmux plugins. Fedora also gets starship. Light host is slimmer (configs, apt, neovim) and skips gitconfig, fzf, zoxide, lazygit, gh, btop, TPM, and the fastfetch banner. Banner on a light host: `./install-copy/install.sh --banner`.
 
 Want a subset? `./install.sh -h` (or the fedora/copy script). After a workstation install, copy SSH keys into `~/.ssh/` yourself, then in tmux hit `prefix + Shift + I` once.
 
@@ -24,7 +24,8 @@ Light host: `rm -rf ~/.dotfiles` when you are done. Later upgrades live in `~/.i
 These stay optional on every installer. Run them when you want them.
 
 ```bash
-./install-fetch.sh                      # fastfetch + boxed banner + art picker
+./install-fetch.sh                      # fastfetch + boxed config + art picker
+./install-copy/install.sh --banner      # same banner on a light host (copies)
 ./install-ai-cli.sh                     # OpenCode, Cursor, Claude Code, Codex
 ./lazyvim/install-lazyvim.sh            # LazyVim IDE
 ./lazyvim-lite/install-lazyvim-lite.sh  # LazyVim, no Mason/LSP/Node
@@ -34,7 +35,7 @@ These stay optional on every installer. Run them when you want them.
 ./scripts/install-tmux-config.sh        # tmux only; clone can go after
 ```
 
-Fetch: one boxed layout (`~/.config/fastfetch/config.jsonc`) for `fastfetch`, tmux, and `fetch`. Art is `./install-fetch.sh` or `./install-copy/install.sh` (`--art 1` is default, `--art c` is custom). Custom art and padding are local only: `~/.config/custom-fetch-art.txt` and `~/.config/custom-fetch-padding.jsonc`.
+Fetch: one boxed layout (`~/.config/fastfetch/config.jsonc`) for `fastfetch`, tmux, and `fetch`. Workstation: `./install-fetch.sh`. Light host: `./install-copy/install.sh --banner` (not part of `--all`). Art: `--art 1` is default, `--art c` is custom. Custom art and padding are local only: `~/.config/custom-fetch-art.txt` and `~/.config/custom-fetch-padding.jsonc`. The banner script applies those on top of `config.jsonc` (`--logo` and `--logo-padding-*`).
 
 Default nvim is the plain editor. LazyVim is linked only by the lazyvim scripts. See `lazyvim/README.md` if you go that route.
 
