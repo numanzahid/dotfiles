@@ -182,16 +182,40 @@ link_btop_conf() {
 link_prompt_default() {
   local dest="$TARGET_HOME/.config/dotfiles/prompt.sh"
   local src="$SOURCE_DIR/.config/dotfiles/prompt-custom.sh"
+  local target base newsrc
 
   mkdir -p "$TARGET_HOME/.config/dotfiles"
 
-  if [[ -e "$dest" || -L "$dest" ]]; then
+  # Symlink: retarget after clone hide (~/dotfiles -> ~/.dotfiles).
+  # Real file: leave it (machine-local prompt).
+  if [[ -L "$dest" ]]; then
+    target="$(readlink "$dest")"
+    base="$(basename "$target")"
+    if [[ "$base" == prompt-custom.sh || "$base" == prompt-starship.sh ]]; then
+      newsrc="$SOURCE_DIR/.config/dotfiles/$base"
+      [[ -e "$newsrc" ]] || newsrc="$src"
+    else
+      newsrc="$src"
+    fi
+    if [[ -e "$dest" ]] && df_paths_same "$dest" "$newsrc"; then
+      log "prompt already linked: $dest"
+      df_track_path "$dest"
+      return 0
+    fi
+    log "retarget prompt: $dest -> $newsrc"
+    run ln -sfn "$newsrc" "$dest"
+    df_track_path "$dest"
+    return 0
+  fi
+
+  if [[ -e "$dest" ]]; then
     log "prompt left untouched: $dest"
     return 0
   fi
 
   log "default prompt: custom -> $dest"
   run ln -sfn "$src" "$dest"
+  df_track_path "$dest"
 }
 
 install_dotfiles() {

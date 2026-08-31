@@ -188,16 +188,38 @@ link_btop_conf() {
 link_prompt_default() {
   local dest="$TARGET_HOME/.config/dotfiles/prompt.sh"
   local src="$SOURCE_DIR/.config/dotfiles/prompt-starship.sh"
+  local target base newsrc
 
   mkdir -p "$TARGET_HOME/.config/dotfiles"
 
-  if [[ -e "$dest" || -L "$dest" ]]; then
+  if [[ -L "$dest" ]]; then
+    target="$(readlink "$dest")"
+    base="$(basename "$target")"
+    if [[ "$base" == prompt-custom.sh || "$base" == prompt-starship.sh ]]; then
+      newsrc="$SOURCE_DIR/.config/dotfiles/$base"
+      [[ -e "$newsrc" ]] || newsrc="$src"
+    else
+      newsrc="$src"
+    fi
+    if [[ -e "$dest" ]] && df_paths_same "$dest" "$newsrc"; then
+      log "prompt already linked: $dest"
+      df_track_path "$dest"
+      return 0
+    fi
+    log "retarget prompt: $dest -> $newsrc"
+    run ln -sfn "$newsrc" "$dest"
+    df_track_path "$dest"
+    return 0
+  fi
+
+  if [[ -e "$dest" ]]; then
     log "prompt left untouched: $dest"
     return 0
   fi
 
   log "default prompt: starship -> $dest"
   run ln -sfn "$src" "$dest"
+  df_track_path "$dest"
 }
 
 remove_old_fedora_dropin() {
