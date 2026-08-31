@@ -65,29 +65,53 @@ run() {
 # shellcheck source=../scripts/lib/link.sh
 source "$SCRIPTS_DIR/lib/link.sh"
 
+# True when dest is a real file/dir that lives in the clone (unsafe to
+# overwrite). A symlink at dest is a leftover home link; replace it.
+dest_is_clone_file() {
+  local dest="$1"
+  local dest_real clone_real
+  [[ -e "$dest" || -L "$dest" ]] || return 1
+  [[ -L "$dest" ]] && return 1
+  clone_real="$(readlink -f "$DOTFILES_DIR" 2>/dev/null || true)"
+  dest_real="$(readlink -f "$dest" 2>/dev/null || true)"
+  [[ -n "$clone_real" && -n "$dest_real" ]] || return 1
+  [[ "$dest_real" == "$clone_real" || "$dest_real" == "$clone_real"/* ]]
+}
+
+# If dest is a leftover symlink (often into the clone), replace it with a
+# real directory so copies do not write through into the repo.
+ensure_real_dir() {
+  local dest="$1"
+  if [[ -L "$dest" ]]; then
+    log "replace symlink with directory: $dest"
+    run rm -f "$dest"
+  fi
+  run mkdir -p "$dest"
+}
+
 copy_file() {
   local src="$1"
   local dest="$2"
-  local dest_real clone_real
+  local parent
 
   if [[ ! -e "$src" ]]; then
     log "skip missing source: $src"
     return 0
   fi
 
-  clone_real="$(readlink -f "$DOTFILES_DIR" 2>/dev/null || true)"
-  dest_real="$(readlink -f "$dest" 2>/dev/null || true)"
-  if [[ -n "$clone_real" && -n "$dest_real" && ( "$dest_real" == "$clone_real" || "$dest_real" == "$clone_real"/* ) ]]; then
-    log "ERROR: dest is inside the clone (parent is probably a symlink): $dest"
-    log "Replace the symlink with a real directory, then re-run."
-    return 1
+  parent="$(dirname "$dest")"
+  if [[ -L "$parent" ]]; then
+    ensure_real_dir "$parent"
+  else
+    mkdir -p "$parent"
   fi
-
-  mkdir -p "$(dirname "$dest")"
 
   if [[ -L "$dest" ]]; then
     log "replace symlink with file: $dest"
     run rm -f "$dest"
+  elif dest_is_clone_file "$dest"; then
+    log "ERROR: dest is a real file inside the clone: $dest"
+    return 1
   else
     df_stash_original_if_needed "$src" "$dest"
   fi
@@ -102,6 +126,7 @@ copy_file() {
 copy_if_missing() {
   local src="$1"
   local dest="$2"
+  local parent
 
   if [[ -e "$dest" ]]; then
     log "exists, not overwriting: $dest"
@@ -109,7 +134,12 @@ copy_if_missing() {
     return 0
   fi
 
-  mkdir -p "$(dirname "$dest")"
+  parent="$(dirname "$dest")"
+  if [[ -L "$parent" ]]; then
+    ensure_real_dir "$parent"
+  else
+    mkdir -p "$parent"
+  fi
   log "copy template: $dest"
   run cp "$src" "$dest"
 }
@@ -118,13 +148,28 @@ copy_if_missing() {
 copy_overwrite() {
   local src="$1"
   local dest="$2"
+  local parent
 
   if [[ ! -e "$src" ]]; then
     log "skip missing source: $src"
     return 0
   fi
 
-  mkdir -p "$(dirname "$dest")"
+  parent="$(dirname "$dest")"
+  if [[ -L "$parent" ]]; then
+    ensure_real_dir "$parent"
+  else
+    mkdir -p "$parent"
+  fi
+
+  if [[ -L "$dest" ]]; then
+    log "replace symlink with file: $dest"
+    run rm -f "$dest"
+  elif dest_is_clone_file "$dest"; then
+    log "ERROR: dest is a real file inside the clone: $dest"
+    return 1
+  fi
+
   run cp -f "$src" "$dest"
   log "copied: $dest"
   df_track_path "$dest"
@@ -191,17 +236,6 @@ copy_nvim_plain() {
   df_migrate_original_backup "$dest"
   df_track_path "$dest"
   df_journal_once copy "$dest/init.lua" "$src/init.lua"
-}
-
-# If dest is a leftover symlink (often into the clone), replace it with a
-# real directory so copies do not write through into the repo.
-ensure_real_dir() {
-  local dest="$1"
-  if [[ -L "$dest" ]]; then
-    log "replace symlink with directory: $dest"
-    run rm -f "$dest"
-  fi
-  run mkdir -p "$dest"
 }
 
 copy_fastfetch_banner() {
