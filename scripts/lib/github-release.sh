@@ -253,10 +253,34 @@ gr_download() {
   gr_verify_or_continue "$dest" "$url"
 }
 
+gr_file_is_elf() {
+  [[ "$(head -c 4 "$1")" == $'\x7fELF' ]]
+}
+
+# Prefer usr/bin/NAME. find -name NAME -quit can hit a completions script
+# with the same basename (fastfetch ships one); that installs as a no-op.
 gr_find_binary() {
   local dir="$1"
   local name="$2"
-  find "$dir" -type f -name "$name" -print -quit
+  local f
+
+  while IFS= read -r f; do
+    [[ -n "$f" ]] || continue
+    if gr_file_is_elf "$f"; then
+      printf '%s\n' "$f"
+      return 0
+    fi
+  done < <(find "$dir" -type f \( -path "*/usr/bin/$name" -o -path "*/bin/$name" \) -print)
+
+  while IFS= read -r f; do
+    [[ -n "$f" ]] || continue
+    if gr_file_is_elf "$f"; then
+      printf '%s\n' "$f"
+      return 0
+    fi
+  done < <(find "$dir" -type f -name "$name" ! -path '*/completions/*' -print)
+
+  return 1
 }
 
 # Safe under set -o pipefail (plain "cmd --version | head" can exit 141).
@@ -331,7 +355,11 @@ gr_install_from_targz() {
 
   binary="$(gr_find_binary "$extract_dir" "$bin_name")"
   if [[ -z "${binary:-}" || ! -f "$binary" ]]; then
-    echo "ERROR: $bin_name binary not found in archive" >&2
+    echo "ERROR: $bin_name ELF binary not found in archive" >&2
+    exit 1
+  fi
+  if ! gr_file_is_elf "$binary"; then
+    echo "ERROR: refusing to install non-ELF $binary as $dest_path" >&2
     exit 1
   fi
 
