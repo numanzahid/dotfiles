@@ -73,6 +73,7 @@ df_ai_trash_upsert() {
     rm -f "$tmp_out"
   fi
   rm -f "$tmp_block"
+  df_journal_once patch "$dest" "dotfiles-trash-cli"
   log "copied: $dest"
 }
 
@@ -98,6 +99,7 @@ df_copy_ai_trash_rules() {
   fi
   run cp -f "$src_mdc" "$dest_mdc"
   df_track_path "$dest_mdc"
+  df_journal_once copy "$dest_mdc" "$src_mdc"
   log "copied: $dest_mdc"
 
   df_ai_trash_upsert "$home/.codex/AGENTS.md" "$md"

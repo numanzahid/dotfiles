@@ -5,6 +5,10 @@
 # Paths we have installed are tracked in ~/.local/share/dotfiles/managed-paths
 # so later edits are still treated as ours (overwrite, do not re-backup).
 # Re-runs overwrite managed files. Timestamped leftovers are dropped.
+# Actions are also appended to ~/.local/share/dotfiles/install-journal.tsv.
+
+# shellcheck source=journal.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/journal.sh"
 
 df_managed_paths_file() {
   printf '%s/dotfiles/managed-paths' "${XDG_DATA_HOME:-$HOME/.local/share}"
@@ -154,6 +158,7 @@ df_stash_original_if_needed() {
 
   log "backup original: $dest -> $backup"
   run mv "$dest" "$backup"
+  df_journal_once backup "$dest" "$backup"
 }
 
 df_path_real() {
@@ -184,6 +189,7 @@ df_link_path() {
     log "already linked: $dest"
     df_migrate_original_backup "$dest"
     df_track_path "$dest"
+    df_journal_once link "$dest" "$src"
     return 0
   fi
 
@@ -194,12 +200,14 @@ df_link_path() {
       log "already linked: $dest"
       df_migrate_original_backup "$dest"
       df_track_path "$dest"
+      df_journal_once link "$dest" "$src"
       return 0
     fi
     log "replace symlink: $dest -> $src"
     run ln -sfn "$src" "$dest"
     df_migrate_original_backup "$dest"
     df_track_path "$dest"
+    df_journal_once link "$dest" "$src"
     return 0
   fi
 
@@ -214,4 +222,5 @@ df_link_path() {
   run ln -sfn "$src" "$dest"
   df_migrate_original_backup "$dest"
   df_track_path "$dest"
+  df_journal_once link "$dest" "$src"
 }

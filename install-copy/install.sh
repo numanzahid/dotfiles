@@ -87,6 +87,7 @@ copy_file() {
   log "copied: $dest"
   df_migrate_original_backup "$dest"
   df_track_path "$dest"
+  df_journal_once copy "$dest" "$src"
 }
 
 copy_if_missing() {
@@ -95,6 +96,7 @@ copy_if_missing() {
 
   if [[ -e "$dest" ]]; then
     log "exists, not overwriting: $dest"
+    df_journal_once skip "$dest"
     return 0
   fi
 
@@ -116,12 +118,15 @@ copy_overwrite() {
   mkdir -p "$(dirname "$dest")"
   run cp -f "$src" "$dest"
   log "copied: $dest"
+  df_track_path "$dest"
+  df_journal_once copy "$dest" "$src"
 }
 
 copy_install_scripts() {
   local dest_nvim="$INSTALL_SCRIPTS_DIR/neovim-install-update.sh"
   local dest_fetch="$INSTALL_SCRIPTS_DIR/fastfetch-install-update.sh"
   local dest_lib="$INSTALL_SCRIPTS_DIR/lib/github-release.sh"
+  local dest_journal="$INSTALL_SCRIPTS_DIR/lib/journal.sh"
   local old_share="$TARGET_HOME/.local/share/dotfiles"
   local old_hidden="$TARGET_HOME/.local/bin/neovim-install-update"
   local old_bin="$TARGET_HOME/bin/neovim-install-update"
@@ -130,6 +135,7 @@ copy_install_scripts() {
   copy_overwrite "$SCRIPTS_DIR/neovim-install-update.sh" "$dest_nvim"
   copy_overwrite "$SCRIPTS_DIR/fastfetch-install-update.sh" "$dest_fetch"
   copy_overwrite "$SCRIPTS_DIR/lib/github-release.sh" "$dest_lib"
+  copy_overwrite "$SCRIPTS_DIR/lib/journal.sh" "$dest_journal"
   run chmod 755 "$dest_nvim" "$dest_fetch"
 
   # Drop earlier copy locations ($HOME, ~/.local, ~/bin).
@@ -175,6 +181,7 @@ copy_nvim_plain() {
   log "copied: $dest/init.lua (plain nvim)"
   df_migrate_original_backup "$dest"
   df_track_path "$dest"
+  df_journal_once copy "$dest/init.lua" "$src/init.lua"
 }
 
 copy_fastfetch_banner() {

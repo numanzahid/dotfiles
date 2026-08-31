@@ -6,6 +6,8 @@ COPY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOTFILES_DIR="$(cd "$COPY_DIR/.." && pwd)"
 # shellcheck source=../scripts/lib/privilege.sh
 source "$DOTFILES_DIR/scripts/lib/privilege.sh"
+# shellcheck source=../scripts/lib/journal.sh
+source "$DOTFILES_DIR/scripts/lib/journal.sh"
 
 if ! command -v apt-get >/dev/null 2>&1; then
   echo "install-copy/install-deps.sh supports apt-based systems only." >&2
@@ -33,8 +35,16 @@ PACKAGES=(
 echo "Updating package lists..."
 df_run_privileged apt-get update
 
+missing=()
+while IFS= read -r pkg; do
+  [[ -n "$pkg" ]] && missing+=("$pkg")
+done < <(df_collect_missing_packages "${PACKAGES[@]}")
+
 echo "Installing packages..."
 df_run_privileged apt-get install -y "${PACKAGES[@]}"
+if ((${#missing[@]} > 0)); then
+  df_journal_new_packages "${missing[@]}"
+fi
 
 setup_utf8_locale() {
   if [[ ! -f /etc/locale.gen ]]; then
@@ -49,6 +59,7 @@ setup_utf8_locale() {
 
   df_run_privileged locale-gen en_US.UTF-8
   df_run_privileged update-locale LANG=en_US.UTF-8 LC_ALL=
+  df_journal_once locale en_US.UTF-8
 
   if locale -a 2>/dev/null | grep -qE 'en_US\.(utf8|UTF-8)'; then
     export LANG=en_US.UTF-8

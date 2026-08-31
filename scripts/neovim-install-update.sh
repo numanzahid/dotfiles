@@ -168,6 +168,11 @@ fi
 # Ensure /usr/local/bin/nvim points to the current /opt/nvim/bin/nvim
 $SUDO mkdir -p /usr/local/bin
 $SUDO ln -sfn "${symlink_dir}/bin/nvim" /usr/local/bin/nvim
+if declare -F df_journal_once >/dev/null 2>&1; then
+  df_journal_once opt-tree "$install_dir"
+  df_journal_once symlink "$symlink_dir"
+  df_journal_once binary /usr/local/bin/nvim
+fi
 
 echo "Done."
 echo "nvim path: $(command -v nvim || true)"

@@ -2,6 +2,12 @@
 # Shared helpers for GitHub release binary installs.
 set -euo pipefail
 
+GR_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=journal.sh
+if [[ -f "$GR_LIB_DIR/journal.sh" ]]; then
+  source "$GR_LIB_DIR/journal.sh"
+fi
+
 gr_need_cmd() {
   command -v "$1" >/dev/null 2>&1
 }
@@ -330,4 +336,7 @@ gr_install_from_targz() {
   fi
 
   gr_install_binary "$binary" "$dest_path" "$sudo_cmd"
+  if declare -F df_journal_once >/dev/null 2>&1; then
+    df_journal_once binary "$dest_path"
+  fi
 }

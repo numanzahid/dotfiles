@@ -48,4 +48,28 @@ Re-runs overwrite files this repo already manages. Something it did not put ther
 
 Prompt is `~/.config/dotfiles/prompt.sh` (custom on Debian, starship on Fedora). `del` is `trash-put`. `rm` is still `rm`.
 
+## Uninstall
+
+Undoes `./install.sh`, `./install-fedora.sh`, and `./install-copy/install.sh` only. LazyVim and LazyVim-lite are left alone.
+
+The installer records dests in `~/.local/share/dotfiles/managed-paths`, originals next to them as `*.pre-dotfiles`, and a journal at `~/.local/share/dotfiles/install-journal.tsv`.
+
+```bash
+cd ~/.dotfiles
+./uninstall.sh                         # dry-run
+./uninstall.sh --apply                 # restore originals, remove what we placed
+./uninstall.sh --apply --remove-clone  # also trash ~/.dotfiles
+```
+
+Hosts that ran `--all` before this journal existed:
+
+```bash
+./uninstall.sh --seed-workstation         # review
+./uninstall.sh --seed-workstation --apply
+./uninstall.sh                            # review
+./uninstall.sh --apply
+```
+
+Does not revert locale. Does not `apt autoremove`. Does not touch skipped files (`~/.ssh/config`, a real `prompt.sh`). Does not undo LazyVim or LazyVim-lite (`./lazyvim/install-lazyvim.sh`, `./lazyvim-lite/install-lazyvim-lite.sh`).
+
 Do not commit keys, tokens, `auth.json`, `hosts.yml`, or `.env*`. SSH templates are `home/.ssh/*.example`.

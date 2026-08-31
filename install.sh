@@ -156,6 +156,7 @@ copy_if_missing() {
 
   if [[ -e "$dest" ]]; then
     log "exists, not overwriting: $dest"
+    df_journal_once skip "$dest"
     return 0
   fi
 
@@ -200,22 +201,26 @@ link_prompt_default() {
     if [[ -e "$dest" ]] && df_paths_same "$dest" "$newsrc"; then
       log "prompt already linked: $dest"
       df_track_path "$dest"
+      df_journal_once link "$dest" "$newsrc"
       return 0
     fi
     log "retarget prompt: $dest -> $newsrc"
     run ln -sfn "$newsrc" "$dest"
     df_track_path "$dest"
+    df_journal_once link "$dest" "$newsrc"
     return 0
   fi
 
   if [[ -e "$dest" ]]; then
     log "prompt left untouched: $dest"
+    df_journal_once skip "$dest"
     return 0
   fi
 
   log "default prompt: custom -> $dest"
   run ln -sfn "$src" "$dest"
   df_track_path "$dest"
+  df_journal_once link "$dest" "$src"
 }
 
 install_dotfiles() {
@@ -256,12 +261,14 @@ install_tpm() {
   local tpm_dir="$TARGET_HOME/.tmux/plugins/tpm"
   if [[ -d "$tpm_dir/.git" ]]; then
     log "tpm already installed: $tpm_dir"
+    df_journal_once git-clone "$tpm_dir"
     return 0
   fi
 
   log "installing tmux plugin manager..."
   run mkdir -p "$TARGET_HOME/.tmux/plugins"
   run git_github clone -4 https://github.com/tmux-plugins/tpm "$tpm_dir"
+  df_journal_once git-clone "$tpm_dir"
 }
 
 install_fzf() {
@@ -287,6 +294,10 @@ install_fzf() {
       run rm -f "$TARGET_HOME/.fzf.bash"
     fi
     "$fzf_dir/install" --all --no-update-rc
+    df_journal_once git-clone "$fzf_dir"
+    if [[ -f "$TARGET_HOME/.fzf.bash" ]]; then
+      df_journal_once copy "$TARGET_HOME/.fzf.bash"
+    fi
   fi
 }
 

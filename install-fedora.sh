@@ -163,6 +163,7 @@ copy_if_missing() {
 
   if [[ -e "$dest" ]]; then
     log "exists, not overwriting: $dest"
+    df_journal_once skip "$dest"
     return 0
   fi
 
@@ -204,22 +205,26 @@ link_prompt_default() {
     if [[ -e "$dest" ]] && df_paths_same "$dest" "$newsrc"; then
       log "prompt already linked: $dest"
       df_track_path "$dest"
+      df_journal_once link "$dest" "$newsrc"
       return 0
     fi
     log "retarget prompt: $dest -> $newsrc"
     run ln -sfn "$newsrc" "$dest"
     df_track_path "$dest"
+    df_journal_once link "$dest" "$newsrc"
     return 0
   fi
 
   if [[ -e "$dest" ]]; then
     log "prompt left untouched: $dest"
+    df_journal_once skip "$dest"
     return 0
   fi
 
   log "default prompt: starship -> $dest"
   run ln -sfn "$src" "$dest"
   df_track_path "$dest"
+  df_journal_once link "$dest" "$src"
 }
 
 remove_old_fedora_dropin() {
@@ -245,6 +250,12 @@ remove_local_bin() {
 }
 
 dnf_install() {
+  local pkg missing=()
+  for pkg in "$@"; do
+    if ! df_pkg_is_installed "$pkg"; then
+      missing+=("$pkg")
+    fi
+  done
   log "dnf install $*"
   if [[ "$DRY_RUN" -eq 1 ]]; then
     printf '+ dnf install -y'
@@ -253,6 +264,9 @@ dnf_install() {
     return 0
   fi
   df_run_privileged dnf install -y "$@"
+  if ((${#missing[@]} > 0)); then
+    df_journal_new_packages "${missing[@]}"
+  fi
 }
 
 install_dotfiles() {
@@ -294,12 +308,14 @@ install_tpm() {
   local tpm_dir="$TARGET_HOME/.tmux/plugins/tpm"
   if [[ -d "$tpm_dir/.git" ]]; then
     log "tpm already installed: $tpm_dir"
+    df_journal_once git-clone "$tpm_dir"
     return 0
   fi
 
   log "installing tmux plugin manager..."
   run mkdir -p "$TARGET_HOME/.tmux/plugins"
   run git_github clone -4 https://github.com/tmux-plugins/tpm "$tpm_dir"
+  df_journal_once git-clone "$tpm_dir"
 }
 
 install_tools() {

@@ -85,8 +85,18 @@ if ! gr_download "$url" "$deb"; then
   exit 1
 fi
 
+was_installed=0
+if declare -F df_pkg_is_installed >/dev/null 2>&1 && df_pkg_is_installed gh; then
+  was_installed=1
+elif command -v dpkg-query >/dev/null 2>&1 && dpkg-query -W -f='${Status}' gh 2>/dev/null | grep -q "install ok installed"; then
+  was_installed=1
+fi
+
 echo "Installing: $asset"
 $SUDO apt-get install -y "$deb"
+if [[ "$was_installed" -eq 0 ]] && declare -F df_journal_once >/dev/null 2>&1; then
+  df_journal_once package-new gh
+fi
 
 echo "Done."
 echo "gh path: $(command -v gh || true)"

@@ -6,11 +6,14 @@
 # No-op when already named .dotfiles, named something else, --dry-run,
 # or --help. Does not touch ~/.config/dotfiles.
 
+# shellcheck source=journal.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/journal.sh"
+
 df_reexec_from_hidden_clone() {
   local clone_dir="$1"
   local script_path="$2"
   shift 2
-  local parent base dest rel arg real_src real_dst
+  local parent base dest rel arg real_src real_dst script_dir script_abs
 
   parent="$(cd "$(dirname "$clone_dir")" && pwd)"
   base="$(basename "$clone_dir")"
@@ -37,17 +40,20 @@ df_reexec_from_hidden_clone() {
     exit 1
   fi
 
-  if [[ "$script_path" == /* ]]; then
-    rel="${script_path#"$clone_dir"/}"
-    if [[ "$rel" == "$script_path" ]]; then
-      rel="$(basename "$script_path")"
-    fi
-  else
-    rel="${script_path#./}"
+  # Resolve to a path inside the clone before mv. `./install.sh` from
+  # install-copy/ must re-exec install-copy/install.sh, not root install.sh.
+  script_dir="$(cd "$(dirname "$script_path")" && pwd)"
+  script_abs="$script_dir/$(basename "$script_path")"
+  rel="${script_abs#"$clone_dir"/}"
+  if [[ "$rel" == "$script_abs" || -z "$rel" ]]; then
+    echo "ERROR: installer is not inside the clone: $script_abs" >&2
+    exit 1
   fi
 
   printf '[dotfiles] hiding clone: %s -> %s\n' "$clone_dir" "$dest"
-  printf '[dotfiles] re-running from the new path. In this shell: cd %s\n' "$dest"
+  printf '[dotfiles] re-running %s from %s\n' "$rel" "$dest"
+  printf '[dotfiles] in this shell: cd %s\n' "$dest"
+  df_journal_once hide-clone "$clone_dir" "$dest"
   mv "$clone_dir" "$dest"
   exec bash "$dest/$rel" "$@"
 }
