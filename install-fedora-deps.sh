@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Base dnf packages for Fedora (official repos only, never COPR).
+# Base dnf packages for Fedora.
 # CLI tools that may come from GitHub are chosen by ./install-fedora.sh.
 set -euo pipefail
 
@@ -49,7 +49,7 @@ while IFS= read -r pkg; do
   [[ -n "$pkg" ]] && missing+=("$pkg")
 done < <(df_collect_missing_packages "${PACKAGES[@]}")
 
-echo "Installing Fedora packages (official repos only)..."
+echo "Installing Fedora packages..."
 df_run_privileged dnf install -y "${PACKAGES[@]}"
 if ((${#missing[@]} > 0)); then
   df_journal_new_packages "${missing[@]}"

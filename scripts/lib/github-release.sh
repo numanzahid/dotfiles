@@ -89,10 +89,6 @@ gr_wget() {
   wget -4 --timeout=20 --tries=8 --waitretry=5 --retry-connrefused "$@"
 }
 
-gr_git() {
-  git -c http.version=HTTP/1.1 "$@"
-}
-
 gr_managed_paths_file() {
   printf '%s/dotfiles/managed-paths' "${XDG_DATA_HOME:-$HOME/.local/share}"
 }
@@ -243,15 +239,6 @@ gr_exit_if_keeping() {
 gr_latest_tag() {
   local repo="$1"
   gr_curl -fsSL "https://api.github.com/repos/${repo}/releases/latest" | jq -r .tag_name
-}
-
-# First vX.Y.Z tag (skips Ghostty "tip" and other non-semver names).
-gr_latest_stable_tag() {
-  local repo="$1"
-  gr_curl -fsSL "https://api.github.com/repos/${repo}/tags?per_page=40" |
-    jq -r '.[].name' |
-    grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' |
-    head -n 1
 }
 
 gr_download() {

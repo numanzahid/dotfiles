@@ -1,16 +1,8 @@
 #!/usr/bin/env bash
-# OS / glibc helpers shared by dotfiles install scripts (Debian + Ubuntu).
+# OS helpers shared by dotfiles install scripts.
 
 df_version_ge() {
   printf '%s\n%s\n' "$2" "$1" | sort -C -V
-}
-
-df_host_glibc_version() {
-  local ver
-  ver="$(getconf GNU_LIBC_VERSION 2>/dev/null | awk '{print $2}')"
-  [[ -n "$ver" ]] || ver="$(ldd --version 2>/dev/null | head -n1 | grep -oE '[0-9]+\.[0-9]+' | head -n1)"
-  [[ -n "$ver" ]] || return 1
-  printf '%s' "$ver"
 }
 
 df_host_os_id() {
@@ -21,6 +13,14 @@ df_host_os_id() {
     return 0
   fi
   printf '%s' "unknown"
+}
+
+df_os_family() {
+  case "$(df_host_os_id)" in
+    fedora) printf 'fedora\n' ;;
+    ubuntu | debian | linuxmint | pop) printf 'debian\n' ;;
+    *) printf 'unknown\n' ;;
+  esac
 }
 
 df_prepend_local_bin() {

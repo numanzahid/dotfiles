@@ -2,8 +2,7 @@
 set -euo pipefail
 
 # Install or upgrade Alacritty. Not part of --all.
-# Fedora: official dnf (no COPR, no source build).
-# Ubuntu/Debian: official GitHub source tarball + rustup/cargo into ~/.local.
+# Fedora: dnf. Ubuntu/Debian: GitHub source tarball + rustup/cargo into ~/.local.
 # Config is linked by ./install.sh and ./install-fedora.sh, not this script.
 #
 # Re-run: ./scripts/alacritty-install-update.sh
@@ -52,7 +51,7 @@ install_from_dnf() {
   if ! df_pkg_is_installed alacritty; then
     missing=1
   fi
-  echo "Alacritty from official Fedora (dnf, not COPR, not source)"
+  echo "Alacritty from Fedora (dnf)"
   df_run_privileged dnf install -y --setopt=install_weak_deps=False alacritty
   if [[ "$missing" -eq 1 ]]; then
     df_journal_once package-new alacritty dnf
@@ -62,7 +61,7 @@ install_from_dnf() {
 
 install_build_deps() {
   df_ensure_sudo
-  echo "Installing Alacritty build deps from official apt (not apt upgrade)"
+  echo "Installing Alacritty build deps"
   df_run_privileged apt-get update
   df_run_privileged apt-get install -y --no-install-recommends \
     cmake g++ pkg-config python3 \
@@ -119,7 +118,7 @@ install_terminfo_user() {
 install_from_source() {
   local tag ver tmp src_dir
   gr_require_cmds curl jq tar
-  tag="$(gr_latest_stable_tag "$REPO" || true)"
+  tag="$(gr_latest_tag "$REPO" || true)"
   [[ -n "$tag" && "$tag" != "null" ]] || {
     echo "ERROR: could not resolve latest alacritty tag" >&2
     exit 1
@@ -131,7 +130,7 @@ install_from_source() {
     return 0
   fi
 
-  echo "Alacritty $ver from official GitHub source (no PPA)"
+  echo "Alacritty $ver from GitHub source"
   install_build_deps
   ensure_rustup
 

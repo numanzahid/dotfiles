@@ -9,7 +9,7 @@ git clone git@github.com:numanzahid/dotfiles.git ~/.dotfiles
 cd ~/.dotfiles
 
 ./install.sh --all                 # Debian/Ubuntu. Keep the clone. Configs are symlinks.
-./install-fedora.sh --all          # Fedora. Same bashrc. dnf or GitHub only, never COPR.
+./install-fedora.sh --all          # Fedora. Same bashrc. dnf or GitHub.
 ./install-copy/install.sh --all    # Light host / CT. Real files. Safe to delete the clone after.
 ```
 
@@ -32,8 +32,7 @@ These stay optional on every installer. Run them when you want them.
 ./scripts/nvm-install-update.sh         # Node via nvm
 ./scripts/lazydocker-install-update.sh
 ./scripts/alacritty-install-update.sh    # Fedora: dnf. Ubuntu: GitHub source + cargo
-./scripts/kitty-install-update.sh        # official GitHub Linux tarball
-./scripts/ghostty-install-update.sh      # official source tarball (no COPR)
+./scripts/kitty-install-update.sh        # GitHub Linux tarball
 ./scripts/avahi-install-update.sh       # hostname.local
 ./scripts/install-tmux-config.sh        # tmux only; clone can go after
 ```

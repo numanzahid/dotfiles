@@ -1,4 +1,4 @@
-# Ghostty-like defaults. Edit this repo file; workstation installers symlink it.
+# Edit this repo file; workstation installers symlink it.
 # Optional omarchy theme (uncomment when that file exists; Alacritty errors if missing):
 # [general]
 # import = ["~/.local/state/omarchy/current/theme/alacritty.toml"]
@@ -27,7 +27,7 @@ y = 14
 shape = "Block"
 blinking = "Off"
 
-# Alacritty multiplier is lines per notch (default 3), not Ghostty's 0.95 scale.
+# Alacritty multiplier is lines per notch (default 3).
 [scrolling]
 multiplier = 3
 

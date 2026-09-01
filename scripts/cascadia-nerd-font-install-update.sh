@@ -15,8 +15,8 @@ source "$SCRIPT_DIR/lib/github-release.sh"
 # shellcheck source=lib/platform.sh
 source "$SCRIPT_DIR/lib/platform.sh"
 
-case "$(df_host_os_id)" in
-  fedora | ubuntu | debian | linuxmint | pop) ;;
+case "$(df_os_family)" in
+  fedora | debian) ;;
   *)
     echo "ERROR: nerd font install supports Fedora and Ubuntu/Debian only (got $(df_host_os_id))" >&2
     exit 1
@@ -48,7 +48,7 @@ font_dir_has_files() {
 }
 
 all_font_dirs_present() {
-  local spec asset dest
+  local spec dest
   for spec in "${FONT_ASSETS[@]}"; do
     dest="$FONT_ROOT/${spec#*:}"
     font_dir_has_files "$dest" || return 1

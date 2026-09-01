@@ -2,8 +2,7 @@
 set -euo pipefail
 
 # Install or upgrade Kitty. Not part of --all.
-# Official GitHub Linux tarball into ~/.local/kitty.app (symlink kitty + kitten).
-# Fedora dnf is behind (0.47.x vs upstream 0.48.x); Ubuntu apt lags. No COPR.
+# GitHub Linux tarball into ~/.local/kitty.app (symlink kitty + kitten).
 # Config is linked by ./install.sh and ./install-fedora.sh, not this script.
 #
 # Re-run: ./scripts/kitty-install-update.sh
@@ -85,7 +84,7 @@ install_desktop() {
 install_from_github() {
   local tag ver arch url tmp extract
   gr_require_cmds curl jq tar
-  tag="$(gr_latest_stable_tag "$REPO" || true)"
+  tag="$(gr_latest_tag "$REPO" || true)"
   [[ -n "$tag" && "$tag" != "null" ]] || {
     echo "ERROR: could not resolve latest kitty tag" >&2
     exit 1
@@ -99,7 +98,7 @@ install_from_github() {
 
   arch="$(linux_kitty_arch)"
   url="https://github.com/${REPO}/releases/download/${tag}/kitty-${ver}-${arch}.txz"
-  echo "Kitty $ver from official GitHub Linux tarball (not dnf, not apt, not COPR)"
+  echo "Kitty $ver from GitHub"
   ensure_xz
 
   tmp="$(mktemp -d)"

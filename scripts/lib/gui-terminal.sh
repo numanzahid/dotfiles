@@ -1,36 +1,6 @@
 #!/usr/bin/env bash
 # Desktop launcher + default-terminal helpers for GUI terminal installers.
 
-df_os_family() {
-  case "$(df_host_os_id)" in
-    fedora) printf 'fedora\n' ;;
-    ubuntu | debian | linuxmint | pop) printf 'debian\n' ;;
-    *) printf 'unknown\n' ;;
-  esac
-}
-
-df_desktop_file_exists() {
-  local name="$1"
-  [[ -f "${XDG_DATA_HOME:-$HOME/.local/share}/applications/${name}" ]] && return 0
-  [[ -f "/usr/share/applications/${name}" ]] && return 0
-  [[ -f "/usr/local/share/applications/${name}" ]] && return 0
-  return 1
-}
-
-# $1 = desktop file basename (Alacritty.desktop)
-# $2 = source .desktop path (copied only if missing)
-df_ensure_user_desktop() {
-  local name="$1"
-  local src="$2"
-  local dest="${XDG_DATA_HOME:-$HOME/.local/share}/applications/${name}"
-
-  df_desktop_file_exists "$name" && return 0
-  [[ -f "$src" ]] || return 1
-  mkdir -p "$(dirname "$dest")"
-  cp -f "$src" "$dest"
-  printf 'desktop: %s\n' "$dest"
-}
-
 # $1 = icon basename without path (Alacritty.svg)
 # $2 = source svg
 df_ensure_user_icon() {
@@ -52,7 +22,7 @@ df_refresh_desktop_db() {
   fi
 }
 
-# $1 = binary name (alacritty / ghostty / kitty)
+# $1 = binary name (alacritty / kitty)
 # $2 = desktop file basename
 df_set_default_terminal() {
   local bin="$1"

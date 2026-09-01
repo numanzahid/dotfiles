@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Install or upgrade starship from GitHub releases (not COPR).
+# Install or upgrade starship from GitHub releases.
 # https://github.com/starship/starship
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
