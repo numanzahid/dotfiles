@@ -2,9 +2,11 @@
 set -euo pipefail
 
 # Install or upgrade Ghostty. Not part of --all.
-# Fedora: not in official dnf (COPR exists; we do not use it). Build from
-# official source tarball + Zig from ziglang.org.
+# Binary: official source tarball + Zig from ziglang.org into ~/.local.
+# Fedora: not in official dnf (COPR exists; we do not use it).
 # Ubuntu/Debian: same source build (apt lags or is missing).
+# Compiling still needs GTK headers from official dnf/apt (gtk4-devel etc).
+# That is not a full system upgrade; dnf may bump gtk4 to match gtk4-devel.
 #
 # Re-run: ./scripts/ghostty-install-update.sh
 
@@ -54,16 +56,21 @@ install_build_deps() {
   df_ensure_sudo
   case "$os" in
     fedora)
-      df_run_privileged dnf install -y \
+      # Headers/libs to compile Ghostty. Not a system upgrade.
+      # gtk4-devel may still bump gtk4/gdk-pixbuf2 so versions match.
+      # Weak deps (docs, extra python, fonts) stay off.
+      echo "Installing GTK build deps from official Fedora (not dnf upgrade)"
+      df_run_privileged dnf install -y --setopt=install_weak_deps=False \
         gtk4-devel gtk4-layer-shell-devel libadwaita-devel \
         gettext pkgconf-pkg-config xz tar
       ;;
     debian)
+      echo "Installing GTK build deps from official apt (not apt upgrade)"
       df_run_privileged apt-get update
-      df_run_privileged apt-get install -y \
+      df_run_privileged apt-get install -y --no-install-recommends \
         libgtk-4-dev libadwaita-1-dev gettext libxml2-utils \
         pkg-config xz-utils tar
-      df_run_privileged apt-get install -y libgtk4-layer-shell-dev || true
+      df_run_privileged apt-get install -y --no-install-recommends libgtk4-layer-shell-dev || true
       ;;
   esac
 }

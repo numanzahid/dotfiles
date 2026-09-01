@@ -249,6 +249,7 @@ install_dotfiles() {
   link_path "$SOURCE_DIR/.config/lazygit/config.yml" "$TARGET_HOME/.config/lazygit/config.yml"
   link_path "$SOURCE_DIR/.config/starship.toml" "$TARGET_HOME/.config/starship.toml"
   link_path "$SOURCE_DIR/.config/ghostty" "$TARGET_HOME/.config/ghostty"
+  link_path "$SOURCE_DIR/.config/alacritty" "$TARGET_HOME/.config/alacritty"
 
   mkdir -p "$TARGET_HOME/.ssh"
   chmod 700 "$TARGET_HOME/.ssh"

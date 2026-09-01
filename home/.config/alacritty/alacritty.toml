@@ -1,0 +1,42 @@
+# Ghostty-like defaults. Edit this repo file; workstation installers symlink it.
+# Optional omarchy theme (uncomment when that file exists; Alacritty errors if missing):
+# [general]
+# import = ["~/.local/state/omarchy/current/theme/alacritty.toml"]
+
+[general]
+live_config_reload = true
+
+# Font (Cascadia Code Nerd Font from ./scripts/cascadia-nerd-font-install-update.sh)
+[font]
+size = 9
+
+[font.normal]
+family = "CaskaydiaCove Nerd Font Mono"
+style = "Regular"
+
+# Window
+[window]
+dynamic_title = true
+
+[window.padding]
+x = 14
+y = 14
+
+# Cursor styling
+[cursor.style]
+shape = "Block"
+blinking = "Off"
+
+# Alacritty multiplier is lines per notch (default 3), not Ghostty's 0.95 scale.
+[scrolling]
+multiplier = 3
+
+[keyboard]
+bindings = [
+  { key = "Insert", mods = "Shift", action = "Paste" },
+  { key = "Insert", mods = "Control", action = "Copy" },
+  # Send Shift+Enter as CSI-u so TUIs can distinguish it from Enter.
+  { key = "Return", mods = "Shift", chars = "\u001b[13;2u" },
+  # Legacy encoding sends Alt+Shift+Enter the same as Alt+Enter; send CSI-u so tmux can match M-S-Enter.
+  { key = "Return", mods = "Alt|Shift", chars = "\u001b[13;4u" },
+]
