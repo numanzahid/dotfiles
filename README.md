@@ -32,6 +32,7 @@ These stay optional on every installer. Run them when you want them.
 ./scripts/nvm-install-update.sh         # Node via nvm
 ./scripts/lazydocker-install-update.sh
 ./scripts/alacritty-install-update.sh    # Fedora: dnf. Ubuntu: GitHub source + cargo
+./scripts/kitty-install-update.sh        # official GitHub Linux tarball
 ./scripts/ghostty-install-update.sh      # official source tarball (no COPR)
 ./scripts/avahi-install-update.sh       # hostname.local
 ./scripts/install-tmux-config.sh        # tmux only; clone can go after

@@ -52,7 +52,7 @@ df_refresh_desktop_db() {
   fi
 }
 
-# $1 = binary name (alacritty / ghostty)
+# $1 = binary name (alacritty / ghostty / kitty)
 # $2 = desktop file basename
 df_set_default_terminal() {
   local bin="$1"
