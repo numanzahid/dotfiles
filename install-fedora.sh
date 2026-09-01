@@ -26,6 +26,7 @@ INSTALL_BTOP=0
 INSTALL_TPM=0
 INSTALL_FZF=0
 INSTALL_STARSHIP=0
+INSTALL_FONTS=0
 DRY_RUN=0
 
 usage() {
@@ -40,7 +41,8 @@ Official dnf or GitHub only. Never COPR.
 Edit the dnf vs GitHub lists in this script if a package falls behind.
 
 dnf:     bat, fd-find, eza, btop, fzf, gh, neovim
-GitHub:  zoxide, lazygit, starship, fastfetch (via ./install-fetch.sh)
+GitHub:  zoxide, lazygit, starship, Nerd Fonts (Cascadia Code + JetBrains Mono)
+         (fastfetch via ./install-fetch.sh)
 
 Options:
   --deps       Run install-fedora-deps.sh (base dnf packages)
@@ -52,7 +54,7 @@ Options:
   --tpm        Clone tmux-plugin-manager if missing
   --fzf        Fedora package
   --starship   GitHub release; default prompt is starship
-  --all        Enable all of the above
+  --all        Enable all of the above (also Cascadia Code + JetBrains Mono nerd fonts)
   --dry-run    Print actions without changing anything
   -h, --help   Show this help
 
@@ -293,6 +295,7 @@ install_dotfiles() {
   mkdir -p "$TARGET_HOME/.config/lazygit"
   link_path "$SOURCE_DIR/.config/lazygit/config.yml" "$TARGET_HOME/.config/lazygit/config.yml"
   link_path "$SOURCE_DIR/.config/starship.toml" "$TARGET_HOME/.config/starship.toml"
+  link_path "$SOURCE_DIR/.config/ghostty" "$TARGET_HOME/.config/ghostty"
 
   mkdir -p "$TARGET_HOME/.ssh"
   chmod 700 "$TARGET_HOME/.ssh"
@@ -354,6 +357,7 @@ while [[ $# -gt 0 ]]; do
       INSTALL_TPM=1
       INSTALL_FZF=1
       INSTALL_STARSHIP=1
+      INSTALL_FONTS=1
       ;;
     --dry-run) DRY_RUN=1 ;;
     -h | --help)
@@ -423,6 +427,11 @@ if [[ "$INSTALL_STARSHIP" -eq 1 ]]; then
   run_github_step "starship" bash "$SCRIPTS_DIR/starship-install-update.sh"
 fi
 
+if [[ "$INSTALL_FONTS" -eq 1 ]]; then
+  log "Nerd fonts: Cascadia Code + JetBrains Mono (user fonts + fc-cache)"
+  run_github_step "cascadia-nerd-font" bash "$SCRIPTS_DIR/cascadia-nerd-font-install-update.sh"
+fi
+
 if [[ "$GITHUB_STEP_FAILED" -eq 1 ]]; then
   log "one or more installs failed; re-run ./install-fedora.sh --all"
   exit 1
@@ -443,5 +452,8 @@ Next steps:
   6. Optional AI CLIs (not part of --all):
        ./install-ai-cli.sh
   7. Optional: nvm/Node via ./scripts/nvm-install-update.sh
+
+Cascadia Code and JetBrains Mono nerd fonts are part of --all (user fonts + fc-cache).
+Re-run: ./scripts/cascadia-nerd-font-install-update.sh
 
 EOF

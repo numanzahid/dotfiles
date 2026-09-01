@@ -119,6 +119,10 @@ fi
 
 # Autostart tmux over SSH unless disabled.
 # Disable temporarily with: NO_TMUX=1 ssh host
+#
+# If a server is already up, attach (do not create default).
+# After reboot the server is gone. Continuum restore runs about 1s after the
+# first session starts, so wait for that before creating default.
 if command -v tmux >/dev/null 2>&1 &&
   [ -z "${TMUX:-}" ] &&
   [ -n "${SSH_CONNECTION:-}" ] &&
@@ -126,6 +130,26 @@ if command -v tmux >/dev/null 2>&1 &&
   [ "${TERM:-}" != "dumb" ]; then
   if tmux ls >/dev/null 2>&1; then
     tmux attach-session
+  elif [ -e "${HOME}/.tmux/resurrect/last" ]; then
+    tmux new-session -d -s _dotfiles_boot
+    _df_i=0
+    while [ "$_df_i" -lt 20 ]; do
+      _df_n="$(tmux list-sessions -F '#{session_name}' 2>/dev/null | grep -c . || true)"
+      if [ "${_df_n:-0}" -gt 1 ]; then
+        break
+      fi
+      sleep 0.2
+      _df_i=$((_df_i + 1))
+    done
+    _df_n="$(tmux list-sessions -F '#{session_name}' 2>/dev/null | grep -c . || true)"
+    if [ "${_df_n:-0}" -gt 1 ]; then
+      tmux kill-session -t _dotfiles_boot 2>/dev/null || true
+      tmux attach-session
+    else
+      tmux rename-session -t _dotfiles_boot default 2>/dev/null || true
+      tmux attach-session -t default
+    fi
+    unset _df_i _df_n
   else
     tmux new-session -s default
   fi

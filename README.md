@@ -13,7 +13,7 @@ cd ~/.dotfiles
 ./install-copy/install.sh --all    # Light host / CT. Real files. Safe to delete the clone after.
 ```
 
-`--all` is the daily box: configs, packages, bat/fd/zoxide/eza, lazygit, gh, neovim, btop, fzf, tmux plugins. Fedora also gets starship. Light host is slimmer (configs, apt, neovim) and skips gitconfig, fzf, zoxide, lazygit, gh, btop, TPM, and fastfetch. Fetch on a light host: `./install-copy/install.sh --fetch`.
+`--all` is the daily box: configs, packages, bat/fd/zoxide/eza, lazygit, gh, neovim, btop, fzf, tmux plugins, and Nerd Fonts (Cascadia Code + JetBrains Mono, user fonts + fc-cache). Fedora also gets starship. Light host is slimmer (configs, apt, neovim) and skips gitconfig, fzf, zoxide, lazygit, gh, btop, TPM, fonts, and fastfetch. Fetch on a light host: `./install-copy/install.sh --fetch`.
 
 Want a subset? `./install.sh -h` (or the fedora/copy script). After a workstation install, copy SSH keys into `~/.ssh/` yourself, then in tmux hit `prefix + Shift + I` once.
 
@@ -31,6 +31,7 @@ These stay optional on every installer. Run them when you want them.
 ./lazyvim-lite/install-lazyvim-lite.sh  # LazyVim, no Mason/LSP/Node
 ./scripts/nvm-install-update.sh         # Node via nvm
 ./scripts/lazydocker-install-update.sh
+./scripts/ghostty-install-update.sh       # official source tarball (no COPR)
 ./scripts/avahi-install-update.sh       # hostname.local
 ./scripts/install-tmux-config.sh        # tmux only; clone can go after
 ```

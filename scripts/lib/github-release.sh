@@ -245,6 +245,15 @@ gr_latest_tag() {
   gr_curl -fsSL "https://api.github.com/repos/${repo}/releases/latest" | jq -r .tag_name
 }
 
+# First vX.Y.Z tag (skips Ghostty "tip" and other non-semver names).
+gr_latest_stable_tag() {
+  local repo="$1"
+  gr_curl -fsSL "https://api.github.com/repos/${repo}/tags?per_page=40" |
+    jq -r '.[].name' |
+    grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' |
+    head -n 1
+}
+
 gr_download() {
   local url="$1"
   local dest="$2"

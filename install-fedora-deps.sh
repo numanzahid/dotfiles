@@ -37,6 +37,8 @@ PACKAGES=(
   tmux
   trash-cli
   wget
+  unzip
+  fontconfig
 )
 
 echo "Refreshing Fedora metadata..."
@@ -55,6 +57,7 @@ fi
 
 echo "Done. Tool binaries: ./install-fedora.sh --tools --neovim --btop --fzf --gh --lazygit --starship"
 echo "dnf: bat fd-find eza btop fzf gh neovim. GitHub: zoxide lazygit starship."
+echo "Nerd fonts (Cascadia Code + JetBrains Mono): ./install-fedora.sh --all or ./scripts/cascadia-nerd-font-install-update.sh"
 echo "Fastfetch: ./install-fetch.sh"
 echo "Nvm/Node:      ./scripts/nvm-install-update.sh"
 echo "AI CLIs:       ./install-ai-cli.sh"

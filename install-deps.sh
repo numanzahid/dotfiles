@@ -32,6 +32,8 @@ PACKAGES=(
   tmux
   trash-cli
   wget
+  unzip
+  fontconfig
 )
 
 echo "Updating package lists..."
@@ -93,6 +95,7 @@ echo "Fzf:       ./install.sh --fzf  (git install, recommended)"
 echo "Fastfetch: ./install-fetch.sh"
 echo "Neovim:    ./install.sh --neovim  (or --all)"
 echo "Btop:      ./install.sh --btop    (or --all)"
+echo "Nerd fonts (Cascadia Code + JetBrains Mono): ./install.sh --all or ./scripts/cascadia-nerd-font-install-update.sh"
 echo "Nvm/Node:  ./scripts/nvm-install-update.sh"
 echo "AI CLIs:   ./install-ai-cli.sh  (opencode, cursor, claude, codex)"
 echo "LazyVim:   ./lazyvim/install-lazyvim.sh or ./lazyvim-lite/install-lazyvim-lite.sh"
