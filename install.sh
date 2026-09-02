@@ -421,7 +421,4 @@ Next steps:
   7. Optional Kitty image previews in LazyVim (local Kitty only):
        ./scripts/kitty-image-support-install-update.sh
 
-Cascadia Code and JetBrains Mono nerd fonts are part of --all (user fonts + fc-cache).
-Re-run: ./scripts/cascadia-nerd-font-install-update.sh
-
 EOF
