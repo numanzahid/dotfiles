@@ -6,21 +6,34 @@
 [general]
 live_config_reload = true
 
-# Font (Cascadia Code Nerd Font from ./scripts/cascadia-nerd-font-install-update.sh)
+# Font (CaskaydiaCove from ./scripts/cascadia-nerd-font-install-update.sh -> dotfiles-caskaydia-cove)
 [font]
-size = 9
+size = 13.0
 
 [font.normal]
 family = "CaskaydiaCove Nerd Font Mono"
 style = "Regular"
 
+[font.bold]
+family = "CaskaydiaCove Nerd Font Mono"
+style = "Bold"
+
+[font.italic]
+family = "CaskaydiaCove Nerd Font Mono"
+style = "Italic"
+
 # Window
 [window]
 dynamic_title = true
+padding.x = 14
+padding.y = 14
+decorations = "Buttonless"
+opacity = 0.95
+blur = true
 
-[window.padding]
-x = 14
-y = 14
+[window.dimensions]
+columns = 150
+lines = 42
 
 # Cursor styling
 [cursor.style]

@@ -117,6 +117,18 @@ fi
 
 ##### tmux autostart ####################################################
 
+# Kitty SSH: install xterm-kitty terminfo on hosts that lack it (tmux + snacks image).
+if [[ "${TERM:-}" == xterm-kitty ]] && ! infocmp xterm-kitty >/dev/null 2>&1; then
+  _df_kti="${XDG_DATA_HOME:-$HOME/.local/share}/dotfiles/terminfo/x/xterm-kitty"
+  if [[ -f "$_df_kti" ]]; then
+    mkdir -p "$HOME/.terminfo/x"
+    cp -f "$_df_kti" "$HOME/.terminfo/x/xterm-kitty"
+  elif [[ -x "$HOME/.dotfiles/scripts/kitty-terminfo-install-update.sh" ]]; then
+    "$HOME/.dotfiles/scripts/kitty-terminfo-install-update.sh" >/dev/null 2>&1 || true
+  fi
+  unset _df_kti
+fi
+
 # Autostart tmux over SSH unless disabled.
 # Disable temporarily with: NO_TMUX=1 ssh host
 #

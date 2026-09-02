@@ -306,6 +306,11 @@ install_dotfiles() {
   run chmod 600 "$TARGET_HOME/.ssh/authorized_keys" 2>/dev/null || true
 
   df_copy_ai_trash_rules
+
+  if [[ -x "$DOTFILES_DIR/scripts/kitty-terminfo-install-update.sh" ]]; then
+    log "kitty terminfo (xterm-kitty for SSH/tmux/snacks image)"
+    bash "$DOTFILES_DIR/scripts/kitty-terminfo-install-update.sh"
+  fi
 }
 
 install_tpm() {

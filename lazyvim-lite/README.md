@@ -103,7 +103,7 @@ Tree-sitter CLI version: try 0.26.11 first, then fall back to an older prebuilt 
 | File | Role |
 |------|------|
 | lua/plugins/lazyvim-lite.lua | disable IDE plugins, tune treesitter + blink |
-| lua/plugins/dotfiles-tweaks.lua | snacks image off, trash off for headless |
+| lua/plugins/dotfiles-tweaks.lua | snacks image on (kitty graphics), trash off for headless |
 | lua/config/treesitter-path.lua | PATH for tree-sitter CLI |
 | lua/config/options.lua | disable python/perl/ruby providers |
 

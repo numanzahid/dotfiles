@@ -150,6 +150,10 @@ esac
 df_refresh_desktop_db
 df_set_default_terminal kitty "$DESKTOP"
 
+if [[ -x "${SCRIPT_DIR}/kitty-terminfo-install-update.sh" ]]; then
+  bash "${SCRIPT_DIR}/kitty-terminfo-install-update.sh" || true
+fi
+
 echo "Done."
 echo "kitty path: $(command -v kitty || true)"
 gr_print_version_line kitty

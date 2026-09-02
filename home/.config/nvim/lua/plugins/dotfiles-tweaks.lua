@@ -1,4 +1,4 @@
--- Dotfiles tweaks for headless / SSH / tmux setups (no GUI trash, no kitty images).
+-- Dotfiles tweaks: snacks image (Kitty graphics), explorer trash off on headless hosts.
 
 return {
   {
@@ -13,7 +13,14 @@ return {
   {
     "folke/snacks.nvim",
     opts = {
-      image = { enabled = false },
+      image = {
+        enabled = true,
+        doc = {
+          enabled = true,
+          inline = true,
+          float = true,
+        },
+      },
       explorer = {
         -- Permanent delete when no desktop trash helper exists (typical on CTs).
         trash = { enabled = false },

@@ -100,6 +100,11 @@ alias egrep='egrep --color=auto'
 # Fresh CTs often start tmux while LANG is still C; -u forces UTF-8 drawing.
 alias tmux='command tmux -u'
 
+# Kitty SSH with terminfo sync (graphics + snacks image over SSH).
+if command -v kitten >/dev/null 2>&1; then
+  alias sshk='kitten ssh'
+fi
+
 ##### Navigation aliases ###############################################
 
 alias ..='cd ..'
