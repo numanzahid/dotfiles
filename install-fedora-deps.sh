@@ -39,7 +39,6 @@ PACKAGES=(
   wget
   unzip
   fontconfig
-  ImageMagick
 )
 
 echo "Refreshing Fedora metadata..."

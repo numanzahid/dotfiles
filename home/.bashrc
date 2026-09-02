@@ -117,7 +117,7 @@ fi
 
 ##### tmux autostart ####################################################
 
-# Kitty SSH: install xterm-kitty terminfo on hosts that lack it (tmux + snacks image).
+# Kitty SSH: install xterm-kitty terminfo on hosts that lack it (tmux autostart).
 if [[ "${TERM:-}" == xterm-kitty ]] && ! infocmp xterm-kitty >/dev/null 2>&1; then
   _df_kti="${XDG_DATA_HOME:-$HOME/.local/share}/dotfiles/terminfo/x/xterm-kitty"
   if [[ -f "$_df_kti" ]]; then

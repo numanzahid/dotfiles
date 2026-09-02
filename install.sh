@@ -261,7 +261,7 @@ install_dotfiles() {
   df_copy_ai_trash_rules
 
   if [[ -x "$DOTFILES_DIR/scripts/kitty-terminfo-install-update.sh" ]]; then
-    log "kitty terminfo (xterm-kitty for SSH/tmux/snacks image)"
+    log "kitty terminfo (xterm-kitty for SSH/tmux from Kitty)"
     bash "$DOTFILES_DIR/scripts/kitty-terminfo-install-update.sh"
   fi
 }
@@ -418,6 +418,8 @@ Next steps:
        ./install-ai-cli.sh                # prompt: opencode / cursor / claude / codex
        ./install-ai-cli.sh all
   6. Optional: nvm/Node via ./scripts/nvm-install-update.sh
+  7. Optional Kitty image previews in LazyVim (local Kitty only):
+       ./scripts/kitty-image-support-install-update.sh
 
 Cascadia Code and JetBrains Mono nerd fonts are part of --all (user fonts + fc-cache).
 Re-run: ./scripts/cascadia-nerd-font-install-update.sh

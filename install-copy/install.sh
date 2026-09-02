@@ -252,6 +252,18 @@ copy_nvim_plain() {
   df_journal_once copy "$dest/init.lua" "$src/init.lua"
 }
 
+copy_kitty_terminfo() {
+  local src="$SCRIPTS_DIR/data/terminfo/x/xterm-kitty"
+  local dest="$TARGET_HOME/.terminfo/x/xterm-kitty"
+
+  if [[ ! -f "$src" ]]; then
+    log "skip missing kitty terminfo: $src"
+    return 0
+  fi
+
+  copy_file "$src" "$dest"
+}
+
 # Drop leftover layouts (banner.jsonc, tmux2.jsonc).
 # Keep config.jsonc, art*.txt, and *.example.jsonc templates.
 clean_fastfetch_extra_jsonc() {
@@ -341,6 +353,7 @@ install_configs() {
       "$TARGET_HOME/.inputrc" \
       "$TARGET_HOME/.profile" \
       "$TARGET_HOME/.tmux.conf" \
+      "$TARGET_HOME/.terminfo/x/xterm-kitty" \
       "$TARGET_HOME/.config/nvim" \
       "$TARGET_HOME/.config/fastfetch/config.jsonc"; do
       if [[ -e "$dest" && ! -L "$dest" ]]; then
@@ -357,6 +370,7 @@ install_configs() {
   copy_file "$SOURCE_DIR/.inputrc" "$TARGET_HOME/.inputrc"
   copy_file "$SOURCE_DIR/.profile" "$TARGET_HOME/.profile"
   copy_file "$COPY_DIR/tmux.conf" "$TARGET_HOME/.tmux.conf"
+  copy_kitty_terminfo
 
   if [[ "$INSTALL_FETCH" -eq 1 ]]; then
     copy_fastfetch_banner
@@ -451,6 +465,7 @@ Copied configs:
   ~/.inputrc
   ~/.profile
   ~/.tmux.conf  (no TPM)
+  ~/.terminfo/x/xterm-kitty  (Kitty SSH/tmux; no Kitty config on copy hosts)
   ~/.config/nvim/init.lua  (plain nvim, if LazyVim was not already there)
   ~/.ssh/config  (only if missing)
   ~/.ssh/authorized_keys  (only if missing)

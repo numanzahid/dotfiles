@@ -34,7 +34,6 @@ PACKAGES=(
   wget
   unzip
   fontconfig
-  imagemagick
 )
 
 echo "Updating package lists..."

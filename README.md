@@ -32,7 +32,9 @@ These stay optional on every installer. Run them when you want them.
 ./scripts/nvm-install-update.sh         # Node via nvm
 ./scripts/lazydocker-install-update.sh
 ./scripts/alacritty-install-update.sh    # Fedora: dnf. Ubuntu: GitHub source + cargo
-./scripts/kitty-install-update.sh        # GitHub Linux tarball
+./scripts/kitty-install-update.sh        # GitHub Linux tarball (local Kitty binary)
+./scripts/kitty-terminfo-install-update.sh   # xterm-kitty terminfo (part of --all; SSH/tmux from Kitty)
+./scripts/kitty-image-support-install-update.sh  # optional: ImageMagick + LazyVim snacks image
 ./scripts/avahi-install-update.sh       # hostname.local
 ./scripts/install-tmux-config.sh        # tmux only; clone can go after
 ```
