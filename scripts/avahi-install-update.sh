@@ -12,6 +12,27 @@ set -euo pipefail
 #   ./scripts/avahi-install-update.sh
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+usage() {
+  cat <<'EOF'
+Usage: ./scripts/avahi-install-update.sh
+
+Install Avahi and configure hostname.local mDNS on Fedora, Debian, Ubuntu.
+Re-run to repair packages, NSS, firewall, and systemd-resolved/NetworkManager.
+
+Avahi publishes hostname.local. nss-mdns makes ping/ssh resolve .local.
+systemd-resolved mDNS is turned off so it does not steal UDP 5353.
+Needs sudo. Optional, not part of --all.
+
+Options:
+  -h, --help   Show this help
+EOF
+}
+
+# shellcheck source=lib/cli-args.sh
+source "$SCRIPT_DIR/lib/cli-args.sh"
+df_no_args_or_help "$@"
+
 # shellcheck source=scripts/lib/platform.sh
 source "$SCRIPT_DIR/lib/platform.sh"
 # shellcheck source=scripts/lib/privilege.sh

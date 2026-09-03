@@ -7,6 +7,38 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/common.sh
 source "$SCRIPT_DIR/lib/common.sh"
 
+usage() {
+  cat <<'EOF'
+Usage: ./lazyvim/cleanup-leftovers.sh [options]
+
+Remove leftovers this LazyVim installer does not use (vim pack path,
+Mason tree-sitter, old extras lua). Idempotent: a fresh host is a no-op.
+
+Does not uninstall LazyVim itself (see ./lazyvim/uninstall-lazyvim.sh).
+Does not remove ~/.cargo or ~/.rustup (prints a hint if they exist).
+
+Options:
+  --dry-run    Print what would be removed
+  -h, --help   Show this help
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --dry-run) DRY_RUN=1 ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1" >&2
+      usage >&2
+      exit 1
+      ;;
+  esac
+  shift
+done
+
 remove_user_path() {
   local path="$1"
 

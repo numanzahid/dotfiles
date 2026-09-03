@@ -5,6 +5,29 @@ set -euo pipefail
 # https://github.com/sharkdp/fd
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+usage() {
+  cat <<'EOF'
+Usage: ./scripts/fd-install-update.sh
+
+Install or upgrade fd from GitHub releases (not apt).
+https://github.com/sharkdp/fd
+
+Installs /usr/local/bin/fd. Needs curl, jq, tar, sudo.
+Invoked by ./install.sh --tools / --all and ./install-tools.sh.
+On Fedora, ./install-fedora.sh --tools uses dnf fd-find instead.
+
+Options:
+  -h, --help   Show this help
+
+Re-run anytime to upgrade.
+EOF
+}
+
+# shellcheck source=lib/cli-args.sh
+source "$SCRIPT_DIR/lib/cli-args.sh"
+df_no_args_or_help "$@"
+
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/lib/github-release.sh"
 

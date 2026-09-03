@@ -11,6 +11,38 @@ set -euo pipefail
 REPO="neovim/neovim"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+usage() {
+  cat <<'EOF'
+Usage: ./scripts/neovim-install-update.sh
+
+Install or upgrade Neovim from official GitHub tarballs (never apt).
+https://github.com/neovim/neovim
+
+Installs /opt/nvim-<ver>-<arch>, symlink /opt/nvim, and
+/usr/local/bin/nvim. Needs curl or wget, tar, sudo.
+Invoked by ./install.sh --neovim / --all.
+Copy-install copies this script to ~/.install-scripts/ so you can
+upgrade after deleting the clone.
+On Fedora, ./install-fedora.sh --neovim uses dnf neovim instead.
+
+Options:
+  -h, --help   Show this help
+
+Re-run anytime to upgrade.
+EOF
+}
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  usage
+  exit 0
+fi
+if [[ $# -gt 0 ]]; then
+  echo "Unknown option: $1" >&2
+  usage >&2
+  exit 1
+fi
+
 # shellcheck disable=SC1091
 if [[ -f "$SCRIPT_DIR/lib/github-release.sh" ]]; then
   source "$SCRIPT_DIR/lib/github-release.sh"

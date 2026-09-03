@@ -12,10 +12,14 @@ usage() {
   cat <<EOF
 Usage: $(basename "$0") [options]
 
+Remove LazyVim runtime data (~/.local/share/nvim, cache, state) and
+switch nvim back to the plain profile (no LazyVim). Does not uninstall
+Neovim itself.
+
 Options:
   --keep-tree-sitter   Keep ~/.local/bin/tree-sitter
   --dry-run            Print actions only
-  -h, --help           Show help
+  -h, --help           Show this help
 EOF
 }
 

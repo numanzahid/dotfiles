@@ -1,4 +1,23 @@
 #!/usr/bin/env bash
+# Print TERM, tput colors, and 256-color tables (debug a terminal).
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  cat <<'EOF'
+Usage: ./scripts/colors.sh
+
+Print TERM, tput color count, and 256-color fg/bg tables.
+Read-only. Useful to check SSH/tmux color support.
+
+Options:
+  -h, --help   Show this help
+EOF
+  exit 0
+fi
+if [[ $# -gt 0 ]]; then
+  echo "Unknown option: $1" >&2
+  echo "Usage: ./scripts/colors.sh" >&2
+  exit 1
+fi
 
 echo "TERM=$TERM"
 echo "colors=$(tput colors 2>/dev/null || echo unknown)"

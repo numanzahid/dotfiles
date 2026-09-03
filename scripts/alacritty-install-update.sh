@@ -8,6 +8,30 @@ set -euo pipefail
 # Re-run: ./scripts/alacritty-install-update.sh
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+usage() {
+  cat <<'EOF'
+Usage: ./scripts/alacritty-install-update.sh
+
+Install or upgrade Alacritty. Not part of --all.
+Fedora: dnf. Ubuntu/Debian: GitHub source tarball + rustup/cargo into
+~/.local (rustup --no-modify-path, will not edit ~/.bashrc).
+
+Sets this terminal as the default (last GUI terminal installer wins).
+Needs sudo for dnf or build deps. Config is linked by ./install.sh,
+not this script.
+
+Options:
+  -h, --help   Show this help
+
+Re-run anytime to upgrade.
+EOF
+}
+
+# shellcheck source=lib/cli-args.sh
+source "$SCRIPT_DIR/lib/cli-args.sh"
+df_no_args_or_help "$@"
+
 # shellcheck source=lib/platform.sh
 source "$SCRIPT_DIR/lib/platform.sh"
 # shellcheck source=lib/privilege.sh

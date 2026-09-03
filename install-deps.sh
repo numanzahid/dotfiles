@@ -4,6 +4,32 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+usage() {
+  cat <<'EOF'
+Usage: ./install-deps.sh
+
+Base apt packages for Debian/Ubuntu workstation installs (not Fedora).
+Invoked by ./install.sh --deps / --all.
+
+Installs: bash bash-completion ca-certificates curl git gzip jq less
+locales ripgrep tar tmux trash-cli wget unzip fontconfig.
+Enables en_US.UTF-8. Needs sudo.
+
+Does not install Neovim, bat, fd, fzf, lazygit, or fastfetch
+(those have their own scripts).
+
+On Fedora use ./install-fedora.sh --deps.
+
+Options:
+  -h, --help   Show this help
+EOF
+}
+
+# shellcheck source=scripts/lib/cli-args.sh
+source "$SCRIPT_DIR/scripts/lib/cli-args.sh"
+df_no_args_or_help "$@"
+
 # shellcheck source=scripts/lib/privilege.sh
 source "$SCRIPT_DIR/scripts/lib/privilege.sh"
 # shellcheck source=scripts/lib/journal.sh

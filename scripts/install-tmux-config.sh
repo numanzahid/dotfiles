@@ -18,7 +18,11 @@ usage() {
 Usage: ./scripts/install-tmux-config.sh [options]
 
 Copy tmux config from this repo into $HOME as real files, then you can
-remove the dotfiles folder.
+remove the dotfiles folder. Not called by ./install.sh.
+
+Copies ~/.tmux.conf (workstation file with TPM hooks). Default clones
+tmux plugin manager into ~/.tmux/plugins/tpm.
+Does not install fastfetch (use ./install-fetch.sh).
 
 Options:
   --no-tpm   Do not clone tmux plugin manager

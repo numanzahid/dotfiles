@@ -8,6 +8,33 @@ set -euo pipefail
 # Re-run:     ./scripts/kitty-terminfo-install-update.sh
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+usage() {
+  cat <<'EOF'
+Usage: ./scripts/kitty-terminfo-install-update.sh
+
+Install xterm-kitty terminfo into ~/.terminfo (and a cache copy).
+No Kitty binary required. Needed so SSH/tmux from Kitty can start
+(infocmp xterm-kitty).
+
+Sources: ~/.local/kitty.app if present, else the blob bundled in
+scripts/data/terminfo/x/xterm-kitty.
+
+Invoked by ./install.sh and ./install-fedora.sh (config install),
+by the Kitty installer, and copied onto light hosts by
+./install-copy/install.sh. Fedora and Debian/Ubuntu only.
+
+Options:
+  -h, --help   Show this help
+
+Re-run: ./scripts/kitty-terminfo-install-update.sh
+EOF
+}
+
+# shellcheck source=lib/cli-args.sh
+source "$SCRIPT_DIR/lib/cli-args.sh"
+df_no_args_or_help "$@"
+
 # shellcheck source=lib/platform.sh
 source "$SCRIPT_DIR/lib/platform.sh"
 

@@ -67,6 +67,12 @@ Tmux fetch banner (optional, not part of --all):
 
 AI coding CLIs (optional, not part of --all):
   ./install-ai-cli.sh
+
+Optional GUI (not part of --all):
+  ./scripts/alacritty-install-update.sh
+  ./scripts/kitty-install-update.sh
+  ./scripts/kitty-image-support-install-update.sh
+  ./scripts/gnome-super-enter-terminal-install-update.sh
 EOF
 }
 

@@ -11,6 +11,40 @@ DOTFILES_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 # shellcheck source=../scripts/lib/privilege.sh
 source "$DOTFILES_DIR/scripts/lib/privilege.sh"
 
+usage() {
+  cat <<'EOF'
+Usage: ./lazyvim/install-system-deps.sh [options]
+
+Minimal system packages for LazyVim (no Rust/LLVM/C++ toolchain).
+Checks commands first; installs apt or dnf packages only when missing
+(ca-certificates, curl, git, unzip, tar, ripgrep, fd-find).
+Ensures an fd symlink and a working C compiler for Tree-sitter parsers.
+
+Invoked by ./lazyvim/install-lazyvim.sh. Needs sudo only if packages
+are missing.
+
+Options:
+  --dry-run    Print actions without installing
+  -h, --help   Show this help
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --dry-run) DRY_RUN=1 ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1" >&2
+      usage >&2
+      exit 1
+      ;;
+  esac
+  shift
+done
+
 have_ca_certs() {
   [[ -f /etc/ssl/certs/ca-certificates.crt ]] \
     || [[ -f /etc/pki/tls/certs/ca-bundle.crt ]] \

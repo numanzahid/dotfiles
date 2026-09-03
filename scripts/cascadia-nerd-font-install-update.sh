@@ -10,6 +10,29 @@ set -euo pipefail
 # Re-run:     ./scripts/cascadia-nerd-font-install-update.sh
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+usage() {
+  cat <<'EOF'
+Usage: ./scripts/cascadia-nerd-font-install-update.sh
+
+Install Cascadia Code and JetBrains Mono nerd fonts into user fonts
+(~/.local/share/fonts/dotfiles-*). Latest GitHub nerd-fonts release.
+Runs fc-cache. No sudo.
+
+Invoked by ./install.sh --all and ./install-fedora.sh --all.
+Not part of copy-install (light hosts skip fonts).
+
+Options:
+  -h, --help   Show this help
+
+Re-run to upgrade.
+EOF
+}
+
+# shellcheck source=lib/cli-args.sh
+source "$SCRIPT_DIR/lib/cli-args.sh"
+df_no_args_or_help "$@"
+
 # shellcheck source=lib/github-release.sh
 source "$SCRIPT_DIR/lib/github-release.sh"
 # shellcheck source=lib/platform.sh

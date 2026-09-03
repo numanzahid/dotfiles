@@ -4,6 +4,29 @@ set -euo pipefail
 
 COPY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOTFILES_DIR="$(cd "$COPY_DIR/.." && pwd)"
+
+usage() {
+  cat <<'EOF'
+Usage: ./install-copy/install-deps.sh
+
+Apt packages for light hosts / CTs. Invoked by
+./install-copy/install.sh --deps / --all.
+
+Installs: bash bash-completion ca-certificates curl git gzip htop jq
+less locales tar tmux wget. Enables en_US.UTF-8. Needs sudo.
+
+Slimmer than ./install-deps.sh (no ripgrep, trash-cli, unzip, fontconfig).
+Apt-based systems only.
+
+Options:
+  -h, --help   Show this help
+EOF
+}
+
+# shellcheck source=../scripts/lib/cli-args.sh
+source "$DOTFILES_DIR/scripts/lib/cli-args.sh"
+df_no_args_or_help "$@"
+
 # shellcheck source=../scripts/lib/privilege.sh
 source "$DOTFILES_DIR/scripts/lib/privilege.sh"
 # shellcheck source=../scripts/lib/journal.sh

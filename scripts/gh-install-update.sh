@@ -7,6 +7,30 @@ set -euo pipefail
 # Re-run anytime to upgrade.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+usage() {
+  cat <<'EOF'
+Usage: ./scripts/gh-install-update.sh
+
+Install or upgrade GitHub CLI (gh) from official GitHub .deb releases.
+https://github.com/cli/cli
+
+Debian/Ubuntu only (uses apt-get to install the .deb). Needs curl, jq, sudo.
+Invoked by ./install.sh --gh / --all.
+On Fedora, ./install-fedora.sh --gh uses the dnf package instead.
+Not part of copy-install.
+
+Options:
+  -h, --help   Show this help
+
+Re-run anytime to upgrade.
+EOF
+}
+
+# shellcheck source=lib/cli-args.sh
+source "$SCRIPT_DIR/lib/cli-args.sh"
+df_no_args_or_help "$@"
+
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/lib/github-release.sh"
 

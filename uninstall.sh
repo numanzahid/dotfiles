@@ -24,6 +24,7 @@ APPLY=0
 CONFIGS=1
 TOOLS=1
 SEED=0
+LEFTOVERS_ONLY=0
 REMOVE_CLONE=0
 DRY_RUN=1
 
@@ -46,6 +47,8 @@ Options:
   --tools-only         Remove journaled packages/binaries/clones only
   --seed-workstation   Record a pre-journal ./install.sh --all into the journal
                        (needed on hosts that installed before journaling existed)
+  --leftovers-only     Only remove stale clone symlinks, timestamped backups,
+                       leftover fzf/tpm/pfetch. Does not restore configs.
   --remove-clone       After uninstall, trash ~/.dotfiles
   -h, --help           Show this help
 
@@ -59,8 +62,21 @@ Also removes leftover pfetch from the old GitHub install even if it is
 not in the journal: /usr/local/bin/pfetch, /opt/pfetch, ~/pfetch-install-update.sh,
 ~/.config/pfetch.
 
+Also removes leftovers from older clone layouts (before hide-clone and
+before journaling), even if they are not in managed-paths:
+  symlinks that still point at ~/dotfiles (the old unhidden clone path)
+  old.fzf.bash
+  timestamped backups (*.pre-dotfiles-YYYYMMDD...)
+  On copy-install homes (bashrc is a real file, not a symlink):
+  leftover ~/.gitconfig symlink, ~/.fzf, ~/.fzf.bash, ~/.tmux/plugins/tpm
+
+Does not delete live workstation links into ~/.dotfiles.
+Use --leftovers-only after copy-install to clean those without
+restoring configs.
+
 Not undone: LazyVim/lite, locale, skipped files (~/.ssh/config, a real
-prompt.sh), hide-clone (clone stays at ~/.dotfiles unless --remove-clone).
+prompt.sh), hide-clone (clone stays at ~/.dotfiles unless --remove-clone),
+~/.cargo ~/.rustup, tmux *.log in $HOME, unrelated project dirs.
 EOF
 }
 
@@ -371,6 +387,9 @@ seed_workstation() {
   seed_if_exists git-clone "$TARGET_HOME/.fzf"
   seed_if_exists copy "$TARGET_HOME/.fzf.bash"
   seed_if_exists git-clone "$TARGET_HOME/.tmux/plugins/tpm"
+  if [[ -L "$TARGET_HOME/.gitconfig" ]]; then
+    seed_if_new link "$TARGET_HOME/.gitconfig"
+  fi
   seed_if_exists copy "$TARGET_HOME/pfetch-install-update.sh"
   seed_if_exists copy "$TARGET_HOME/pfetch-install-update.lib.sh"
   seed_if_exists copy "$TARGET_HOME/.config/pfetch/pfetchrc"
@@ -419,6 +438,104 @@ uninstall_configs() {
 
   strip_trash_cli_block "$TARGET_HOME/.codex/AGENTS.md"
   strip_trash_cli_block "$TARGET_HOME/.claude/CLAUDE.md"
+}
+
+# True when a symlink still points at the old unhidden clone path
+# ~/dotfiles (before hide-clone renamed it to ~/.dotfiles).
+# Do not match ~/.dotfiles: those are live workstation install links.
+symlink_points_at_old_clone() {
+  local dest="$1"
+  local tgt parent
+
+  [[ -L "$dest" ]] || return 1
+  tgt="$(readlink "$dest")"
+  [[ -n "$tgt" ]] || return 1
+  case "$tgt" in
+    /*) ;;
+    *)
+      parent="$(cd "$(dirname "$dest")" && pwd)"
+      tgt="${parent}/${tgt}"
+      ;;
+  esac
+  case "$tgt" in
+    "$TARGET_HOME/dotfiles" | "$TARGET_HOME/dotfiles"/*) return 0 ;;
+  esac
+  return 1
+}
+
+# Copy-install writes real files. A remaining clone symlink is leftover.
+is_copy_install_home() {
+  [[ -f "$TARGET_HOME/.bashrc" && ! -L "$TARGET_HOME/.bashrc" ]]
+}
+
+remove_stale_clone_symlinks_in() {
+  local dir="$1"
+  local dest
+
+  [[ -d "$dir" ]] || return 0
+  shopt -s nullglob
+  for dest in "$dir"/.[!.]* "$dir"/*; do
+    if [[ "$dest" == "$TARGET_HOME/.dotfiles" || "$dest" == "$TARGET_HOME/dotfiles" ]]; then
+      continue
+    fi
+    if symlink_points_at_old_clone "$dest"; then
+      log "remove stale clone symlink: $dest -> $(readlink "$dest")"
+      remove_home_path "$dest"
+    fi
+  done
+  shopt -u nullglob
+}
+
+# Leftovers from pre-journal / pre-hide-clone installs. Not in managed-paths.
+# Never deletes live workstation links into ~/.dotfiles.
+remove_legacy_home_artifacts() {
+  local f dest
+  local -a stamped=()
+
+  remove_stale_clone_symlinks_in "$TARGET_HOME"
+  remove_stale_clone_symlinks_in "$TARGET_HOME/.config"
+  remove_stale_clone_symlinks_in "$TARGET_HOME/.config/tmux"
+  remove_stale_clone_symlinks_in "$TARGET_HOME/.config/dotfiles"
+
+  dest="$TARGET_HOME/old.fzf.bash"
+  if [[ -e "$dest" || -L "$dest" ]]; then
+    log "remove leftover: $dest"
+    remove_home_path "$dest"
+  fi
+
+  shopt -s nullglob
+  stamped=("$TARGET_HOME"/*.pre-dotfiles-* "$TARGET_HOME"/.[!.]*.pre-dotfiles-*)
+  shopt -u nullglob
+  for f in "${stamped[@]}"; do
+    [[ -e "$f" || -L "$f" ]] || continue
+    log "remove timestamped leftover backup: $f"
+    remove_home_path "$f"
+  done
+
+  # Light hosts do not use gitconfig/fzf/tpm. If bashrc is a real file,
+  # drop those workstation leftovers. Do not do this on a symlink install.
+  if is_copy_install_home; then
+    dest="$TARGET_HOME/.gitconfig"
+    if [[ -L "$dest" ]]; then
+      log "remove leftover gitconfig symlink (copy-install does not use it): $dest -> $(readlink "$dest")"
+      remove_home_path "$dest"
+    fi
+    dest="$TARGET_HOME/.fzf"
+    if [[ -d "$dest" && ( -x "$dest/install" || -d "$dest/.git" ) ]]; then
+      log "remove leftover fzf clone: $dest"
+      remove_home_path "$dest"
+    fi
+    dest="$TARGET_HOME/.fzf.bash"
+    if [[ -e "$dest" || -L "$dest" ]]; then
+      log "remove leftover fzf bash hook: $dest"
+      remove_home_path "$dest"
+    fi
+    dest="$TARGET_HOME/.tmux/plugins/tpm"
+    if [[ -e "$dest" || -L "$dest" ]]; then
+      log "remove leftover tpm: $dest"
+      remove_home_path "$dest"
+    fi
+  fi
 }
 
 journal_kinds() {
@@ -520,6 +637,11 @@ while [[ $# -gt 0 ]]; do
     --configs-only) TOOLS=0 ;;
     --tools-only) CONFIGS=0 ;;
     --seed-workstation) SEED=1 ;;
+    --leftovers-only)
+      LEFTOVERS_ONLY=1
+      CONFIGS=0
+      TOOLS=0
+      ;;
     --remove-clone) REMOVE_CLONE=1 ;;
     -h | --help)
       usage
@@ -552,12 +674,18 @@ if [[ "$SEED" -eq 1 ]]; then
   exit 0
 fi
 
-if [[ "$APPLY" -eq 1 && "$TOOLS" -eq 1 ]] && needs_sudo_for_tools; then
+if [[ "$APPLY" -eq 1 && ( "$TOOLS" -eq 1 || "$LEFTOVERS_ONLY" -eq 1 ) ]] && needs_sudo_for_tools; then
   df_ensure_sudo
 fi
 
 if [[ "$CONFIGS" -eq 1 ]]; then
   uninstall_configs
+fi
+
+remove_legacy_home_artifacts
+
+if [[ "$LEFTOVERS_ONLY" -eq 1 ]]; then
+  df_remove_legacy_pfetch
 fi
 
 if [[ "$REMOVE_CLONE" -eq 1 ]]; then
@@ -577,8 +705,14 @@ if [[ "$APPLY" -eq 1 && "$CONFIGS" -eq 1 ]]; then
 fi
 
 if [[ "$APPLY" -eq 0 ]]; then
-  log "dry-run complete. review the + lines, then: ./uninstall.sh --apply"
+  if [[ "$LEFTOVERS_ONLY" -eq 1 ]]; then
+    log "dry-run complete. review, then: ./uninstall.sh --leftovers-only --apply"
+  else
+    log "dry-run complete. review the + lines, then: ./uninstall.sh --apply"
+  fi
 else
   log "done. journal kept at $(df_journal_file)"
-  log "open a new shell (or reconnect SSH) so the restored bashrc loads"
+  if [[ "$CONFIGS" -eq 1 ]]; then
+    log "open a new shell (or reconnect SSH) so the restored bashrc loads"
+  fi
 fi

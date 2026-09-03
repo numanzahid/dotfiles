@@ -8,6 +8,31 @@ set -euo pipefail
 # Re-run: ./scripts/gnome-super-enter-terminal-install-update.sh
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+usage() {
+  cat <<'EOF'
+Usage: ./scripts/gnome-super-enter-terminal-install-update.sh
+
+Optional: GNOME Super+Enter opens the default terminal.
+No-op when GNOME is not present. Not part of --all. No sudo.
+
+Installs ~/.local/bin/dotfiles-default-terminal and a GNOME custom
+keybinding. Uses the last Alacritty/Kitty default, else gnome-terminal.
+Also runs from those terminal installers after they set the default.
+
+Does not wipe other custom keybindings.
+
+Options:
+  -h, --help   Show this help
+
+Re-run anytime.
+EOF
+}
+
+# shellcheck source=lib/cli-args.sh
+source "$SCRIPT_DIR/lib/cli-args.sh"
+df_no_args_or_help "$@"
+
 # shellcheck source=lib/gui-terminal.sh
 source "$SCRIPT_DIR/lib/gui-terminal.sh"
 

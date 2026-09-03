@@ -8,6 +8,30 @@ set -euo pipefail
 # Re-run: ./scripts/kitty-install-update.sh
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+usage() {
+  cat <<'EOF'
+Usage: ./scripts/kitty-install-update.sh
+
+Install or upgrade Kitty from the official GitHub Linux tarball
+(kovidgoyal/kitty). Not part of --all. No COPR, not dnf/apt.
+
+Installs ~/.local/kitty.app and symlinks ~/.local/bin/kitty and kitten.
+Sets this terminal as the default (last GUI terminal installer wins).
+Then runs kitty-terminfo-install-update.sh.
+Needs curl, jq, tar, xz. Config is linked by ./install.sh, not this script.
+
+Options:
+  -h, --help   Show this help
+
+Re-run anytime to upgrade.
+EOF
+}
+
+# shellcheck source=lib/cli-args.sh
+source "$SCRIPT_DIR/lib/cli-args.sh"
+df_no_args_or_help "$@"
+
 # shellcheck source=lib/platform.sh
 source "$SCRIPT_DIR/lib/platform.sh"
 # shellcheck source=lib/privilege.sh

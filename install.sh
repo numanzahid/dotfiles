@@ -61,6 +61,12 @@ Neovim editor rules: home/.config/nvim-plain (plain nvim, no plugins).
 LazyVim nvim config is not linked here.
 OpenCode config is linked only by ./install-ai-cli.sh.
 
+Optional GUI (not part of --all):
+  ./scripts/alacritty-install-update.sh
+  ./scripts/kitty-install-update.sh
+  ./scripts/kitty-image-support-install-update.sh
+  ./scripts/gnome-super-enter-terminal-install-update.sh
+
 Fedora: use ./install-fedora.sh instead (shared bashrc; starship prompt).
 EOF
 }

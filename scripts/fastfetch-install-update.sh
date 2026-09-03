@@ -12,6 +12,38 @@ set -euo pipefail
 # Light host: ~/.install-scripts/fastfetch-install-update.sh
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+usage() {
+  cat <<'EOF'
+Usage: ./scripts/fastfetch-install-update.sh
+
+Install or upgrade fastfetch from GitHub releases (never apt, never PPA).
+https://github.com/fastfetch-cli/fastfetch
+
+Removes an apt/PPA fastfetch if present, then installs
+/usr/local/bin/fastfetch. Needs curl, jq, tar, sudo.
+
+Prefer ./install-fetch.sh on a workstation (config + art + binary).
+On a light host, ./install-copy/install.sh --fetch copies this script to
+~/.install-scripts/fastfetch-install-update.sh for later upgrades.
+
+Options:
+  -h, --help   Show this help
+
+Re-run anytime to upgrade the binary only.
+EOF
+}
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  usage
+  exit 0
+fi
+if [[ $# -gt 0 ]]; then
+  echo "Unknown option: $1" >&2
+  usage >&2
+  exit 1
+fi
+
 # shellcheck disable=SC1091
 if [[ -f "$SCRIPT_DIR/lib/github-release.sh" ]]; then
   source "$SCRIPT_DIR/lib/github-release.sh"

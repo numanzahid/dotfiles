@@ -9,6 +9,33 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOTFILES_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+usage() {
+  cat <<'EOF'
+Usage: ./scripts/kitty-image-support-install-update.sh
+
+Optional: enable LazyVim snacks.nvim image previews (Kitty graphics).
+Not part of --all. Does not install the Kitty binary.
+
+Installs ImageMagick from official apt/dnf (no COPR), writes
+~/.config/dotfiles/image-support.enabled, and copies
+~/.config/tmux/image-passthrough.conf (tmux allow-passthrough on).
+
+Then: tmux source-file ~/.tmux.conf, restart nvim, use Kitty (not Alacritty).
+SSH still needs xterm-kitty terminfo on the remote
+(./scripts/kitty-terminfo-install-update.sh).
+
+Options:
+  -h, --help   Show this help
+
+Re-run anytime.
+EOF
+}
+
+# shellcheck source=lib/cli-args.sh
+source "$SCRIPT_DIR/lib/cli-args.sh"
+df_no_args_or_help "$@"
+
 # shellcheck source=lib/platform.sh
 source "$SCRIPT_DIR/lib/platform.sh"
 # shellcheck source=lib/privilege.sh

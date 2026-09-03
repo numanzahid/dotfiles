@@ -6,6 +6,28 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/common.sh
 source "$SCRIPT_DIR/lib/common.sh"
 
+usage() {
+  cat <<'EOF'
+Usage: ./lazyvim/measure-disk.sh
+
+Print disk usage of Neovim/LazyVim paths (~/.local/share/nvim, cache,
+state, config, ~/.local/bin/tree-sitter). Read-only.
+
+Options:
+  -h, --help   Show this help
+EOF
+}
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  usage
+  exit 0
+fi
+if [[ $# -gt 0 ]]; then
+  echo "Unknown option: $1" >&2
+  usage >&2
+  exit 1
+fi
+
 paths=(
   "${XDG_DATA_HOME:-$HOME/.local/share}/nvim"
   "${XDG_CACHE_HOME:-$HOME/.cache}/nvim"

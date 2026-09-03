@@ -7,6 +7,35 @@ DOTFILES_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 # shellcheck source=lib/common.sh
 source "$SCRIPT_DIR/lib/common.sh"
 
+usage() {
+  cat <<'EOF'
+Usage: ./lazyvim/install-nvm-node.sh [options]
+
+LazyVim wrapper: run ./scripts/nvm-install-update.sh when Node is required
+(REQUIRE_NODE in lazyvim/install.conf). Skips if REQUIRE_NODE is false.
+
+Options:
+  --dry-run    Print the nvm installer command
+  -h, --help   Show this help
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --dry-run) DRY_RUN=1 ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1" >&2
+      usage >&2
+      exit 1
+      ;;
+  esac
+  shift
+done
+
 main() {
   load_install_conf
 

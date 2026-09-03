@@ -30,7 +30,7 @@ Copy shell/tmux/nvim configs into $HOME as real files, then you can
 remove the dotfiles folder.
 
 Does not install or copy: gitconfig, fzf, zoxide, lazygit, lazydocker,
-or TPM/tmux plugins.
+gh, btop, TPM/tmux plugins, or nerd fonts.
 
 Fastfetch banner is optional (not part of --all):
   ./install-copy/install.sh --fetch
@@ -46,10 +46,13 @@ Always copies the Neovim updater into ~/.install-scripts
 With --fetch also:
   ~/.install-scripts/fastfetch-install-update.sh
 
+Also copies xterm-kitty terminfo to ~/.terminfo (SSH from Kitty).
+Does not install Kitty or Alacritty.
+
 Options:
   --deps       Run install-copy/install-deps.sh (apt packages + locale)
   --neovim     Install latest Neovim (same GitHub build as ./install.sh)
-  --all        Copy configs, --deps, and --neovim (no fetch)
+  --all        Copy configs, --deps, and --neovim (no fetch, no fonts)
   --fetch      Fastfetch boxed config + art picker (or --art N)
   --art N      Set text art (implies --fetch)
   --dry-run    Print actions without changing anything

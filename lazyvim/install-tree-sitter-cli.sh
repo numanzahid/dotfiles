@@ -13,6 +13,36 @@ source "$SCRIPT_DIR/../scripts/lib/platform.sh"
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/../scripts/lib/github-release.sh"
 
+usage() {
+  cat <<'EOF'
+Usage: ./lazyvim/install-tree-sitter-cli.sh [options]
+
+Install the official prebuilt Tree-sitter CLI into ~/.local/bin/tree-sitter
+(no Rust/Cargo). Tries the current nvim-treesitter target first, then
+older prebuilts. Invoked by ./lazyvim/install-lazyvim.sh.
+
+Options:
+  --dry-run    Print actions without installing
+  -h, --help   Show this help
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --dry-run) DRY_RUN=1 ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1" >&2
+      usage >&2
+      exit 1
+      ;;
+  esac
+  shift
+done
+
 TREE_SITTER_REPO="tree-sitter/tree-sitter"
 INSTALL_BIN="${HOME}/.local/bin/tree-sitter"
 

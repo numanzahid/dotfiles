@@ -5,6 +5,29 @@ set -euo pipefail
 # https://github.com/starship/starship
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+usage() {
+  cat <<'EOF'
+Usage: ./scripts/starship-install-update.sh
+
+Install or upgrade starship from GitHub releases (not dnf/apt).
+https://github.com/starship/starship
+
+Installs /usr/local/bin/starship. Needs curl, jq, tar, sudo.
+Invoked by ./install-fedora.sh --starship / --all (default Fedora prompt).
+Not part of Debian ./install.sh --all (Debian uses the custom prompt).
+
+Options:
+  -h, --help   Show this help
+
+Re-run anytime to upgrade.
+EOF
+}
+
+# shellcheck source=lib/cli-args.sh
+source "$SCRIPT_DIR/lib/cli-args.sh"
+df_no_args_or_help "$@"
+
 # shellcheck source=scripts/lib/github-release.sh
 source "$SCRIPT_DIR/lib/github-release.sh"
 

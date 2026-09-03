@@ -9,6 +9,30 @@ set -euo pipefail
 # Invoked by: ./install.sh --btop  (or --all)
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+usage() {
+  cat <<'EOF'
+Usage: ./scripts/btop-install-update.sh
+
+Install or upgrade btop from GitHub releases (never apt).
+https://github.com/aristocratos/btop
+
+Installs /usr/local/bin/btop. Removes an apt btop if present.
+Needs curl, jq, tar, sudo.
+Invoked by ./install.sh --btop / --all.
+On Fedora, ./install-fedora.sh --btop uses the dnf package instead.
+
+Options:
+  -h, --help   Show this help
+
+Re-run anytime to upgrade.
+EOF
+}
+
+# shellcheck source=lib/cli-args.sh
+source "$SCRIPT_DIR/lib/cli-args.sh"
+df_no_args_or_help "$@"
+
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/lib/github-release.sh"
 

@@ -9,6 +9,28 @@ set -euo pipefail
 # Not part of ./install.sh or ./install-tools.sh.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+usage() {
+  cat <<'EOF'
+Usage: ./scripts/lazydocker-install-update.sh
+
+Install or upgrade lazydocker from GitHub releases.
+https://github.com/jesseduffield/lazydocker
+
+Installs /usr/local/bin/lazydocker. Needs curl, jq, tar, sudo.
+Optional. Not part of ./install.sh --all or ./install-tools.sh.
+
+Options:
+  -h, --help   Show this help
+
+Re-run anytime to upgrade.
+EOF
+}
+
+# shellcheck source=lib/cli-args.sh
+source "$SCRIPT_DIR/lib/cli-args.sh"
+df_no_args_or_help "$@"
+
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/lib/github-release.sh"
 

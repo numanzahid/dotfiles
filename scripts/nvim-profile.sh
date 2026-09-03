@@ -8,6 +8,15 @@ source "$SCRIPT_DIR/../lazyvim/lib/nvim-profile.sh"
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   case "${1:-}" in
+    -h | --help)
+      echo "Usage: $(basename "$0") {none|lazyvim|lazyvim-lite|status}"
+      echo "  none         plain nvim (nvim-plain config, no LazyVim)"
+      echo "  lazyvim      full LazyVim IDE profile"
+      echo "  lazyvim-lite editor-only LazyVim (no Mason/LSP/Node)"
+      echo "  status       print the current profile"
+      echo "  -h, --help   show this help"
+      exit 0
+      ;;
     none | off)
       clear_nvim_profile
       echo "nvim profile: none (plain nvim)"
@@ -24,6 +33,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
       echo "  none         plain nvim (nvim-plain config, no LazyVim)" >&2
       echo "  lazyvim      full LazyVim IDE profile" >&2
       echo "  lazyvim-lite editor-only LazyVim (no Mason/LSP/Node)" >&2
+      echo "  -h, --help   show this help" >&2
       exit 1
       ;;
   esac

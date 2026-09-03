@@ -8,6 +8,29 @@ set -euo pipefail
 # Re-run anytime to upgrade.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+usage() {
+  cat <<'EOF'
+Usage: ./scripts/lazygit-install-update.sh
+
+Install or upgrade lazygit from GitHub releases (not apt).
+https://github.com/jesseduffield/lazygit
+
+Installs /usr/local/bin/lazygit. Needs curl, jq, tar, sudo.
+Invoked by ./install.sh --lazygit / --all and ./install-fedora.sh --lazygit
+(not in Fedora repos). Not part of copy-install.
+
+Options:
+  -h, --help   Show this help
+
+Re-run anytime to upgrade.
+EOF
+}
+
+# shellcheck source=lib/cli-args.sh
+source "$SCRIPT_DIR/lib/cli-args.sh"
+df_no_args_or_help "$@"
+
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/lib/github-release.sh"
 

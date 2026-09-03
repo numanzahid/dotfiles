@@ -5,6 +5,29 @@ set -euo pipefail
 # https://github.com/eza-community/eza
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+usage() {
+  cat <<'EOF'
+Usage: ./scripts/eza-install-update.sh
+
+Install or upgrade eza from GitHub releases (not apt).
+https://github.com/eza-community/eza
+
+Installs /usr/local/bin/eza. Needs curl, jq, tar, sudo.
+Invoked by ./install.sh --tools / --all and ./install-tools.sh.
+On Fedora, ./install-fedora.sh --tools uses dnf eza instead.
+
+Options:
+  -h, --help   Show this help
+
+Re-run anytime to upgrade.
+EOF
+}
+
+# shellcheck source=lib/cli-args.sh
+source "$SCRIPT_DIR/lib/cli-args.sh"
+df_no_args_or_help "$@"
+
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/lib/github-release.sh"
 
