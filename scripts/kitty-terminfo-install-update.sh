@@ -41,11 +41,9 @@ pick_source() {
 install_terminfo() {
   local src="$1"
   mkdir -p "$(dirname "$USER_TERMINFO")" "$(dirname "$CACHE_TERMINFO")"
+  # Compiled terminfo blob; ncurses reads ~/.terminfo without tic or fc-cache.
   cp -f "$src" "$USER_TERMINFO"
   cp -f "$src" "$CACHE_TERMINFO"
-  if command -v fc-cache >/dev/null 2>&1; then
-    fc-cache -f "${HOME}/.terminfo" 2>/dev/null || true
-  fi
 }
 
 src="$(pick_source || true)"

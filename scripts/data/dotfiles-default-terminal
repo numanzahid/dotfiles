@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Launch the terminal chosen by Alacritty/Kitty installers, else GNOME default.
+# Used by the GNOME Super+Enter shortcut.
+
+list="${XDG_CONFIG_HOME:-$HOME/.config}/xdg-terminals.list"
+
+launch_desktop() {
+  local name="$1"
+  local dir file
+  [[ -n "$name" ]] || return 1
+  case "$name" in
+    *.desktop) ;;
+    *) name="${name}.desktop" ;;
+  esac
+  for dir in "${XDG_DATA_HOME:-$HOME/.local/share}/applications" \
+    /usr/local/share/applications /usr/share/applications; do
+    file="${dir}/${name}"
+    [[ -f "$file" ]] || continue
+    if command -v gio >/dev/null 2>&1 && gio launch "$file"; then
+      return 0
+    fi
+    if command -v gtk-launch >/dev/null 2>&1 && gtk-launch "${name%.desktop}"; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+if command -v xdg-terminal-exec >/dev/null 2>&1; then
+  xdg-terminal-exec && exit 0
+fi
+
+if [[ -f "$list" ]]; then
+  desktop=""
+  IFS= read -r desktop <"$list" || true
+  desktop="${desktop//$'\r'/}"
+  if [[ -n "$desktop" ]] && launch_desktop "$desktop"; then
+    exit 0
+  fi
+fi
+
+if command -v gsettings >/dev/null 2>&1; then
+  exec_bin="$(gsettings get org.gnome.desktop.default-applications.terminal exec 2>/dev/null || true)"
+  exec_bin="${exec_bin#\'}"
+  exec_bin="${exec_bin%\'}"
+  if [[ -n "$exec_bin" && "$exec_bin" != "''" ]] && command -v "$exec_bin" >/dev/null 2>&1; then
+    exec "$exec_bin"
+  fi
+fi
+
+for bin in kitty alacritty kgx gnome-terminal x-terminal-emulator; do
+  if command -v "$bin" >/dev/null 2>&1; then
+    exec "$bin"
+  fi
+done
+
+echo "ERROR: no terminal emulator found" >&2
+exit 1

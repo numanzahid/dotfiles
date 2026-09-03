@@ -35,6 +35,7 @@ These stay optional on every installer. Run them when you want them.
 ./scripts/kitty-install-update.sh        # GitHub Linux tarball (local Kitty binary)
 ./scripts/kitty-terminfo-install-update.sh   # xterm-kitty terminfo (part of --all; SSH/tmux from Kitty)
 ./scripts/kitty-image-support-install-update.sh  # optional: ImageMagick + LazyVim snacks image
+./scripts/gnome-super-enter-terminal-install-update.sh  # GNOME Super+Enter -> default terminal (skip if no GNOME)
 ./scripts/avahi-install-update.sh       # hostname.local
 ./scripts/install-tmux-config.sh        # tmux only; clone can go after
 ```

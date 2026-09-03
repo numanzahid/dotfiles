@@ -100,8 +100,10 @@ alias egrep='egrep --color=auto'
 # Fresh CTs often start tmux while LANG is still C; -u forces UTF-8 drawing.
 alias tmux='command tmux -u'
 
-if [ "$TERM" = "xterm-kitty" ]; then
-  alias ssh='kitten ssh'
+# Kitty SSH with terminfo sync. Extra command only; never override ssh.
+# TERM=xterm-kitty on a remote host does not mean kitten is installed there.
+if command -v kitten >/dev/null 2>&1; then
+  alias sshk='kitten ssh'
 fi
 
 ##### Navigation aliases ###############################################

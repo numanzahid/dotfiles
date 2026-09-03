@@ -460,5 +460,7 @@ Next steps:
   7. Optional: nvm/Node via ./scripts/nvm-install-update.sh
   8. Optional Kitty image previews in LazyVim (local Kitty only):
        ./scripts/kitty-image-support-install-update.sh
+  9. Optional GNOME Super+Enter opens the default terminal (skip if no GNOME):
+       ./scripts/gnome-super-enter-terminal-install-update.sh
 
 EOF
