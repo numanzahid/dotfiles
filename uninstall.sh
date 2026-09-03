@@ -17,6 +17,8 @@ TARGET_HOME="${HOME:?}"
 source "$SCRIPTS_DIR/lib/journal.sh"
 # shellcheck source=scripts/lib/privilege.sh
 source "$SCRIPTS_DIR/lib/privilege.sh"
+# shellcheck source=scripts/lib/pfetch-remove.sh
+source "$SCRIPTS_DIR/lib/pfetch-remove.sh"
 
 APPLY=0
 CONFIGS=1
@@ -52,6 +54,10 @@ Records:
   ~/.local/share/dotfiles/install-journal.tsv
   ~/.local/share/dotfiles/install.log
   dest.pre-dotfiles next to each replaced path
+
+Also removes leftover pfetch from the old GitHub install even if it is
+not in the journal: /usr/local/bin/pfetch, /opt/pfetch, ~/pfetch-install-update.sh,
+~/.config/pfetch.
 
 Not undone: LazyVim/lite, locale, skipped files (~/.ssh/config, a real
 prompt.sh), hide-clone (clone stays at ~/.dotfiles unless --remove-clone).
@@ -139,6 +145,9 @@ resolves_inside_clone() {
 
 needs_sudo_for_tools() {
   local journal p
+  if df_legacy_pfetch_system_present; then
+    return 0
+  fi
   journal="$(df_journal_file)"
   [[ -f "$journal" ]] || return 1
   while IFS=$'\t' read -r _ts kind p _extra; do
@@ -338,9 +347,12 @@ seed_workstation() {
   log "seed journal for a pre-journal ./install.sh --all"
   log "packages: only typical new ones (ripgrep, trash-cli, gh), not git/tmux/bash"
 
-  for b in bat fd zoxide eza lazygit btop nvim fastfetch starship; do
+  for b in bat fd zoxide eza lazygit btop nvim fastfetch starship pfetch; do
     seed_if_exists binary "/usr/local/bin/$b"
   done
+  if df_pfetch_is_our_opt; then
+    seed_if_new opt-tree /opt/pfetch
+  fi
 
   if [[ -L /opt/nvim || -e /opt/nvim ]]; then
     seed_if_new symlink /opt/nvim
@@ -359,6 +371,9 @@ seed_workstation() {
   seed_if_exists git-clone "$TARGET_HOME/.fzf"
   seed_if_exists copy "$TARGET_HOME/.fzf.bash"
   seed_if_exists git-clone "$TARGET_HOME/.tmux/plugins/tpm"
+  seed_if_exists copy "$TARGET_HOME/pfetch-install-update.sh"
+  seed_if_exists copy "$TARGET_HOME/pfetch-install-update.lib.sh"
+  seed_if_exists copy "$TARGET_HOME/.config/pfetch/pfetchrc"
 
   for pkg in ripgrep trash-cli gh; do
     if df_pkg_is_installed "$pkg"; then
@@ -420,6 +435,8 @@ journal_kinds() {
 
 uninstall_tools() {
   local p pkg file
+
+  df_remove_legacy_pfetch
 
   file="$(df_journal_file)"
   if [[ ! -f "$file" ]]; then

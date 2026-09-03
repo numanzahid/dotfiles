@@ -13,8 +13,12 @@ STATUS=0
 
 # shellcheck source=scripts/lib/platform.sh
 source "$SCRIPTS_DIR/lib/platform.sh"
+# shellcheck source=scripts/lib/privilege.sh
+source "$SCRIPTS_DIR/lib/privilege.sh"
 # shellcheck source=scripts/lib/link.sh
 source "$SCRIPTS_DIR/lib/link.sh"
+# shellcheck source=scripts/lib/pfetch-remove.sh
+source "$SCRIPTS_DIR/lib/pfetch-remove.sh"
 # shellcheck source=scripts/fastfetch-banner.sh
 source "$SCRIPTS_DIR/fastfetch-banner.sh"
 
@@ -25,6 +29,8 @@ Usage: ./install-fetch.sh [options]
 Install fastfetch and the boxed layout (~/.config/fastfetch/config.jsonc).
 Plain `fastfetch`, tmux, and `fetch` all use that one config.
 Art is chosen here (or --art) and applied via --logo.
+Removes leftover pfetch from the old GitHub install if it is still on
+this machine (/usr/local/bin/pfetch, /opt/pfetch, config/updater files).
 
 Text art files are ~/.config/fastfetch/artN.txt (1 is default).
 Add art4.txt, art5.txt, ... and they show up automatically. 0 is none.
@@ -139,6 +145,7 @@ if [[ -n "$ART" ]] && ! df_ff_art_valid "$ART"; then
   exit 1
 fi
 
+df_remove_legacy_pfetch
 link_fetch_configs
 install_fastfetch_bin
 df_ff_art_ensure_custom
