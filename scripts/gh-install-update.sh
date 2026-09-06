@@ -15,6 +15,7 @@ Usage: ./scripts/gh-install-update.sh
 Install or upgrade GitHub CLI (gh) from official GitHub .deb releases.
 https://github.com/cli/cli
 
+Removes the cli.github.com apt repo if present (not needed for this installer).
 Debian/Ubuntu only (uses apt-get to install the .deb). Needs curl, jq, sudo.
 Invoked by ./devbox.sh --gh / --all.
 On Fedora, ./desktop.sh --gh uses the dnf package instead.
@@ -59,6 +60,35 @@ if [[ "${EUID:-$(id -u)}" -ne 0 ]]; then
     exit 1
   fi
 fi
+
+remove_gh_apt_repo() {
+  local sudo_cmd="$SUDO"
+  local f
+
+  if grep -rq 'cli\.github\.com' /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null; then
+    echo "Removing GitHub CLI apt repo (dotfiles installs gh from GitHub .deb releases)"
+    while IFS= read -r f; do
+      [[ -n "$f" ]] || continue
+      echo "  remove: $f"
+      $sudo_cmd rm -f "$f"
+    done < <(grep -rl 'cli\.github\.com' /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null || true)
+  fi
+
+  if [[ -f /etc/apt/keyrings/githubcli-archive-keyring.gpg ]]; then
+    echo "  remove: /etc/apt/keyrings/githubcli-archive-keyring.gpg"
+    $sudo_cmd rm -f /etc/apt/keyrings/githubcli-archive-keyring.gpg
+  fi
+
+  shopt -s nullglob
+  local -a stale=(/var/lib/apt/lists/*cli.github.com*)
+  shopt -u nullglob
+  if ((${#stale[@]} > 0)); then
+    echo "  remove stale apt list cache for cli.github.com"
+    $sudo_cmd rm -f "${stale[@]}"
+  fi
+}
+
+remove_gh_apt_repo
 
 latest_tag() {
   gr_latest_tag "$REPO"
