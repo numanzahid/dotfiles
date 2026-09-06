@@ -2,11 +2,12 @@
 # Copy configs into $HOME as real files (not symlinks).
 # After this, you can delete the dotfiles clone.
 #
-# Not called by ../install.sh.
+# Not called by ../devbox.sh.
 set -euo pipefail
 
 COPY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DOTFILES_DIR="$(cd "$COPY_DIR/.." && pwd)"
+SERVER_DIR="$COPY_DIR"
+DOTFILES_DIR="$(cd "$SERVER_DIR/.." && pwd)"
 SOURCE_DIR="$DOTFILES_DIR/home"
 SCRIPTS_DIR="$DOTFILES_DIR/scripts"
 TARGET_HOME="${HOME:?}"
@@ -24,7 +25,7 @@ ART=""
 
 usage() {
   cat <<'EOF'
-Usage: ./install-copy/install.sh [options]
+Usage: ./server.sh [options]
 
 Copy shell/tmux/nvim configs into $HOME as real files, then you can
 remove the dotfiles folder.
@@ -33,8 +34,8 @@ Does not install or copy: gitconfig, fzf, zoxide, lazygit, lazydocker,
 gh, btop, TPM/tmux plugins, or nerd fonts.
 
 Fastfetch banner is optional (not part of --all):
-  ./install-copy/install.sh --fetch
-  ./install-copy/install.sh --fetch --art 1
+  ./server.sh --fetch
+  ./server.sh --fetch --art 1
 That copies ~/.config/fastfetch/config.jsonc, arts, example
 templates, the banner script, installs fastfetch, and runs the art
 picker on a tty. Custom art/padding in ~/.config are seeded once
@@ -50,8 +51,8 @@ Also copies xterm-kitty terminfo to ~/.terminfo (SSH from Kitty).
 Does not install Kitty or Alacritty.
 
 Options:
-  --deps       Run install-copy/install-deps.sh (apt packages + locale)
-  --neovim     Install latest Neovim (same GitHub build as ./install.sh)
+  --deps       Run server/install-deps.sh (apt packages + locale)
+  --neovim     Install latest Neovim (same GitHub build as ./devbox.sh)
   --all        Copy configs, --deps, and --neovim (no fetch, no fonts)
   --fetch      Fastfetch boxed config + art picker (or --art N)
   --art N      Set text art (implies --fetch)
@@ -61,7 +62,7 @@ EOF
 }
 
 log() {
-  printf '[install-copy] %s\n' "$*"
+  printf '[server] %s\n' "$*"
 }
 
 run() {
@@ -267,31 +268,6 @@ copy_kitty_terminfo() {
   copy_file "$src" "$dest"
 }
 
-# Drop leftover layouts (banner.jsonc, tmux2.jsonc).
-# Keep config.jsonc, art*.txt, and *.example.jsonc templates.
-clean_fastfetch_extra_jsonc() {
-  local dir="$1"
-  local f base
-
-  if [[ -L "$dir" || ! -d "$dir" ]]; then
-    return 0
-  fi
-  shopt -s nullglob
-  for f in "$dir"/*.jsonc; do
-    base="$(basename "$f")"
-    if [[ "$base" == "config.jsonc" || "$base" == *.example.jsonc ]]; then
-      continue
-    fi
-    log "remove extra fastfetch config: $f"
-    if command -v trash-put >/dev/null 2>&1; then
-      run trash-put "$f"
-    else
-      run rm -f "$f"
-    fi
-  done
-  shopt -u nullglob
-}
-
 copy_fastfetch_banner() {
   local art src_config
   src_config="$SOURCE_DIR/.config/fastfetch/config.jsonc"
@@ -303,7 +279,7 @@ copy_fastfetch_banner() {
 
   ensure_real_dir "$TARGET_HOME/.config/tmux"
   ensure_real_dir "$TARGET_HOME/.config/fastfetch"
-  clean_fastfetch_extra_jsonc "$TARGET_HOME/.config/fastfetch"
+  df_ff_clean_extra_jsonc "$TARGET_HOME/.config/fastfetch"
 
   copy_file "$src_config" "$TARGET_HOME/.config/fastfetch/config.jsonc"
   copy_file "$SOURCE_DIR/.config/tmux/tmux-logo.txt" "$TARGET_HOME/.config/tmux/tmux-logo.txt"
@@ -369,10 +345,10 @@ install_configs() {
   mkdir -p "$TARGET_HOME/.config/dotfiles"
   copy_file "$SOURCE_DIR/.config/dotfiles/prompt-custom.sh" "$TARGET_HOME/.config/dotfiles/prompt.sh"
   copy_file "$SOURCE_DIR/.config/dotfiles/locale.sh" "$TARGET_HOME/.config/dotfiles/locale.sh"
-  copy_file "$COPY_DIR/shell_aliases_interactive.sh" "$TARGET_HOME/.shell_aliases_interactive.sh"
+  copy_file "$SERVER_DIR/shell_aliases_interactive.sh" "$TARGET_HOME/.shell_aliases_interactive.sh"
   copy_file "$SOURCE_DIR/.inputrc" "$TARGET_HOME/.inputrc"
   copy_file "$SOURCE_DIR/.profile" "$TARGET_HOME/.profile"
-  copy_file "$COPY_DIR/tmux.conf" "$TARGET_HOME/.tmux.conf"
+  copy_file "$SERVER_DIR/tmux.conf" "$TARGET_HOME/.tmux.conf"
   copy_kitty_terminfo
 
   if [[ "$INSTALL_FETCH" -eq 1 ]]; then
@@ -425,9 +401,9 @@ install_configs
 
 if [[ "$INSTALL_DEPS" -eq 1 ]]; then
   if [[ "$DRY_RUN" -eq 1 ]]; then
-    run bash "$COPY_DIR/install-deps.sh"
+    run bash "$SERVER_DIR/install-deps.sh"
   else
-    bash "$COPY_DIR/install-deps.sh"
+    bash "$SERVER_DIR/install-deps.sh"
   fi
 fi
 
@@ -447,13 +423,13 @@ if [[ "$INSTALL_FETCH" -eq 1 ]]; then
   elif command -v git >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
     bash "$INSTALL_SCRIPTS_DIR/fastfetch-install-update.sh"
   else
-    log "WARN: git and jq required for fastfetch; run ./install-copy/install.sh --fetch"
+    log "WARN: git and jq required for fastfetch; run ./server.sh --fetch"
   fi
 fi
 
 cat <<'EOF'
 
-install-copy finished. Configs are real files in $HOME.
+server install finished. Configs are real files in $HOME.
 You can delete the dotfiles clone:
 
   rm -rf ~/.dotfiles
@@ -478,12 +454,12 @@ Apt deps (--deps / --all):
   bash bash-completion ca-certificates curl git gzip htop jq less locales tar tmux wget
 
 Neovim (--neovim / --all):
-  same GitHub build as ./install.sh --neovim  (/usr/local/bin/nvim)
+  same GitHub build as ./devbox.sh --neovim  (/usr/local/bin/nvim)
   later: ~/.install-scripts/neovim-install-update.sh
 
 Fastfetch banner (optional, not part of --all):
-  ./install-copy/install.sh --fetch
-  ./install-copy/install.sh --fetch --art 1
+  ./server.sh --fetch
+  ./server.sh --fetch --art 1
   ~/.config/fastfetch/config.jsonc
   later: ~/.install-scripts/fastfetch-install-update.sh
 

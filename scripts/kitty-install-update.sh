@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Install or upgrade Kitty. Not part of --all.
 # GitHub Linux tarball into ~/.local/kitty.app (symlink kitty + kitten).
-# Config is linked by ./install.sh and ./install-fedora.sh, not this script.
+# Config is linked by ./devbox.sh and ./desktop.sh, not this script.
 #
 # Re-run: ./scripts/kitty-install-update.sh
 
@@ -19,7 +19,7 @@ Install or upgrade Kitty from the official GitHub Linux tarball
 Installs ~/.local/kitty.app and symlinks ~/.local/bin/kitty and kitten.
 Sets this terminal as the default (last GUI terminal installer wins).
 Then runs kitty-terminfo-install-update.sh.
-Needs curl, jq, tar, xz. Config is linked by ./install.sh, not this script.
+Needs curl, jq, tar, xz. Config is linked by ./devbox.sh, not this script.
 
 Options:
   -h, --help   Show this help

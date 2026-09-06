@@ -7,7 +7,7 @@
 # Seeded once from the templates; never overwritten.
 # Choice: ~/.local/share/dotfiles/fastfetch-art
 #
-# Sourced by install-fetch.sh and install-copy for listing/preview.
+# Sourced by install-fetch.sh and server/devbox.sh for listing/preview/cleanup.
 # Executed as the banner. Logo art is --logo; padding is CLI flags.
 
 df_ff_art_choice_file() {
@@ -319,6 +319,37 @@ df_ff_maybe_set_art() {
     df_ff_art_set "$choice"
     echo "text art: $choice" >&2
   fi
+}
+
+# Remove stray fastfetch *.jsonc layouts. Requires link.sh (df_stash_original_if_needed).
+# Keeps config.jsonc and *.example.jsonc. Backs up foreign files before removal.
+df_ff_clean_extra_jsonc() {
+  local dir="$1"
+  local f base
+
+  if [[ -L "$dir" || ! -d "$dir" ]]; then
+    return 0
+  fi
+  shopt -s nullglob
+  for f in "$dir"/*.jsonc; do
+    base="$(basename "$f")"
+    if [[ "$base" == "config.jsonc" || "$base" == *.example.jsonc ]]; then
+      continue
+    fi
+    if ! df_path_is_tracked "$f"; then
+      df_stash_original_if_needed "" "$f"
+    fi
+    if [[ ! -e "$f" && ! -L "$f" ]]; then
+      continue
+    fi
+    log "remove extra fastfetch config: $f"
+    if command -v trash-put >/dev/null 2>&1; then
+      run trash-put "$f"
+    else
+      run rm -f "$f"
+    fi
+  done
+  shopt -u nullglob
 }
 
 if [[ "${BASH_SOURCE[0]}" != "$0" ]]; then

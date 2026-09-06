@@ -31,7 +31,7 @@ DRY_RUN=0
 
 usage() {
   cat <<'EOF'
-Usage: ./install-fedora.sh [options]
+Usage: ./desktop.sh [options]
 
 Links the shared ~/.bashrc (Fedora /etc/bashrc, PATH, and ~/.bashrc.d
 are included there). Prompt is ~/.config/dotfiles/prompt.sh
@@ -65,8 +65,7 @@ LazyVim extras (optional, not part of --all):
 Tmux fetch banner (optional, not part of --all):
   ./install-fetch.sh
 
-AI coding CLIs (optional, not part of --all):
-  ./install-ai-cli.sh
+Default behavior links config files into $HOME (includes AI agent rules).
 
 Optional GUI (not part of --all):
   ./scripts/alacritty-install-update.sh
@@ -144,8 +143,8 @@ ensure_sudo_for_install() {
 
 # shellcheck source=scripts/lib/link.sh
 source "$SCRIPTS_DIR/lib/link.sh"
-# shellcheck source=scripts/lib/ai-trash-rules.sh
-source "$SCRIPTS_DIR/lib/ai-trash-rules.sh"
+# shellcheck source=scripts/lib/ai-rules.sh
+source "$SCRIPTS_DIR/lib/ai-rules.sh"
 
 link_path() {
   df_link_path "$@"
@@ -311,7 +310,8 @@ install_dotfiles() {
   run chmod 600 "$TARGET_HOME/.ssh/config" 2>/dev/null || true
   run chmod 600 "$TARGET_HOME/.ssh/authorized_keys" 2>/dev/null || true
 
-  df_copy_ai_trash_rules
+  log "AI agent rules (cursor, codex, claude)"
+  df_ai_rules_install_all
 
   if [[ -x "$DOTFILES_DIR/scripts/kitty-terminfo-install-update.sh" ]]; then
     log "kitty terminfo (xterm-kitty for SSH/tmux from Kitty)"
@@ -386,7 +386,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ "$(df_host_os_id)" != "fedora" ]]; then
-  echo "On Debian/Ubuntu use ./install.sh (or ./install-copy/install.sh)." >&2
+  echo "On Debian/Ubuntu use ./devbox.sh (or ./server.sh)." >&2
   echo "This installer is Fedora-only." >&2
   exit 1
 fi
@@ -445,7 +445,7 @@ if [[ "$INSTALL_FONTS" -eq 1 ]]; then
 fi
 
 if [[ "$GITHUB_STEP_FAILED" -eq 1 ]]; then
-  log "one or more installs failed; re-run ./install-fedora.sh --all"
+  log "one or more installs failed; re-run ./desktop.sh --all"
   exit 1
 fi
 
@@ -461,12 +461,10 @@ Next steps:
        ./lazyvim/install-lazyvim.sh
   5. Optional fetch banner (not part of --all):
        ./install-fetch.sh
-  6. Optional AI CLIs (not part of --all):
-       ./install-ai-cli.sh
-  7. Optional: nvm/Node via ./scripts/nvm-install-update.sh
-  8. Optional Kitty image previews in LazyVim (local Kitty only):
+  6. Optional: nvm/Node via ./scripts/nvm-install-update.sh
+  7. Optional Kitty image previews in LazyVim (local Kitty only):
        ./scripts/kitty-image-support-install-update.sh
-  9. Optional GNOME Super+Enter opens the default terminal (skip if no GNOME):
+  8. Optional GNOME Super+Enter opens the default terminal (skip if no GNOME):
        ./scripts/gnome-super-enter-terminal-install-update.sh
 
 EOF

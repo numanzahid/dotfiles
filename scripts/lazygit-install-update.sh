@@ -17,7 +17,7 @@ Install or upgrade lazygit from GitHub releases (not apt).
 https://github.com/jesseduffield/lazygit
 
 Installs /usr/local/bin/lazygit. Needs curl, jq, tar, sudo.
-Invoked by ./install.sh --lazygit / --all and ./install-fedora.sh --lazygit
+Invoked by ./devbox.sh --lazygit / --all and ./desktop.sh --lazygit
 (not in Fedora repos). Not part of copy-install.
 
 Options:

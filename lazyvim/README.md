@@ -5,8 +5,8 @@ Optional bootstrap for web, config, shell, Python, and Markdown editing.
 Neovim itself is installed separately:
 
 ```bash
-./install.sh --neovim           # Debian/Ubuntu, or --all
-./install-fedora.sh --neovim    # Fedora, or --all
+./devbox.sh --neovim           # Debian/Ubuntu, or --all
+./desktop.sh --neovim    # Fedora, or --all
 ```
 
 Then:

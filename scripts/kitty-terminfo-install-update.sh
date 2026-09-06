@@ -4,7 +4,7 @@ set -euo pipefail
 # Install xterm-kitty terminfo for SSH/tmux (no Kitty binary required).
 # Bundled from Kitty releases; refreshed when ./scripts/kitty-install-update.sh runs.
 #
-# Invoked by: ./install.sh --all, ./install-fedora.sh --all
+# Invoked by: ./devbox.sh --all, ./desktop.sh --all
 # Re-run:     ./scripts/kitty-terminfo-install-update.sh
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -20,9 +20,9 @@ No Kitty binary required. Needed so SSH/tmux from Kitty can start
 Sources: ~/.local/kitty.app if present, else the blob bundled in
 scripts/data/terminfo/x/xterm-kitty.
 
-Invoked by ./install.sh and ./install-fedora.sh (config install),
+Invoked by ./devbox.sh and ./desktop.sh (config install),
 by the Kitty installer, and copied onto light hosts by
-./install-copy/install.sh. Fedora and Debian/Ubuntu only.
+./server.sh. Fedora and Debian/Ubuntu only.
 
 Options:
   -h, --help   Show this help

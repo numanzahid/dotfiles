@@ -1,6 +1,6 @@
 -- LazyVim config tree. Linked to ~/.config/nvim only by:
 --   ./lazyvim/install-lazyvim.sh or ./lazyvim-lite/install-lazyvim-lite.sh
--- Main ./install.sh never links this tree. Plain editor rules live in nvim-plain/.
+-- Main ./devbox.sh never links this tree. Plain editor rules live in nvim-plain/.
 
 local profile = require("config.nvim-profile")
 

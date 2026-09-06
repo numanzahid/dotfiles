@@ -32,7 +32,7 @@ usage() {
   cat <<'EOF'
 Usage: ./uninstall.sh [options]
 
-Undo ./install.sh, ./install-fedora.sh, or ./install-copy/install.sh.
+Undo ./devbox.sh, ./desktop.sh, or ./server.sh.
 Restore originals (*.pre-dotfiles) and remove files those installers placed.
 Default is dry-run (prints actions, changes nothing).
 
@@ -45,7 +45,7 @@ Options:
   --apply              Make the changes
   --configs-only       Restore/remove home configs only (no packages/binaries)
   --tools-only         Remove journaled packages/binaries/clones only
-  --seed-workstation   Record a pre-journal ./install.sh --all into the journal
+  --seed-workstation   Record a pre-journal ./devbox.sh --all into the journal
                        (needed on hosts that installed before journaling existed)
   --leftovers-only     Only remove stale clone symlinks, timestamped backups,
                        leftover fzf/tpm/pfetch. Does not restore configs.
@@ -83,6 +83,9 @@ EOF
 log() {
   printf '[uninstall] %s\n' "$*"
 }
+
+# shellcheck source=scripts/lib/ai-rules.sh
+source "$SCRIPTS_DIR/lib/ai-rules.sh"
 
 run() {
   if [[ "$APPLY" -eq 0 ]]; then
@@ -270,38 +273,6 @@ restore_dest() {
   restore_skel "$dest" || true
 }
 
-strip_trash_cli_block() {
-  local dest="$1"
-  local start="<!-- dotfiles-trash-cli -->"
-  local end="<!-- /dotfiles-trash-cli -->"
-  local tmp
-
-  if [[ ! -f "$dest" || -L "$dest" ]]; then
-    return 0
-  fi
-  if ! grep -Fq "$start" "$dest"; then
-    return 0
-  fi
-
-  log "strip trash-cli block: $dest"
-  if [[ "$APPLY" -eq 0 ]]; then
-    return 0
-  fi
-
-  tmp="$(mktemp)"
-  awk -v start="$start" -v end="$end" '
-    $0 == start { skip = 1; next }
-    $0 == end { skip = 0; next }
-    !skip { print }
-  ' "$dest" >"$tmp"
-  if grep -q '[^[:space:]]' "$tmp"; then
-    mv "$tmp" "$dest"
-  else
-    rm -f "$tmp" "$dest"
-    log "removed empty file after strip: $dest"
-  fi
-}
-
 collect_home_dests() {
   local file p
   local -A seen=()
@@ -360,7 +331,7 @@ seed_if_exists() {
 seed_workstation() {
   local b p target pkg
 
-  log "seed journal for a pre-journal ./install.sh --all"
+  log "seed journal for a pre-journal ./devbox.sh --all"
   log "packages: only typical new ones (ripgrep, trash-cli, gh), not git/tmux/bash"
 
   for b in bat fd zoxide eza lazygit btop nvim fastfetch starship pfetch; do
@@ -436,8 +407,7 @@ uninstall_configs() {
     restore_dest "$dest"
   done
 
-  strip_trash_cli_block "$TARGET_HOME/.codex/AGENTS.md"
-  strip_trash_cli_block "$TARGET_HOME/.claude/CLAUDE.md"
+  df_strip_ai_rules
 }
 
 # True when a symlink still points at the old unhidden clone path

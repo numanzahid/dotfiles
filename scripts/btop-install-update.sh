@@ -6,7 +6,7 @@ set -euo pipefail
 #
 # Installs to /usr/local/bin/btop
 # Re-run anytime to upgrade.
-# Invoked by: ./install.sh --btop  (or --all)
+# Invoked by: ./devbox.sh --btop  (or --all)
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -19,8 +19,8 @@ https://github.com/aristocratos/btop
 
 Installs /usr/local/bin/btop. Removes an apt btop if present.
 Needs curl, jq, tar, sudo.
-Invoked by ./install.sh --btop / --all.
-On Fedora, ./install-fedora.sh --btop uses the dnf package instead.
+Invoked by ./devbox.sh --btop / --all.
+On Fedora, ./desktop.sh --btop uses the dnf package instead.
 
 Options:
   -h, --help   Show this help

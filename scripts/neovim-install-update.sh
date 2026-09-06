@@ -21,10 +21,10 @@ https://github.com/neovim/neovim
 
 Installs /opt/nvim-<ver>-<arch>, symlink /opt/nvim, and
 /usr/local/bin/nvim. Needs curl or wget, tar, sudo.
-Invoked by ./install.sh --neovim / --all.
+Invoked by ./devbox.sh --neovim / --all.
 Copy-install copies this script to ~/.install-scripts/ so you can
 upgrade after deleting the clone.
-On Fedora, ./install-fedora.sh --neovim uses dnf neovim instead.
+On Fedora, ./desktop.sh --neovim uses dnf neovim instead.
 
 Options:
   -h, --help   Show this help

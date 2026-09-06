@@ -30,7 +30,7 @@ Options:
 
 Re-run anytime to upgrade:
   ./install-tools.sh
-  ./install.sh --tools
+  ./devbox.sh --tools
 EOF
 }
 

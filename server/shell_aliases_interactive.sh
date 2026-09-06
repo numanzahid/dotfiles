@@ -1,5 +1,5 @@
 # ~/.shell_aliases_interactive.sh
-# Interactive-only shell customizations for install-copy.
+# Interactive-only shell customizations for server.
 # No fzf, zoxide, or eza. Fastfetch banner uses the same boxed config.
 
 # Main install used: alias cd="zd" (zoxide). source ~/.bashrc does not drop

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Shared symlink/copy helpers for install.sh, install-copy, and LazyVim scripts.
+# Shared symlink/copy helpers for devbox.sh, server/, and LazyVim scripts.
 
 # One original backup per path: dest.pre-dotfiles (no timestamp).
 # Paths we have installed are tracked in ~/.local/share/dotfiles/managed-paths
@@ -103,7 +103,7 @@ df_migrate_original_backup() {
   done
 }
 
-# Back-compat name used by install-copy.
+# Back-compat name used by server.
 df_prune_pre_dotfiles_backups() {
   df_migrate_original_backup "$1"
 }

@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# Apt packages for install-copy (no GitHub CLI tools).
+# Apt packages for server (no GitHub CLI tools).
 set -euo pipefail
 
-COPY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DOTFILES_DIR="$(cd "$COPY_DIR/.." && pwd)"
+SERVER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DOTFILES_DIR="$(cd "$SERVER_DIR/.." && pwd)"
 
 usage() {
   cat <<'EOF'
-Usage: ./install-copy/install-deps.sh
+Usage: ./server/install-deps.sh
 
 Apt packages for light hosts / CTs. Invoked by
-./install-copy/install.sh --deps / --all.
+./server.sh --deps / --all.
 
 Installs: bash bash-completion ca-certificates curl git gzip htop jq
 less locales tar tmux wget. Enables en_US.UTF-8. Needs sudo.
@@ -33,7 +33,7 @@ source "$DOTFILES_DIR/scripts/lib/privilege.sh"
 source "$DOTFILES_DIR/scripts/lib/journal.sh"
 
 if ! command -v apt-get >/dev/null 2>&1; then
-  echo "install-copy/install-deps.sh supports apt-based systems only." >&2
+  echo "server/install-deps.sh supports apt-based systems only." >&2
   exit 1
 fi
 
@@ -107,5 +107,5 @@ else
   echo "A CT reboot is not required."
 fi
 
-echo "install-copy deps done."
+echo "server deps done."
 echo "apt: ${PACKAGES[*]}"

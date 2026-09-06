@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Install fastfetch and the boxed config (~/.config/fastfetch/config.jsonc).
-# Not part of ./install.sh --all.
+# Not part of ./devbox.sh --all.
 set -euo pipefail
 
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -75,6 +75,10 @@ link_path() {
 link_fetch_configs() {
   mkdir -p "$TARGET_HOME/.config/tmux"
   mkdir -p "$TARGET_HOME/.config/fastfetch"
+
+  if [[ -d "$TARGET_HOME/.config/fastfetch" && ! -L "$TARGET_HOME/.config/fastfetch" ]]; then
+    df_ff_clean_extra_jsonc "$TARGET_HOME/.config/fastfetch"
+  fi
 
   link_path "$SOURCE_DIR/.config/fastfetch" "$TARGET_HOME/.config/fastfetch"
   link_path "$SOURCE_DIR/.config/tmux/tmux-logo.txt" "$TARGET_HOME/.config/tmux/tmux-logo.txt"

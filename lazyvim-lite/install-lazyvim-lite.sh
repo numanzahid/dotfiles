@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # LazyVim-lite: LazyVim look and feel without Mason, LSP, Node, or lang IDE extras.
-# Neovim itself must already be installed (./install.sh --neovim).
+# Neovim itself must already be installed (./devbox.sh --neovim).
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -53,7 +53,7 @@ version_ge() {
 check_neovim() {
   local version luajit_ok=0
 
-  command -v nvim >/dev/null 2>&1 || die "nvim not found. Run: ./install.sh --neovim  or  ./install-fedora.sh --neovim"
+  command -v nvim >/dev/null 2>&1 || die "nvim not found. Run: ./devbox.sh --neovim  or  ./desktop.sh --neovim"
 
   version="$(nvim --version | head -n 1 | sed -n 's/.*NVIM v\([0-9.]*\).*/\1/p')"
   [[ -n "$version" ]] || die "could not parse nvim version"

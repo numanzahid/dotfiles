@@ -14,8 +14,8 @@ Install or upgrade fd from GitHub releases (not apt).
 https://github.com/sharkdp/fd
 
 Installs /usr/local/bin/fd. Needs curl, jq, tar, sudo.
-Invoked by ./install.sh --tools / --all and ./install-tools.sh.
-On Fedora, ./install-fedora.sh --tools uses dnf fd-find instead.
+Invoked by ./devbox.sh --tools / --all and ./install-tools.sh.
+On Fedora, ./desktop.sh --tools uses dnf fd-find instead.
 
 Options:
   -h, --help   Show this help

@@ -14,8 +14,8 @@ Install or upgrade starship from GitHub releases (not dnf/apt).
 https://github.com/starship/starship
 
 Installs /usr/local/bin/starship. Needs curl, jq, tar, sudo.
-Invoked by ./install-fedora.sh --starship / --all (default Fedora prompt).
-Not part of Debian ./install.sh --all (Debian uses the custom prompt).
+Invoked by ./desktop.sh --starship / --all (default Fedora prompt).
+Not part of Debian ./devbox.sh --all (Debian uses the custom prompt).
 
 Options:
   -h, --help   Show this help

@@ -11,7 +11,7 @@ if ! [[ "$PATH" =~ "$HOME/.local/bin:$HOME/bin:" ]]; then
 fi
 export PATH
 
-# OpenCode (only if installed; see ./install-ai-cli.sh).
+# OpenCode (only if installed separately).
 if [ -d "$HOME/.opencode/bin" ]; then
   case ":$PATH:" in
     *":$HOME/.opencode/bin:"*) ;;

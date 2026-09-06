@@ -14,8 +14,8 @@ Install or upgrade bat from GitHub releases (not apt).
 https://github.com/sharkdp/bat
 
 Installs /usr/local/bin/bat. Needs curl, jq, tar, sudo.
-Invoked by ./install.sh --tools / --all and ./install-tools.sh.
-On Fedora, ./install-fedora.sh --tools uses dnf bat instead.
+Invoked by ./devbox.sh --tools / --all and ./install-tools.sh.
+On Fedora, ./desktop.sh --tools uses dnf bat instead.
 
 Options:
   -h, --help   Show this help

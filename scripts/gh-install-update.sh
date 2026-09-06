@@ -16,8 +16,8 @@ Install or upgrade GitHub CLI (gh) from official GitHub .deb releases.
 https://github.com/cli/cli
 
 Debian/Ubuntu only (uses apt-get to install the .deb). Needs curl, jq, sudo.
-Invoked by ./install.sh --gh / --all.
-On Fedora, ./install-fedora.sh --gh uses the dnf package instead.
+Invoked by ./devbox.sh --gh / --all.
+On Fedora, ./desktop.sh --gh uses the dnf package instead.
 Not part of copy-install.
 
 Options:

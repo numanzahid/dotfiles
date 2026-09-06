@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Install or upgrade Alacritty. Not part of --all.
 # Fedora: dnf. Ubuntu/Debian: GitHub source tarball + rustup/cargo into ~/.local.
-# Config is linked by ./install.sh and ./install-fedora.sh, not this script.
+# Config is linked by ./devbox.sh and ./desktop.sh, not this script.
 #
 # Re-run: ./scripts/alacritty-install-update.sh
 
@@ -18,7 +18,7 @@ Fedora: dnf. Ubuntu/Debian: GitHub source tarball + rustup/cargo into
 ~/.local (rustup --no-modify-path, will not edit ~/.bashrc).
 
 Sets this terminal as the default (last GUI terminal installer wins).
-Needs sudo for dnf or build deps. Config is linked by ./install.sh,
+Needs sudo for dnf or build deps. Config is linked by ./devbox.sh,
 not this script.
 
 Options:

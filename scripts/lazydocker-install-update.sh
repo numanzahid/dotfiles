@@ -6,7 +6,7 @@ set -euo pipefail
 #
 # Installs to /usr/local/bin/lazydocker
 # Re-run anytime to upgrade.
-# Not part of ./install.sh or ./install-tools.sh.
+# Not part of ./devbox.sh or ./install-tools.sh.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -18,7 +18,7 @@ Install or upgrade lazydocker from GitHub releases.
 https://github.com/jesseduffield/lazydocker
 
 Installs /usr/local/bin/lazydocker. Needs curl, jq, tar, sudo.
-Optional. Not part of ./install.sh --all or ./install-tools.sh.
+Optional. Not part of ./devbox.sh --all or ./install-tools.sh.
 
 Options:
   -h, --help   Show this help

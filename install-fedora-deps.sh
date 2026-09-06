@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Base dnf packages for Fedora.
-# CLI tools that may come from GitHub are chosen by ./install-fedora.sh.
+# CLI tools that may come from GitHub are chosen by ./desktop.sh.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -10,13 +10,13 @@ usage() {
 Usage: ./install-fedora-deps.sh
 
 Base dnf packages for Fedora workstation installs.
-Invoked by ./install-fedora.sh --deps / --all.
+Invoked by ./desktop.sh --deps / --all.
 
 Installs: bash bash-completion ca-certificates curl git gzip jq less
 ripgrep tar tmux trash-cli wget unzip fontconfig.
 Needs sudo. Official Fedora repos only (no COPR).
 
-CLI tools that may come from GitHub are chosen by ./install-fedora.sh
+CLI tools that may come from GitHub are chosen by ./desktop.sh
 (zoxide, lazygit, starship, fonts, fastfetch).
 
 On Debian/Ubuntu use ./install-deps.sh.
@@ -81,9 +81,9 @@ if ((${#missing[@]} > 0)); then
   df_journal_new_packages "${missing[@]}"
 fi
 
-echo "Done. Tool binaries: ./install-fedora.sh --tools --neovim --btop --fzf --gh --lazygit --starship"
+echo "Done. Tool binaries: ./desktop.sh --tools --neovim --btop --fzf --gh --lazygit --starship"
 echo "dnf: bat fd-find eza btop fzf gh neovim. GitHub: zoxide lazygit starship."
 echo "Fastfetch: ./install-fetch.sh"
 echo "Nvm/Node:      ./scripts/nvm-install-update.sh"
-echo "AI CLIs:       ./install-ai-cli.sh"
+
 echo "LazyVim:       ./lazyvim/install-lazyvim.sh or ./lazyvim-lite/install-lazyvim-lite.sh"

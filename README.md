@@ -1,32 +1,42 @@
 # dotfiles
 
-Bash, tmux, nvim, and CLI tools. One `main` branch. Clone it, pick an installer, run `--all`.
+Bash, tmux, nvim, and CLI tools. One `main` branch. Clone to `~/.dotfiles`, pick an installer, run `--all`.
 
 The clone lives at `~/.dotfiles` (hidden). If you clone to `~/dotfiles`, the installer renames it on first run and continues from there.
+
+## Installers
+
+| Script | Profile |
+|--------|---------|
+| `./devbox.sh` | Ubuntu/Debian development machine (symlinks; keep the clone) |
+| `./desktop.sh` | Fedora desktop/development machine (symlinks; keep the clone) |
+| `./server.sh` | Server, VPS, VM, or container (copies real files; safe to delete the clone after) |
 
 ```bash
 git clone git@github.com:numanzahid/dotfiles.git ~/.dotfiles
 cd ~/.dotfiles
 
-./install.sh --all                 # Debian/Ubuntu. Keep the clone. Configs are symlinks.
-./install-fedora.sh --all          # Fedora. Same bashrc. dnf or GitHub.
-./install-copy/install.sh --all    # Light host / CT. Real files. Safe to delete the clone after.
+./devbox.sh --all      # Debian/Ubuntu
+./desktop.sh --all     # Fedora
+./server.sh --all      # light host / CT
 ```
 
-`--all` is the daily box: configs, packages, bat/fd/zoxide/eza, lazygit, gh, neovim, btop, fzf, tmux plugins, and Nerd Fonts (Cascadia Code + JetBrains Mono, user fonts + fc-cache). Fedora also gets starship. Light host is slimmer (configs, apt, neovim) and skips gitconfig, fzf, zoxide, lazygit, gh, btop, TPM, fonts, and fastfetch. Fetch on a light host: `./install-copy/install.sh --fetch`.
+`--all` is the daily box: configs, packages, bat/fd/zoxide/eza, lazygit, gh, neovim, btop, fzf, tmux plugins, and Nerd Fonts (Cascadia Code + JetBrains Mono, user fonts + fc-cache). Fedora also gets starship. `devbox.sh` and `desktop.sh` also install AI agent rules (Cursor, Codex, Claude Code). `server.sh` is slimmer: configs, apt, neovim; no gitconfig, fzf, zoxide, lazygit, gh, btop, TPM, fonts, fastfetch, or AI rules.
 
-Want a subset? `./install.sh -h` (or the fedora/copy script). After a workstation install, copy SSH keys into `~/.ssh/` yourself, then in tmux hit `prefix + Shift + I` once.
+Fetch on a light host: `./server.sh --fetch`. On devbox/desktop: `./install-fetch.sh`.
+
+Want a subset? `./devbox.sh -h`, `./desktop.sh -h`, or `./server.sh -h`. After a devbox/desktop install, copy SSH keys into `~/.ssh/` yourself, then in tmux hit `prefix + Shift + I` once.
 
 Light host: `rm -rf ~/.dotfiles` when you are done. Later upgrades live in `~/.install-scripts/` (`neovim-install-update.sh`, `fastfetch-install-update.sh`).
 
-## Not part of --all
+Refresh AI rules only: `./install-ai-rules.sh`
 
-These stay optional on every installer. Run them when you want them.
+## Not part of --all
 
 ```bash
 ./install-fetch.sh                      # fastfetch + boxed config + art picker
-./install-copy/install.sh --fetch       # same fetch on a light host (copies)
-./install-ai-cli.sh                     # OpenCode, Cursor, Claude Code, Codex
+./server.sh --fetch                     # same fetch on a light host (copies)
+./install-ai-rules.sh                   # refresh Cursor/Codex/Claude rules
 ./lazyvim/install-lazyvim.sh            # LazyVim IDE
 ./lazyvim-lite/install-lazyvim-lite.sh  # LazyVim, no Mason/LSP/Node
 ./scripts/nvm-install-update.sh         # Node via nvm
@@ -40,23 +50,23 @@ These stay optional on every installer. Run them when you want them.
 ./scripts/install-tmux-config.sh        # tmux only; clone can go after
 ```
 
-Fetch: one boxed layout (`~/.config/fastfetch/config.jsonc`) for `fastfetch`, tmux, and `fetch`. Workstation: `./install-fetch.sh`. Light host: `./install-copy/install.sh --fetch` (not part of `--all`). Art: `--art 1` is default, `--art c` is custom. Repo templates: `home/.config/fastfetch/custom-fetch-art.example.txt` and `custom-fetch-padding.example.jsonc`. First `--fetch` copies those to `~/.config/custom-fetch-art.txt` and `~/.config/custom-fetch-padding.jsonc` if missing, then never overwrites. The banner script applies the live files on top of `config.jsonc` (`--logo` and `--logo-padding-*`).
+Fetch: one boxed layout (`~/.config/fastfetch/config.jsonc`) for `fastfetch`, tmux, and `fetch`. Workstation: `./install-fetch.sh`. Light host: `./server.sh --fetch`. Art: `--art 1` is default, `--art c` is custom. Repo templates: `home/.config/fastfetch/custom-fetch-art.example.txt` and `custom-fetch-padding.example.jsonc`. First `--fetch` copies those to `~/.config/custom-fetch-art.txt` and `~/.config/custom-fetch-padding.jsonc` if missing, then never overwrites. Foreign fastfetch files are backed up before cleanup.
 
 Default nvim is the plain editor. LazyVim is linked only by the lazyvim scripts. See `lazyvim/README.md` if you go that route.
 
 ## Day to day
 
 ```bash
-cd ~/.dotfiles && git pull && ./install.sh          # or ./install-fedora.sh
+cd ~/.dotfiles && git pull && ./devbox.sh          # or ./desktop.sh
 ```
 
-Re-runs overwrite files this repo already manages. Something it did not put there gets one `*.pre-dotfiles` backup. LazyVim and AI CLIs are left alone unless you run those scripts.
+Re-runs overwrite files this repo already manages. Something it did not put there gets one `*.pre-dotfiles` backup. LazyVim is left alone unless you run those scripts.
 
 Prompt is `~/.config/dotfiles/prompt.sh` (custom on Debian, starship on Fedora). `del` is `trash-put`. `rm` is still `rm`.
 
 ## Uninstall
 
-Undoes `./install.sh`, `./install-fedora.sh`, and `./install-copy/install.sh` only. LazyVim and LazyVim-lite are left alone.
+Undoes `./devbox.sh`, `./desktop.sh`, and `./server.sh` only. LazyVim and LazyVim-lite are left alone.
 
 The installer records dests in `~/.local/share/dotfiles/managed-paths`, originals next to them as `*.pre-dotfiles`, and a journal at `~/.local/share/dotfiles/install-journal.tsv`.
 

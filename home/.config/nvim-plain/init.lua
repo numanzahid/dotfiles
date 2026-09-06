@@ -1,5 +1,5 @@
 -- Plain Neovim editor rules (no LazyVim, no plugin manager).
--- Linked by ./install.sh. Copied by ./install-copy/install.sh.
+-- Linked by ./devbox.sh. Copied by ./server.sh.
 -- LazyVim scripts replace this with the LazyVim config.
 
 vim.g.mapleader = " "

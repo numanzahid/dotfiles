@@ -40,8 +40,8 @@ df_reexec_from_hidden_clone() {
     exit 1
   fi
 
-  # Resolve to a path inside the clone before mv. `./install.sh` from
-  # install-copy/ must re-exec install-copy/install.sh, not root install.sh.
+  # Resolve to a path inside the clone before mv. `./devbox.sh` from
+  # server/ must re-exec server/install.sh (or ./server.sh at repo root).
   script_dir="$(cd "$(dirname "$script_path")" && pwd)"
   script_abs="$script_dir/$(basename "$script_path")"
   rel="${script_abs#"$clone_dir"/}"

@@ -24,7 +24,7 @@ Removes an apt/PPA fastfetch if present, then installs
 /usr/local/bin/fastfetch. Needs curl, jq, tar, sudo.
 
 Prefer ./install-fetch.sh on a workstation (config + art + binary).
-On a light host, ./install-copy/install.sh --fetch copies this script to
+On a light host, ./server.sh --fetch copies this script to
 ~/.install-scripts/fastfetch-install-update.sh for later upgrades.
 
 Options:

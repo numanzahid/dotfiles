@@ -14,8 +14,8 @@ Install or upgrade zoxide from GitHub releases (not apt).
 https://github.com/ajeetdsouza/zoxide
 
 Installs /usr/local/bin/zoxide. Needs curl, jq, tar, sudo.
-Invoked by ./install.sh --tools / --all, ./install-tools.sh, and
-./install-fedora.sh --tools (Fedora has no zoxide in dnf).
+Invoked by ./devbox.sh --tools / --all, ./install-tools.sh, and
+./desktop.sh --tools (Fedora has no zoxide in dnf).
 
 Options:
   -h, --help   Show this help

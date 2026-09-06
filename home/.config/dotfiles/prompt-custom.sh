@@ -1,5 +1,5 @@
 # Custom hostname:path prompt (Debian-style). No username.
-# Linked as ~/.config/dotfiles/prompt.sh by ./install.sh (and copy-install).
+# Linked as ~/.config/dotfiles/prompt.sh by ./devbox.sh (and copy-install).
 
 # Set variable identifying the chroot.
 if [ -z "${debian_chroot:-}" ] && [ -r /etc/debian_chroot ]; then

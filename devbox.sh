@@ -27,7 +27,7 @@ DRY_RUN=0
 
 usage() {
   cat <<'EOF'
-Usage: ./install.sh [options]
+Usage: ./devbox.sh [options]
 
 Options:
   --deps       Run install-deps.sh (base apt packages)
@@ -51,15 +51,7 @@ Tmux fetch banner (optional, not part of --all):
   ./install-fetch.sh                    # install fastfetch + boxed config + art
   ./install-fetch.sh --art 1
 
-AI coding CLIs (optional, not part of --all):
-  ./install-ai-cli.sh                   # prompt: opencode / cursor / claude / codex
-  ./install-ai-cli.sh all
-  ./install-ai-cli.sh claude opencode
-
-Default behavior links config files into $HOME.
-Neovim editor rules: home/.config/nvim-plain (plain nvim, no plugins).
-LazyVim nvim config is not linked here.
-OpenCode config is linked only by ./install-ai-cli.sh.
+Default behavior links config files into $HOME (includes AI agent rules).
 
 Optional GUI (not part of --all):
   ./scripts/alacritty-install-update.sh
@@ -67,7 +59,7 @@ Optional GUI (not part of --all):
   ./scripts/kitty-image-support-install-update.sh
   ./scripts/gnome-super-enter-terminal-install-update.sh
 
-Fedora: use ./install-fedora.sh instead (shared bashrc; starship prompt).
+Fedora: use ./desktop.sh instead (shared bashrc; starship prompt).
 EOF
 }
 
@@ -137,8 +129,8 @@ ensure_sudo_for_install() {
 
 # shellcheck source=scripts/lib/link.sh
 source "$SCRIPTS_DIR/lib/link.sh"
-# shellcheck source=scripts/lib/ai-trash-rules.sh
-source "$SCRIPTS_DIR/lib/ai-trash-rules.sh"
+# shellcheck source=scripts/lib/ai-rules.sh
+source "$SCRIPTS_DIR/lib/ai-rules.sh"
 
 link_path() {
   df_link_path "$@"
@@ -264,7 +256,8 @@ install_dotfiles() {
   run chmod 600 "$TARGET_HOME/.ssh/config" 2>/dev/null || true
   run chmod 600 "$TARGET_HOME/.ssh/authorized_keys" 2>/dev/null || true
 
-  df_copy_ai_trash_rules
+  log "AI agent rules (cursor, codex, claude)"
+  df_ai_rules_install_all
 
   if [[ -x "$DOTFILES_DIR/scripts/kitty-terminfo-install-update.sh" ]]; then
     log "kitty terminfo (xterm-kitty for SSH/tmux from Kitty)"
@@ -352,7 +345,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ "$(df_host_os_id)" == "fedora" ]]; then
-  echo "On Fedora use ./install-fedora.sh (this installer is Debian/Ubuntu)." >&2
+  echo "On Fedora use ./desktop.sh (this installer is Debian/Ubuntu)." >&2
   exit 1
 fi
 
@@ -404,7 +397,7 @@ if [[ "$INSTALL_FONTS" -eq 1 ]]; then
 fi
 
 if [[ "$GITHUB_STEP_FAILED" -eq 1 ]]; then
-  log "one or more GitHub installs failed; re-run ./install.sh --all"
+  log "one or more GitHub installs failed; re-run ./devbox.sh --all"
   exit 1
 fi
 
@@ -420,13 +413,10 @@ Next steps:
   4. Optional fetch (not part of --all):
        ./install-fetch.sh
        ./install-fetch.sh --art 1
-  5. Optional AI CLIs (not part of --all):
-       ./install-ai-cli.sh                # prompt: opencode / cursor / claude / codex
-       ./install-ai-cli.sh all
-  6. Optional: nvm/Node via ./scripts/nvm-install-update.sh
-  7. Optional Kitty image previews in LazyVim (local Kitty only):
+  5. Optional: nvm/Node via ./scripts/nvm-install-update.sh
+  6. Optional Kitty image previews in LazyVim (local Kitty only):
        ./scripts/kitty-image-support-install-update.sh
-  8. Optional GNOME Super+Enter opens the default terminal (skip if no GNOME):
+  7. Optional GNOME Super+Enter opens the default terminal (skip if no GNOME):
        ./scripts/gnome-super-enter-terminal-install-update.sh
 
 EOF

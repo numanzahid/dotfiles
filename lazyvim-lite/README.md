@@ -9,7 +9,7 @@ Use this when you want a fast, pretty text editor on servers and VMs, not a lang
 Prerequisites: run dotfiles base install first (at minimum Neovim):
 
 ```bash
-./install.sh --neovim
+./devbox.sh --neovim
 chmod +x lazyvim-lite/*.sh lazyvim-lite/lib/*.sh
 ./lazyvim-lite/install-lazyvim-lite.sh
 ```
@@ -58,7 +58,7 @@ Tree-sitter CLI version: try 0.26.11 first, then fall back to an older prebuilt 
 ### Recommended (optional)
 
 - Nerd Font (icons in bufferline, which-key)
-- `./install.sh --tools` for upstream bat, eza, zoxide (not required by LazyVim-lite itself)
+- `./devbox.sh --tools` for upstream bat, eza, zoxide (not required by LazyVim-lite itself)
 
 ## Neovim plugins
 

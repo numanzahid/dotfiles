@@ -4,7 +4,7 @@ set -euo pipefail
 # Copy tmux config into $HOME as real files (not symlinks).
 # After this, you can delete the dotfiles clone; tmux will keep working.
 #
-# Not called by ./install.sh. Tmux-only hosts:
+# Not called by ./devbox.sh. Tmux-only hosts:
 #   ./scripts/install-tmux-config.sh
 #   rm -rf ~/.dotfiles
 
@@ -18,7 +18,7 @@ usage() {
 Usage: ./scripts/install-tmux-config.sh [options]
 
 Copy tmux config from this repo into $HOME as real files, then you can
-remove the dotfiles folder. Not called by ./install.sh.
+remove the dotfiles folder. Not called by ./devbox.sh.
 
 Copies ~/.tmux.conf (workstation file with TPM hooks). Default clones
 tmux plugin manager into ~/.tmux/plugins/tpm.

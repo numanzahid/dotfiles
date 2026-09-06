@@ -14,8 +14,8 @@ Install or upgrade eza from GitHub releases (not apt).
 https://github.com/eza-community/eza
 
 Installs /usr/local/bin/eza. Needs curl, jq, tar, sudo.
-Invoked by ./install.sh --tools / --all and ./install-tools.sh.
-On Fedora, ./install-fedora.sh --tools uses dnf eza instead.
+Invoked by ./devbox.sh --tools / --all and ./install-tools.sh.
+On Fedora, ./desktop.sh --tools uses dnf eza instead.
 
 Options:
   -h, --help   Show this help

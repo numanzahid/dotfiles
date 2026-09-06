@@ -10,7 +10,7 @@ usage() {
 Usage: ./install-deps.sh
 
 Base apt packages for Debian/Ubuntu workstation installs (not Fedora).
-Invoked by ./install.sh --deps / --all.
+Invoked by ./devbox.sh --deps / --all.
 
 Installs: bash bash-completion ca-certificates curl git gzip jq less
 locales ripgrep tar tmux trash-cli wget unzip fontconfig.
@@ -19,7 +19,7 @@ Enables en_US.UTF-8. Needs sudo.
 Does not install Neovim, bat, fd, fzf, lazygit, or fastfetch
 (those have their own scripts).
 
-On Fedora use ./install-fedora.sh --deps.
+On Fedora use ./desktop.sh --deps.
 
 Options:
   -h, --help   Show this help
@@ -37,7 +37,7 @@ source "$SCRIPT_DIR/scripts/lib/journal.sh"
 
 if ! command -v apt-get >/dev/null 2>&1; then
   echo "install-deps.sh supports apt-based systems only." >&2
-  echo "On Fedora use ./install-fedora.sh --deps" >&2
+  echo "On Fedora use ./desktop.sh --deps" >&2
   exit 1
 fi
 
@@ -117,10 +117,10 @@ fi
 echo "Done. CLI tools (bat, fd, zoxide, eza): ./install-tools.sh"
 echo "Lazygit:   ./scripts/lazygit-install-update.sh"
 echo "Gh:        ./scripts/gh-install-update.sh"
-echo "Fzf:       ./install.sh --fzf  (git install, recommended)"
+echo "Fzf:       ./devbox.sh --fzf  (git install, recommended)"
 echo "Fastfetch: ./install-fetch.sh"
-echo "Neovim:    ./install.sh --neovim  (or --all)"
-echo "Btop:      ./install.sh --btop    (or --all)"
+echo "Neovim:    ./devbox.sh --neovim  (or --all)"
+echo "Btop:      ./devbox.sh --btop    (or --all)"
 echo "Nvm/Node:  ./scripts/nvm-install-update.sh"
-echo "AI CLIs:   ./install-ai-cli.sh  (opencode, cursor, claude, codex)"
+
 echo "LazyVim:   ./lazyvim/install-lazyvim.sh or ./lazyvim-lite/install-lazyvim-lite.sh"

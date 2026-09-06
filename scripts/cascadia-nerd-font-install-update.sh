@@ -6,7 +6,7 @@ set -euo pipefail
 #   JetBrainsMono.zip -> JetBrainsMono
 # Re-run to upgrade. Same pattern as the other *-install-update.sh scripts.
 #
-# Invoked by: ./install.sh --all and ./install-fedora.sh --all
+# Invoked by: ./devbox.sh --all and ./desktop.sh --all
 # Re-run:     ./scripts/cascadia-nerd-font-install-update.sh
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -19,7 +19,7 @@ Install Cascadia Code and JetBrains Mono nerd fonts into user fonts
 (~/.local/share/fonts/dotfiles-*). Latest GitHub nerd-fonts release.
 Runs fc-cache. No sudo.
 
-Invoked by ./install.sh --all and ./install-fedora.sh --all.
+Invoked by ./devbox.sh --all and ./desktop.sh --all.
 Not part of copy-install (light hosts skip fonts).
 
 Options:

@@ -1,0 +1,11 @@
+---
+description: Git usage and commits
+alwaysApply: true
+---
+
+- Do not run git commands or make git-related changes unless the user explicitly asks.
+- Do not create commits unless the user explicitly asks you to commit.
+- Write a precise commit subject line that explains the change on its own.
+- Avoid a commit body when the subject is enough.
+- If a body is needed, keep it as short as possible.
+- Do not add Co-Authored-By, "collaboration with", or other AI attribution to commits or PR descriptions.
