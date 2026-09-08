@@ -66,6 +66,16 @@ df_profile_detect() {
   esac
 }
 
+df_version_sanitize() {
+  local v="$1"
+  # Keep status rows and component-state.tsv on one line.
+  v="${v//$'\t'/ }"
+  v="${v//$'\r'/}"
+  v="${v%%$'\n'*}"
+  v="$(printf '%s' "$v" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+  printf '%s' "$v"
+}
+
 df_component_touch() {
   local component="$1"
   local version="${2:-}"
@@ -76,6 +86,9 @@ df_component_touch() {
   if [[ "${DRY_RUN:-0}" -eq 1 ]]; then
     return 0
   fi
+
+  version="$(df_version_sanitize "$version")"
+  note="$(df_version_sanitize "$note")"
 
   file="$(df_component_state_file)"
   dir="$(df_journal_dir)"
@@ -162,22 +175,22 @@ df_live_version() {
 
   case "$component" in
     bat)
-      v="$(bat --version 2>/dev/null | awk '{print $2}')"
+      v="$(bat --version 2>/dev/null | head -n1 | awk '{print $2}')"
       ;;
     fd)
-      v="$(fd --version 2>/dev/null | awk '{print $2}')"
+      v="$(fd --version 2>/dev/null | head -n1 | awk '{print $2}')"
       ;;
     eza)
-      v="$(eza --version 2>/dev/null | awk '{print $1}')"
+      v="$(eza --version 2>/dev/null | head -n1 | awk '{print $1}')"
       ;;
     zoxide)
-      v="$(zoxide --version 2>/dev/null | awk '{print $1}')"
+      v="$(zoxide --version 2>/dev/null | head -n1 | awk '{print $1}')"
       ;;
     neovim)
       v="$(nvim --version 2>/dev/null | head -n1 | sed -n 's/.*NVIM v\([0-9.]*\).*/\1/p')"
       ;;
     gh)
-      v="$(gh --version 2>/dev/null | awk 'NR==1 {print $3}')"
+      v="$(gh --version 2>/dev/null | head -n1 | awk '{print $3}')"
       ;;
     lazygit)
       v="$(lazygit --version 2>/dev/null | head -n1 | sed -n 's/.*version[= ]*\([0-9.]*\).*/\1/p')"
@@ -186,16 +199,16 @@ df_live_version() {
       v="$(btop --version 2>/dev/null | head -n1 | sed -n 's/.*version[= ]*\([0-9.]*\).*/\1/p')"
       ;;
     fzf)
-      v="$(fzf --version 2>/dev/null | awk '{print $1}')"
+      v="$(fzf --version 2>/dev/null | head -n1 | awk '{print $1}')"
       ;;
     tldr)
-      v="$(tldr --version 2>/dev/null | awk '{print $2}')"
+      v="$(tldr --version 2>/dev/null | head -n1 | awk '{print $2}')"
       ;;
     starship)
-      v="$(starship --version 2>/dev/null | awk '{print $2}')"
+      v="$(starship --version 2>/dev/null | head -n1 | awk '{print $2}')"
       ;;
     fastfetch)
-      v="$(fastfetch --version 2>/dev/null | awk '{print $1}')"
+      v="$(fastfetch --version 2>/dev/null | head -n1 | awk '{print $1}')"
       ;;
     repo | configs)
       v="$(git -C "${DOTFILES_DIR:-$HOME/.dotfiles}" rev-parse --short HEAD 2>/dev/null || true)"
@@ -208,7 +221,7 @@ df_live_version() {
       v=""
       ;;
   esac
-  printf '%s' "$v"
+  df_version_sanitize "$v"
 }
 
 df_nvim_status_label() {
@@ -278,6 +291,7 @@ df_status_print() {
     fi
     live="$(df_live_version "$component")"
     recorded="$(df_component_get_field "$component" 2)"
+    recorded="$(df_version_sanitize "$recorded")"
     ts_label="$(df_component_age_label "$component")"
     if [[ -z "$live" && -z "$recorded" ]]; then
       live="-"
