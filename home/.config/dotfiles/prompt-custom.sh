@@ -1,7 +1,7 @@
 # Two-line hostname:path prompt (devbox / server). No starship.
 # Linked as ~/.config/dotfiles/prompt.sh by ./devbox.sh (and copy-install).
 #
-#   ╭┤hostname ~
+#   ╭ hostname ~
 #   ╰─❯
 
 # Set variable identifying the chroot.
@@ -58,7 +58,7 @@ prompt_exit_char() {
   fi
 }
 
-PS1='${debian_chroot:+($debian_chroot)}╭┤\[\033[01;36m\]\h \[\033[01;36m\]$(prompt_short_path)\[\033[00m\]\n╰─\[\033[01;36m\]$(prompt_exit_char)\[\033[00m\] '
+PS1='${debian_chroot:+($debian_chroot)}╭ \[\033[01;36m\]\h \[\033[01;36m\]$(prompt_short_path)\[\033[00m\]\n╰─\[\033[01;36m\]$(prompt_exit_char)\[\033[00m\] '
 
 # Window title (xterm / SSH): hostname and directory only.
 case "$TERM" in
