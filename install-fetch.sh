@@ -17,6 +17,8 @@ source "$SCRIPTS_DIR/lib/platform.sh"
 source "$SCRIPTS_DIR/lib/privilege.sh"
 # shellcheck source=scripts/lib/link.sh
 source "$SCRIPTS_DIR/lib/link.sh"
+# shellcheck source=scripts/lib/journal.sh
+source "$SCRIPTS_DIR/lib/journal.sh"
 # shellcheck source=scripts/lib/pfetch-remove.sh
 source "$SCRIPTS_DIR/lib/pfetch-remove.sh"
 # shellcheck source=scripts/fastfetch-banner.sh
@@ -90,12 +92,19 @@ install_fastfetch_bin() {
   if [[ "$(df_host_os_id)" == "fedora" ]]; then
     # shellcheck source=scripts/lib/privilege.sh
     source "$SCRIPTS_DIR/lib/privilege.sh"
+    local was_installed=0
+    if df_pkg_is_installed fastfetch; then
+      was_installed=1
+    fi
     if [[ "$DRY_RUN" -eq 1 ]]; then
       printf '+ dnf install -y fastfetch\n'
       return 0
     fi
     df_ensure_sudo
     df_run_privileged dnf install -y fastfetch
+    if [[ "$was_installed" -eq 0 ]]; then
+      df_journal_once package-new fastfetch
+    fi
     return 0
   fi
   if [[ "$DRY_RUN" -eq 1 ]]; then

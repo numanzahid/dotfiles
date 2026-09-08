@@ -115,10 +115,7 @@ if [[ -z "${binary:-}" || ! -f "$binary" ]]; then
 fi
 
 echo "Installing $BIN_PATH"
-$SUDO install -m 755 "$binary" "$BIN_PATH"
-if declare -F df_journal_once >/dev/null 2>&1; then
-  df_journal_once binary "$BIN_PATH"
-fi
+gr_install_binary "$binary" "$BIN_PATH" "$SUDO"
 
 echo "Done."
 echo "lazygit path: $(command -v lazygit || true)"

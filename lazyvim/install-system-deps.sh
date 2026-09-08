@@ -10,6 +10,8 @@ source "$SCRIPT_DIR/lib/common.sh"
 DOTFILES_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 # shellcheck source=../scripts/lib/privilege.sh
 source "$DOTFILES_DIR/scripts/lib/privilege.sh"
+# shellcheck source=../scripts/lib/journal.sh
+source "$DOTFILES_DIR/scripts/lib/journal.sh"
 
 usage() {
   cat <<'EOF'
@@ -125,6 +127,7 @@ install_missing_packages() {
   fi
 
   install_packages "$family" "${missing[@]}"
+  ((${#missing[@]} > 0)) && df_journal_new_packages "${missing[@]}"
 }
 
 ensure_fd_compat() {
@@ -140,6 +143,7 @@ ensure_fd_compat() {
     if [[ ! -e "${HOME}/.local/bin/fd" ]]; then
       log "creating ~/.local/bin/fd -> $target"
       run ln -sf "$target" "${HOME}/.local/bin/fd"
+      df_journal_once link "${HOME}/.local/bin/fd" "$target"
     fi
     return 0
   fi

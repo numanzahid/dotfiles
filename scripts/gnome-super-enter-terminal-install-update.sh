@@ -47,6 +47,7 @@ df_gnome_bind_super_enter_terminal
 
 mkdir -p "$(dirname "$STAMP")"
 printf 'super-return\n' >"$STAMP"
+df_journal_once copy "$STAMP" "gnome-super-enter-terminal"
 
 echo "Done."
 echo "Shortcut: Super+Enter -> ${HOME}/.local/bin/dotfiles-default-terminal"

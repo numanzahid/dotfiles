@@ -8,6 +8,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/nvm.sh"
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/lib/github-release.sh"
+# shellcheck source=lib/journal.sh
+source "$SCRIPT_DIR/lib/journal.sh"
 
 # Major Node lines offered in the interactive menu (nvm installs latest x.y.z in the line).
 NVM_NODE_RECOMMENDED_MAJOR="${NVM_NODE_RECOMMENDED_MAJOR:-22}"
@@ -160,6 +162,7 @@ install_nvm() {
 
   if [[ -d "$NVM_DIR/.git" ]]; then
     log "nvm already present at $NVM_DIR"
+    df_journal_once git-clone "$NVM_DIR"
     return 0
   fi
 
@@ -176,6 +179,7 @@ install_nvm() {
   # nvm's own install.sh clones this repo at the release tag.
   if command -v git >/dev/null 2>&1 && \
     git clone --depth 1 --branch "$tag" https://github.com/nvm-sh/nvm.git "$NVM_DIR"; then
+    df_journal_once git-clone "$NVM_DIR"
     return 0
   fi
 
@@ -193,6 +197,9 @@ install_nvm() {
   gr_curl -fsSL -o "$tmp" "$url"
   bash "$tmp"
   rm -f "$tmp"
+  if [[ -d "$NVM_DIR/.git" || -f "$NVM_DIR/nvm.sh" ]]; then
+    df_journal_once git-clone "$NVM_DIR"
+  fi
 }
 
 install_node_major() {

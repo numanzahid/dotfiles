@@ -116,7 +116,7 @@ if [[ -z "${binary:-}" || ! -f "$binary" ]]; then
 fi
 
 echo "Installing $BIN_PATH"
-$SUDO install -m 755 "$binary" "$BIN_PATH"
+gr_install_binary "$binary" "$BIN_PATH" "$SUDO"
 
 echo "Done."
 echo "lazydocker path: $(command -v lazydocker || true)"

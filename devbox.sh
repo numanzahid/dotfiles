@@ -14,52 +14,34 @@ source "$SCRIPTS_DIR/lib/hide-clone.sh"
 df_reexec_from_hidden_clone "$DOTFILES_DIR" "${BASH_SOURCE[0]}" "$@"
 df_prepend_local_bin
 
-INSTALL_DEPS=0
-INSTALL_TOOLS=0
-INSTALL_LAZYGIT=0
-INSTALL_GH=0
-INSTALL_NEOVIM=0
-INSTALL_BTOP=0
-INSTALL_TPM=0
-INSTALL_FZF=0
-INSTALL_FONTS=0
+RUN_CONFIGS=1
+RUN_SOFTWARE=1
 DRY_RUN=0
 
 usage() {
   cat <<'EOF'
 Usage: ./devbox.sh [options]
 
+Full Debian/Ubuntu workstation install: link configs, packages, CLI tools,
+fonts, tmux TPM, and AI agent rules.
+
 Options:
-  --deps       Run install-deps.sh (base apt packages)
-  --tools      Install bat, fd, zoxide, eza from upstream releases
-  --lazygit    Run scripts/lazygit-install-update.sh (GitHub release)
-  --gh         Run scripts/gh-install-update.sh (GitHub release)
-  --neovim     Run scripts/neovim-install-update.sh (GitHub release, not apt)
-  --btop       Run scripts/btop-install-update.sh (GitHub release, not apt)
-  --tpm        Clone tmux-plugin-manager if missing
-  --fzf        Clone and install junegunn/fzf if missing
-  --all        Enable --deps --tools --lazygit --gh --neovim --btop --tpm --fzf
-               (also Cascadia Code + JetBrains Mono nerd fonts)
-  --dry-run    Print actions without changing anything
-  -h, --help   Show this help
+  --configs-only   Link configs and AI rules only (no software)
+  --software-only  Install or upgrade software only (no config links)
+  --dry-run        Print actions without changing anything
+  -h, --help       Show this help
 
-LazyVim extras (optional, not part of --all):
-  ./lazyvim/install-lazyvim.sh          # full IDE profile (Mason, LSP, Node)
-  ./lazyvim-lite/install-lazyvim-lite.sh # editor-only profile (no Mason/LSP/Node)
+Environment (used by dotfiles update):
+  DOTFILES_RESPECT_COMPONENT_AGE=1   Skip software updated within 30 days
 
-Tmux fetch banner (optional, not part of --all):
-  ./install-fetch.sh                    # install fastfetch + boxed config + art
-  ./install-fetch.sh --art 1
+Single-tool installs: ./scripts/<tool>-install-update.sh
 
-Default behavior links config files into $HOME (includes AI agent rules).
-
-Optional GUI (not part of --all):
+Optional extras:
+  dotfiles install lazyvim | lazyvim-lite | fetch
   ./scripts/alacritty-install-update.sh
   ./scripts/kitty-install-update.sh
-  ./scripts/kitty-image-support-install-update.sh
-  ./scripts/gnome-super-enter-terminal-install-update.sh
 
-Fedora: use ./desktop.sh instead (shared bashrc; starship prompt).
+Fedora: use ./desktop.sh instead.
 EOF
 }
 
@@ -99,12 +81,75 @@ git_github() {
 }
 
 needs_privileged_install() {
-  [[ "$INSTALL_DEPS" -eq 1 ||
-    "$INSTALL_TOOLS" -eq 1 ||
-    "$INSTALL_LAZYGIT" -eq 1 ||
-    "$INSTALL_GH" -eq 1 ||
-    "$INSTALL_NEOVIM" -eq 1 ||
-    "$INSTALL_BTOP" -eq 1 ]]
+  [[ "$RUN_SOFTWARE" -eq 1 ]]
+}
+
+df_skip_software_component() {
+  local component="$1"
+  if [[ "${DOTFILES_RESPECT_COMPONENT_AGE:-0}" -eq 1 ]] &&
+    df_component_is_fresh "$component" "$DOTFILES_UPDATE_SKIP_DAYS"; then
+    log "skip $component ($(df_component_age_label "$component"))"
+    return 0
+  fi
+  return 1
+}
+
+install_software_devbox() {
+  if ! df_skip_software_component deps; then
+    run_github_step "install-deps.sh" bash "$DOTFILES_DIR/install-deps.sh"
+    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch deps ""
+  fi
+
+  if ! df_skip_software_component tools; then
+    run_github_step "install-tools.sh" bash "$DOTFILES_DIR/install-tools.sh"
+    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch tools ""
+  fi
+
+  if ! df_skip_software_component lazygit; then
+    log "installing lazygit via scripts/lazygit-install-update.sh"
+    run_github_step "lazygit" bash "$SCRIPTS_DIR/lazygit-install-update.sh"
+    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch lazygit "$(df_component_detect_version lazygit)"
+  fi
+
+  if ! df_skip_software_component gh; then
+    log "installing gh via scripts/gh-install-update.sh"
+    run_github_step "gh" bash "$SCRIPTS_DIR/gh-install-update.sh"
+    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch gh "$(df_component_detect_version gh)"
+  fi
+
+  if ! df_skip_software_component fzf; then
+    run_github_step "fzf" install_fzf
+    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch fzf "$(df_component_detect_version fzf)"
+  fi
+
+  if ! df_skip_software_component tldr; then
+    log "installing tldr via scripts/tealdeer-install-update.sh"
+    run_github_step "tldr" bash "$SCRIPTS_DIR/tealdeer-install-update.sh"
+    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch tldr "$(df_component_detect_version tldr)"
+  fi
+
+  if ! df_skip_software_component tpm; then
+    run_github_step "tpm" install_tpm
+    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch tpm ""
+  fi
+
+  if ! df_skip_software_component neovim; then
+    log "installing neovim via scripts/neovim-install-update.sh"
+    run_github_step "neovim" bash "$SCRIPTS_DIR/neovim-install-update.sh"
+    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch neovim "$(df_component_detect_version neovim)"
+  fi
+
+  if ! df_skip_software_component btop; then
+    log "installing btop via scripts/btop-install-update.sh"
+    run_github_step "btop" bash "$SCRIPTS_DIR/btop-install-update.sh"
+    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch btop "$(df_component_detect_version btop)"
+  fi
+
+  if ! df_skip_software_component fonts; then
+    log "Nerd fonts: Cascadia Code + JetBrains Mono (user fonts + fc-cache)"
+    run_github_step "cascadia-nerd-font" bash "$SCRIPTS_DIR/cascadia-nerd-font-install-update.sh"
+    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch fonts ""
+  fi
 }
 
 ensure_sudo_for_install() {
@@ -165,6 +210,7 @@ copy_if_missing() {
   mkdir -p "$(dirname "$dest")"
   log "copy template: $dest"
   run cp "$src" "$dest"
+  df_journal_once copy "$dest" "$src"
 }
 
 link_btop_conf() {
@@ -332,24 +378,13 @@ install_fzf() {
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --deps) INSTALL_DEPS=1 ;;
-    --tools) INSTALL_TOOLS=1 ;;
-    --lazygit) INSTALL_LAZYGIT=1 ;;
-    --gh) INSTALL_GH=1 ;;
-    --neovim) INSTALL_NEOVIM=1 ;;
-    --btop) INSTALL_BTOP=1 ;;
-    --tpm) INSTALL_TPM=1 ;;
-    --fzf) INSTALL_FZF=1 ;;
-    --all)
-      INSTALL_DEPS=1
-      INSTALL_TOOLS=1
-      INSTALL_LAZYGIT=1
-      INSTALL_GH=1
-      INSTALL_NEOVIM=1
-      INSTALL_BTOP=1
-      INSTALL_TPM=1
-      INSTALL_FZF=1
-      INSTALL_FONTS=1
+    --configs-only)
+      RUN_CONFIGS=1
+      RUN_SOFTWARE=0
+      ;;
+    --software-only)
+      RUN_CONFIGS=0
+      RUN_SOFTWARE=1
       ;;
     --dry-run) DRY_RUN=1 ;;
     -h | --help)
@@ -374,83 +409,30 @@ if needs_privileged_install; then
   ensure_sudo_for_install
 fi
 
-install_dotfiles
-
-if [[ "$DRY_RUN" -eq 0 ]]; then
-  df_component_touch configs "$(df_component_detect_version configs)"
+if [[ "$RUN_CONFIGS" -eq 1 ]]; then
+  install_dotfiles
+  if [[ "$DRY_RUN" -eq 0 ]]; then
+    df_component_touch configs "$(df_component_detect_version configs)"
+  fi
 fi
 
-if [[ "$INSTALL_DEPS" -eq 1 ]]; then
-  run_github_step "install-deps.sh" bash "$DOTFILES_DIR/install-deps.sh"
-  [[ "$DRY_RUN" -eq 0 ]] && df_component_touch deps ""
-fi
-
-if [[ "$INSTALL_TOOLS" -eq 1 ]]; then
-  run_github_step "install-tools.sh" bash "$DOTFILES_DIR/install-tools.sh"
-  [[ "$DRY_RUN" -eq 0 ]] && df_component_touch tools ""
-fi
-
-if [[ "$INSTALL_LAZYGIT" -eq 1 ]]; then
-  log "installing lazygit via scripts/lazygit-install-update.sh"
-  run_github_step "lazygit" bash "$SCRIPTS_DIR/lazygit-install-update.sh"
-  [[ "$DRY_RUN" -eq 0 ]] && df_component_touch lazygit "$(df_component_detect_version lazygit)"
-fi
-
-if [[ "$INSTALL_GH" -eq 1 ]]; then
-  log "installing gh via scripts/gh-install-update.sh"
-  run_github_step "gh" bash "$SCRIPTS_DIR/gh-install-update.sh"
-  [[ "$DRY_RUN" -eq 0 ]] && df_component_touch gh "$(df_component_detect_version gh)"
-fi
-
-if [[ "$INSTALL_FZF" -eq 1 ]]; then
-  run_github_step "fzf" install_fzf
-  [[ "$DRY_RUN" -eq 0 ]] && df_component_touch fzf "$(df_component_detect_version fzf)"
-fi
-
-if [[ "$INSTALL_TPM" -eq 1 ]]; then
-  run_github_step "tpm" install_tpm
-  [[ "$DRY_RUN" -eq 0 ]] && df_component_touch tpm ""
-fi
-
-if [[ "$INSTALL_NEOVIM" -eq 1 ]]; then
-  log "installing neovim via scripts/neovim-install-update.sh"
-  run_github_step "neovim" bash "$SCRIPTS_DIR/neovim-install-update.sh"
-  [[ "$DRY_RUN" -eq 0 ]] && df_component_touch neovim "$(df_component_detect_version neovim)"
-fi
-
-if [[ "$INSTALL_BTOP" -eq 1 ]]; then
-  log "installing btop via scripts/btop-install-update.sh"
-  run_github_step "btop" bash "$SCRIPTS_DIR/btop-install-update.sh"
-  [[ "$DRY_RUN" -eq 0 ]] && df_component_touch btop "$(df_component_detect_version btop)"
-fi
-
-if [[ "$INSTALL_FONTS" -eq 1 ]]; then
-  log "Nerd fonts: Cascadia Code + JetBrains Mono (user fonts + fc-cache)"
-  run_github_step "cascadia-nerd-font" bash "$SCRIPTS_DIR/cascadia-nerd-font-install-update.sh"
-  [[ "$DRY_RUN" -eq 0 ]] && df_component_touch fonts ""
+if [[ "$RUN_SOFTWARE" -eq 1 ]]; then
+  install_software_devbox
 fi
 
 if [[ "$GITHUB_STEP_FAILED" -eq 1 ]]; then
-  log "one or more GitHub installs failed; re-run ./devbox.sh --all"
+  log "one or more GitHub installs failed; re-run ./devbox.sh"
   exit 1
 fi
 
-cat <<'EOF'
+if [[ "$RUN_CONFIGS" -eq 1 && "$RUN_SOFTWARE" -eq 1 ]]; then
+  cat <<'EOF'
 
 Next steps:
   1. Copy SSH private keys into ~/.ssh/ manually (never commit keys).
   2. Open tmux and press prefix + Shift + I to install tmux plugins.
-  3. Optional LazyVim (not part of --all; these scripts own nvim LazyVim config):
-       ./lazyvim-lite/install-lazyvim-lite.sh
-       ./lazyvim/install-lazyvim.sh
-     Without them, nvim uses the plain editor config from this install.
-  4. Optional fetch (not part of --all):
-       ./install-fetch.sh
-       ./install-fetch.sh --art 1
-  5. Optional: nvm/Node via ./scripts/nvm-install-update.sh
-  6. Optional Kitty image previews in LazyVim (local Kitty only):
-       ./scripts/kitty-image-support-install-update.sh
-  7. Optional GNOME Super+Enter opens the default terminal (skip if no GNOME):
-       ./scripts/gnome-super-enter-terminal-install-update.sh
+  3. Optional: dotfiles install lazyvim | lazyvim-lite | fetch
+  4. Day to day: dotfiles update
 
 EOF
+fi

@@ -14,6 +14,14 @@ df_ff_art_choice_file() {
   printf '%s/dotfiles/fastfetch-art\n' "${XDG_DATA_HOME:-$HOME/.local/share}"
 }
 
+df_ff_journal_copy() {
+  local dest="$1"
+  local extra="${2:-}"
+  if declare -F df_journal_once >/dev/null 2>&1; then
+    df_journal_once copy "$dest" "$extra"
+  fi
+}
+
 df_ff_art_dir() {
   if [[ -n "${DF_FF_ART_DIR:-}" ]]; then
     printf '%s\n' "$DF_FF_ART_DIR"
@@ -77,6 +85,7 @@ df_ff_art_ensure_custom() {
   else
     : >"$dest"
   fi
+  df_ff_journal_copy "$dest" "${src:-fastfetch-custom-art}"
 }
 
 # Copy the repo padding template only when the live file does not exist.
@@ -90,6 +99,7 @@ df_ff_padding_ensure() {
   src="$(df_ff_padding_template_path)"
   if [[ -f "$src" ]]; then
     cp -f "$src" "$dest"
+    df_ff_journal_copy "$dest" "$src"
     return 0
   fi
   cat >"$dest" <<'EOF'
@@ -105,6 +115,7 @@ df_ff_padding_ensure() {
   }
 }
 EOF
+  df_ff_journal_copy "$dest" "fastfetch-padding-generated"
 }
 
 # Read "key": N from the padding jsonc (// comments stripped).
@@ -251,6 +262,7 @@ df_ff_art_set() {
   fi
   mkdir -p "$(dirname "$(df_ff_art_choice_file)")"
   printf '%s\n' "$choice" >"$(df_ff_art_choice_file)"
+  df_ff_journal_copy "$(df_ff_art_choice_file)" "fastfetch-art-choice"
 }
 
 df_ff_logo_arg() {

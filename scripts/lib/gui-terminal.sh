@@ -18,6 +18,9 @@ df_ensure_user_icon() {
   [[ -f "$src" ]] || return 1
   mkdir -p "$(dirname "$dest")"
   cp -f "$src" "$dest"
+  if declare -F df_journal_once >/dev/null 2>&1; then
+    df_journal_once copy "$dest" "$src"
+  fi
   printf 'icon: %s\n' "$dest"
 }
 
@@ -42,12 +45,19 @@ df_set_default_terminal() {
   fi
 
   mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}"
-  printf '%s\n' "$desktop" >"${XDG_CONFIG_HOME:-$HOME/.config}/xdg-terminals.list"
+  dest="${XDG_CONFIG_HOME:-$HOME/.config}/xdg-terminals.list"
+  printf '%s\n' "$desktop" >"$dest"
+  if declare -F df_journal_once >/dev/null 2>&1; then
+    df_journal_once copy "$dest" "dotfiles-default-terminal-list"
+  fi
   printf 'default terminal list: %s\n' "$desktop"
 
   if command -v gsettings >/dev/null 2>&1; then
     gsettings set org.gnome.desktop.default-applications.terminal exec "$bin" 2>/dev/null || true
     gsettings set org.gnome.desktop.default-applications.terminal exec-arg '' 2>/dev/null || true
+    if declare -F df_journal_once >/dev/null 2>&1; then
+      df_journal_once gsettings-key "default-terminal"
+    fi
     printf 'gsettings terminal exec: %s\n' "$bin"
   fi
 
@@ -124,4 +134,50 @@ df_gnome_bind_super_enter_terminal() {
   gsettings set "${custom_schema}:${custom_path}" command "$dest"
   gsettings set "${custom_schema}:${custom_path}" binding '<Super>Return'
   printf 'GNOME Super+Enter: %s\n' "$dest"
+  if declare -F df_journal_once >/dev/null 2>&1; then
+    df_journal_once gsettings-key "dotfiles-terminal"
+  fi
+}
+
+# Undo df_gnome_bind_super_enter_terminal for one binding id (e.g. dotfiles-terminal).
+df_gnome_unbind_custom_keybinding() {
+  local binding_id="$1"
+  local kb custom_schema custom_path list new
+
+  [[ -n "$binding_id" ]] || return 0
+
+  case "$binding_id" in
+    default-terminal)
+      if command -v gsettings >/dev/null 2>&1; then
+        gsettings reset org.gnome.desktop.default-applications.terminal exec 2>/dev/null || true
+        gsettings reset org.gnome.desktop.default-applications.terminal exec-arg 2>/dev/null || true
+      fi
+      return 0
+      ;;
+  esac
+
+  if ! df_gnome_has_custom_keybinding_schema; then
+    return 0
+  fi
+
+  kb="org.gnome.settings-daemon.plugins.media-keys"
+  custom_schema="org.gnome.settings-daemon.plugins.media-keys.custom-keybinding"
+  custom_path="/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/${binding_id}/"
+
+  gsettings reset-recursively "${custom_schema}:${custom_path}" 2>/dev/null || true
+
+  list="$(gsettings get "$kb" custom-keybindings 2>/dev/null || true)"
+  [[ -n "$list" ]] || return 0
+  if [[ "$list" != *"${binding_id}/"* ]]; then
+    return 0
+  fi
+
+  new="$(printf '%s' "$list" | sed -E \
+    -e "s|, '${custom_path}'||g" \
+    -e "s|'${custom_path}', ||g" \
+    -e "s|'${custom_path}'||g")"
+  case "$new" in
+    "[]" | "@as []") new="@as []" ;;
+  esac
+  gsettings set "$kb" custom-keybindings "$new" 2>/dev/null || true
 }

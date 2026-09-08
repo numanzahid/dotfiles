@@ -40,6 +40,8 @@ df_no_args_or_help "$@"
 source "$SCRIPT_DIR/lib/platform.sh"
 # shellcheck source=lib/privilege.sh
 source "$SCRIPT_DIR/lib/privilege.sh"
+# shellcheck source=lib/journal.sh
+source "$SCRIPT_DIR/lib/journal.sh"
 
 case "$(df_os_family)" in
   fedora | debian) ;;
@@ -57,14 +59,25 @@ TMUX_SNIPPET_DEST="${CONFIG_HOME}/tmux/image-passthrough.conf"
 STAMP="${DATA_HOME}/dotfiles/kitty-image-support.version"
 
 install_imagemagick() {
+  local was_installed=0
+  case "$(df_os_family)" in
+    fedora)
+      df_pkg_is_installed ImageMagick && was_installed=1
+      ;;
+    debian)
+      df_pkg_is_installed imagemagick && was_installed=1
+      ;;
+  esac
   df_ensure_sudo
   case "$(df_os_family)" in
     fedora)
       df_run_privileged dnf install -y --setopt=install_weak_deps=False ImageMagick
+      [[ "$was_installed" -eq 0 ]] && df_journal_once package-new ImageMagick
       ;;
     debian)
       df_run_privileged apt-get update
       df_run_privileged apt-get install -y --no-install-recommends imagemagick
+      [[ "$was_installed" -eq 0 ]] && df_journal_once package-new imagemagick
       ;;
   esac
 }
@@ -81,6 +94,9 @@ touch "$ENABLE_FLAG"
 cp -f "$TMUX_SNIPPET_SRC" "$TMUX_SNIPPET_DEST"
 mkdir -p "$(dirname "$STAMP")"
 printf 'enabled\n' >"$STAMP"
+df_journal_once copy "$ENABLE_FLAG" "$TMUX_SNIPPET_SRC"
+df_journal_once copy "$TMUX_SNIPPET_DEST" "$TMUX_SNIPPET_SRC"
+df_journal_once copy "$STAMP" "kitty-image-support"
 
 echo "Done."
 echo "Flag: $ENABLE_FLAG"

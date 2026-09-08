@@ -193,6 +193,7 @@ install_from_source() {
 
   printf '%s\n' "$ver" >"$STAMP"
   gr_track_path "$STAMP"
+  df_journal_once copy "$STAMP" "alacritty"
 }
 
 os="$(df_os_family)"

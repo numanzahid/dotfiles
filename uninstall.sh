@@ -4,9 +4,8 @@
 #   dest.pre-dotfiles originals
 #   ~/.local/share/dotfiles/install-journal.tsv
 #
-# Default is dry-run. Pass --apply to make changes.
-# Does not revert locale, does not apt autoremove, does not rename
-# ~/.dotfiles back to ~/dotfiles, does not undo LazyVim / LazyVim-lite.
+# Interactive uninstall. Prompts for dry-run, uninstall, or purge.
+# Does not revert locale, does not apt autoremove, does not undo LazyVim / LazyVim-lite.
 set -euo pipefail
 
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -19,38 +18,36 @@ source "$SCRIPTS_DIR/lib/journal.sh"
 source "$SCRIPTS_DIR/lib/privilege.sh"
 # shellcheck source=scripts/lib/pfetch-remove.sh
 source "$SCRIPTS_DIR/lib/pfetch-remove.sh"
+# shellcheck source=scripts/lib/gui-terminal.sh
+source "$SCRIPTS_DIR/lib/gui-terminal.sh"
 
+MODE=""
 APPLY=0
-CONFIGS=1
-TOOLS=1
-SEED=0
-LEFTOVERS_ONLY=0
-REMOVE_CLONE=0
-DRY_RUN=1
+PURGE=0
 
 usage() {
   cat <<'EOF'
-Usage: ./uninstall.sh [options]
+Usage: ./uninstall.sh
+       dotfiles uninstall
 
 Undo ./devbox.sh, ./desktop.sh, or ./server.sh.
-Restore originals (*.pre-dotfiles) and remove files those installers placed.
-Default is dry-run (prints actions, changes nothing).
+Prompts for dry-run, uninstall, or purge.
+
+  Dry run     Show actions (+ lines), change nothing
+  Uninstall   Restore originals (*.pre-dotfiles), remove journaled tools,
+              clean legacy leftovers. Keeps ~/.dotfiles and install records.
+  Purge       Uninstall plus trash ~/.dotfiles, ~/.local/share/dotfiles,
+              and ~/.install-scripts/dotfiles-cli (server copy).
+
+Pre-journal hosts: uninstall/purge auto-seeds the journal from detected
+files before removing tools.
 
 Does not undo LazyVim:
   ./lazyvim/install-lazyvim.sh
   ./lazyvim-lite/install-lazyvim-lite.sh
 If ~/.config/nvim is a LazyVim profile, it is left untouched.
 
-Options:
-  --apply              Make the changes
-  --configs-only       Restore/remove home configs only (no packages/binaries)
-  --tools-only         Remove journaled packages/binaries/clones only
-  --seed-workstation   Record a pre-journal ./devbox.sh --all into the journal
-                       (needed on hosts that installed before journaling existed)
-  --leftovers-only     Only remove stale clone symlinks, timestamped backups,
-                       leftover fzf/tpm/pfetch. Does not restore configs.
-  --remove-clone       After uninstall, trash ~/.dotfiles
-  -h, --help           Show this help
+Non-interactive: set DOTFILES_UNINSTALL_MODE to dry-run, uninstall, or purge.
 
 Records:
   ~/.local/share/dotfiles/managed-paths
@@ -58,30 +55,75 @@ Records:
   ~/.local/share/dotfiles/install.log
   dest.pre-dotfiles next to each replaced path
 
-Also removes leftover pfetch from the old GitHub install even if it is
-not in the journal: /usr/local/bin/pfetch, /opt/pfetch, ~/pfetch-install-update.sh,
-~/.config/pfetch.
-
-Also removes leftovers from older clone layouts (before hide-clone and
-before journaling), even if they are not in managed-paths:
-  symlinks that still point at ~/dotfiles (the old unhidden clone path)
-  old.fzf.bash
-  timestamped backups (*.pre-dotfiles-YYYYMMDD...)
-  On copy-install homes (bashrc is a real file, not a symlink):
-  leftover ~/.gitconfig symlink, ~/.fzf, ~/.fzf.bash, ~/.tmux/plugins/tpm
-
-Does not delete live workstation links into ~/.dotfiles.
-Use --leftovers-only after copy-install to clean those without
-restoring configs.
+Uninstall reverts every journaled kind except skip, locale, hide-clone,
+and backup (backup uses dest.pre-dotfiles on disk). See README "Install journal".
 
 Not undone: LazyVim/lite, locale, skipped files (~/.ssh/config, a real
-prompt.sh), hide-clone (clone stays at ~/.dotfiles unless --remove-clone),
-~/.cargo ~/.rustup, tmux *.log in $HOME, unrelated project dirs.
+prompt.sh), ~/.cargo ~/.rustup, tmux *.log in $HOME, unrelated project dirs.
+
+Options:
+  -h, --help           Show this help
 EOF
 }
 
 log() {
   printf '[uninstall] %s\n' "$*"
+}
+
+prompt_uninstall_mode() {
+  local answer
+
+  if [[ -n "${DOTFILES_UNINSTALL_MODE:-}" ]]; then
+    MODE="$DOTFILES_UNINSTALL_MODE"
+    return 0
+  fi
+
+  if [[ ! -t 0 ]]; then
+    MODE=dry-run
+    log "not a TTY; defaulting to dry-run (set DOTFILES_UNINSTALL_MODE to uninstall or purge)"
+    return 0
+  fi
+
+  cat <<'EOF'
+
+Dotfiles uninstall
+
+  1) Dry run (show actions, change nothing)
+  2) Uninstall (restore configs, remove journaled tools)
+  3) Purge (uninstall + remove clone and dotfiles state)
+
+EOF
+  printf 'Choice [1]: '
+  read -r answer
+  case "${answer:-1}" in
+    1 | "" | dry-run | dry) MODE=dry-run ;;
+    2 | uninstall) MODE=uninstall ;;
+    3 | purge) MODE=purge ;;
+    *)
+      echo "Invalid choice: $answer" >&2
+      exit 1
+      ;;
+  esac
+}
+
+journal_is_empty() {
+  local file
+  file="$(df_journal_file)"
+  [[ ! -f "$file" ]] && return 0
+  [[ ! -s "$file" ]]
+}
+
+auto_seed_if_needed() {
+  if [[ "$APPLY" -eq 0 ]]; then
+    if journal_is_empty; then
+      log "no journal; on uninstall/purge will auto-seed from detected files"
+    fi
+    return 0
+  fi
+  if journal_is_empty; then
+    log "no journal; auto-seeding from detected files"
+    seed_workstation
+  fi
 }
 
 # shellcheck source=scripts/lib/ai-rules.sh
@@ -171,7 +213,7 @@ needs_sudo_for_tools() {
   [[ -f "$journal" ]] || return 1
   while IFS=$'\t' read -r _ts kind p _extra; do
     case "$kind" in
-      binary | symlink | opt-tree | package-new)
+      binary | symlink | opt-tree | package-new | system-dropin)
         if [[ -n "$p" ]] && ! is_home_path "$p"; then
           return 0
         fi
@@ -290,7 +332,7 @@ collect_home_dests() {
   if [[ -f "$file" ]]; then
     while IFS=$'\t' read -r _ts kind p _extra; do
       case "$kind" in
-        backup | link | copy)
+        backup | link | copy | binary)
           [[ -n "$p" ]] || continue
           is_home_path "$p" || continue
           seen["$p"]=1
@@ -331,12 +373,16 @@ seed_if_exists() {
 seed_workstation() {
   local b p target pkg
 
-  log "seed journal for a pre-journal ./devbox.sh --all"
+  log "seed journal for a pre-journal full install"
   log "packages: only typical new ones (ripgrep, trash-cli, gh), not git/tmux/bash"
 
-  for b in bat fd zoxide eza lazygit btop nvim fastfetch starship pfetch; do
+  for b in bat fd zoxide eza lazygit btop nvim fastfetch starship pfetch tldr; do
     seed_if_exists binary "/usr/local/bin/$b"
   done
+  seed_if_exists binary "$TARGET_HOME/.local/bin/alacritty"
+  seed_if_exists binary "$TARGET_HOME/.local/kitty.app"
+  seed_if_exists link "$TARGET_HOME/.local/bin/kitty"
+  seed_if_exists link "$TARGET_HOME/.local/bin/kitten"
   if df_pfetch_is_our_opt; then
     seed_if_new opt-tree /opt/pfetch
   fi
@@ -378,9 +424,7 @@ seed_workstation() {
     seed_if_exists copy "$TARGET_HOME/.install-scripts/lib/journal.sh"
   fi
 
-  if [[ "$APPLY" -eq 0 ]]; then
-    log "dry-run; re-run with --seed-workstation --apply to write the journal"
-  else
+  if [[ "$APPLY" -eq 1 ]]; then
     log "journal: $(df_journal_file)"
     log "human log: $(df_install_log_file)"
   fi
@@ -509,15 +553,20 @@ remove_legacy_home_artifacts() {
 }
 
 journal_kinds() {
-  local want="$1"
-  local file p kind
-  file="$(df_journal_file)"
-  [[ -f "$file" ]] || return 0
-  while IFS=$'\t' read -r _ts kind p _extra; do
-    [[ "$kind" == "$want" ]] || continue
-    [[ -n "$p" ]] || continue
-    printf '%s\n' "$p"
-  done <"$file" | awk 'NF && !seen[$0]++'
+  df_journal_paths_for_kind "$1"
+}
+
+uninstall_gsettings_keys() {
+  local binding_id
+
+  while IFS= read -r binding_id; do
+    [[ -n "$binding_id" ]] || continue
+    log "remove GNOME keybinding: $binding_id"
+    if [[ "$APPLY" -eq 0 ]]; then
+      continue
+    fi
+    df_gnome_unbind_custom_keybinding "$binding_id"
+  done < <(journal_kinds gsettings-key)
 }
 
 uninstall_tools() {
@@ -528,7 +577,6 @@ uninstall_tools() {
   file="$(df_journal_file)"
   if [[ ! -f "$file" ]]; then
     log "no journal; skipping packages/binaries/clones"
-    log "on a pre-journal --all host: ./uninstall.sh --seed-workstation"
     return 0
   fi
 
@@ -559,6 +607,12 @@ uninstall_tools() {
     remove_system_path "$p"
   done < <(journal_kinds opt-tree)
 
+  while IFS= read -r p; do
+    [[ -n "$p" ]] || continue
+    log "remove system drop-in: $p"
+    remove_system_path "$p"
+  done < <(journal_kinds system-dropin)
+
   while IFS= read -r pkg; do
     [[ -n "$pkg" ]] || continue
     if ! df_pkg_is_installed "$pkg"; then
@@ -574,6 +628,39 @@ uninstall_tools() {
       log "WARN: cannot remove package $pkg (no apt/dnf)"
     fi
   done < <(journal_kinds package-new)
+
+  uninstall_gsettings_keys
+}
+
+journal_audit_unhandled() {
+  local file kind p
+  local -A seen=()
+
+  file="$(df_journal_file)"
+  [[ -f "$file" ]] || return 0
+  while IFS=$'\t' read -r _ts kind p _extra; do
+    [[ -n "$kind" ]] || continue
+    if df_journal_is_skip_kind "$kind"; then
+      continue
+    fi
+    case "$kind" in
+      link | copy | binary)
+        is_home_path "$p" && continue
+        ;;
+    esac
+    if [[ -z "${seen[$kind]:-}" ]]; then
+      seen["$kind"]=1
+    fi
+  done <"$file"
+
+  for kind in "${!seen[@]}"; do
+    case "$kind" in
+      backup | link | copy | skip | patch | package-new | binary | symlink | opt-tree | git-clone | hide-clone | locale | gsettings-key | system-dropin) ;;
+      *)
+        log "WARN: journal kind has no uninstall handler: $kind"
+        ;;
+    esac
+  done
 }
 
 clear_managed_paths() {
@@ -601,18 +688,36 @@ clear_managed_paths() {
   fi
 }
 
+purge_dotfiles_trace() {
+  local local_clone state_dir standalone_cli dest
+
+  local_clone="$(clone_dir)"
+  if [[ -n "$local_clone" && -d "$local_clone" ]]; then
+    log "purge clone: $local_clone"
+    remove_home_path "$local_clone"
+  fi
+
+  standalone_cli="$TARGET_HOME/.install-scripts/dotfiles-cli"
+  if [[ -e "$standalone_cli" || -L "$standalone_cli" ]]; then
+    log "purge standalone CLI copy: $standalone_cli"
+    remove_home_path "$standalone_cli"
+  fi
+
+  dest="$TARGET_HOME/.local/bin/dotfiles"
+  if [[ -e "$dest" || -L "$dest" ]]; then
+    log "purge dotfiles command: $dest"
+    remove_home_path "$dest"
+  fi
+
+  state_dir="$(df_journal_dir)"
+  if [[ -d "$state_dir" ]]; then
+    log "purge dotfiles state: $state_dir"
+    remove_home_path "$state_dir"
+  fi
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --apply) APPLY=1 ;;
-    --configs-only) TOOLS=0 ;;
-    --tools-only) CONFIGS=0 ;;
-    --seed-workstation) SEED=1 ;;
-    --leftovers-only)
-      LEFTOVERS_ONLY=1
-      CONFIGS=0
-      TOOLS=0
-      ;;
-    --remove-clone) REMOVE_CLONE=1 ;;
     -h | --help)
       usage
       exit 0
@@ -626,63 +731,50 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
+prompt_uninstall_mode
+
+case "$MODE" in
+  dry-run) APPLY=0 ;;
+  uninstall) APPLY=1 ;;
+  purge) APPLY=1; PURGE=1 ;;
+  *)
+    echo "Invalid DOTFILES_UNINSTALL_MODE: $MODE (use dry-run, uninstall, or purge)" >&2
+    exit 1
+    ;;
+esac
+
 if [[ "$APPLY" -eq 1 ]]; then
-  DRY_RUN=0
+  export DRY_RUN=0
+  log "mode: $MODE"
 else
-  DRY_RUN=1
-  log "dry-run (pass --apply to make changes)"
+  export DRY_RUN=1
+  log "mode: dry-run"
 fi
 
-if [[ "$SEED" -eq 1 ]]; then
-  seed_workstation
-  if [[ "$CONFIGS" -eq 1 || "$TOOLS" -eq 1 ]]; then
-    if [[ "$APPLY" -eq 1 ]]; then
-      log "seed written. run ./uninstall.sh to review, then ./uninstall.sh --apply"
-      exit 0
-    fi
-  fi
-  exit 0
-fi
+auto_seed_if_needed
 
-if [[ "$APPLY" -eq 1 && ( "$TOOLS" -eq 1 || "$LEFTOVERS_ONLY" -eq 1 ) ]] && needs_sudo_for_tools; then
+if [[ "$APPLY" -eq 1 ]] && needs_sudo_for_tools; then
   df_ensure_sudo
 fi
 
-if [[ "$CONFIGS" -eq 1 ]]; then
-  uninstall_configs
-fi
-
+uninstall_configs
 remove_legacy_home_artifacts
+uninstall_tools
 
-if [[ "$LEFTOVERS_ONLY" -eq 1 ]]; then
-  df_remove_legacy_pfetch
-fi
-
-if [[ "$REMOVE_CLONE" -eq 1 ]]; then
-  local_clone="$(clone_dir)"
-  if [[ -n "$local_clone" && -d "$local_clone" ]]; then
-    log "remove clone: $local_clone"
-    remove_home_path "$local_clone"
-  fi
-fi
-
-if [[ "$TOOLS" -eq 1 ]]; then
-  uninstall_tools
-fi
-
-if [[ "$APPLY" -eq 1 && "$CONFIGS" -eq 1 ]]; then
+if [[ "$PURGE" -eq 1 ]]; then
+  purge_dotfiles_trace
+elif [[ "$APPLY" -eq 1 ]]; then
   clear_managed_paths
 fi
 
 if [[ "$APPLY" -eq 0 ]]; then
-  if [[ "$LEFTOVERS_ONLY" -eq 1 ]]; then
-    log "dry-run complete. review, then: ./uninstall.sh --leftovers-only --apply"
-  else
-    log "dry-run complete. review the + lines, then: ./uninstall.sh --apply"
-  fi
+  journal_audit_unhandled
+  log "dry-run complete. run again and choose uninstall or purge to apply"
 else
-  log "done. journal kept at $(df_journal_file)"
-  if [[ "$CONFIGS" -eq 1 ]]; then
-    log "open a new shell (or reconnect SSH) so the restored bashrc loads"
+  if [[ "$PURGE" -eq 1 ]]; then
+    log "purge complete. dotfiles clone and state removed"
+  else
+    log "uninstall complete. journal kept at $(df_journal_file)"
   fi
+  log "open a new shell (or reconnect SSH) so the restored bashrc loads"
 fi

@@ -2,8 +2,21 @@
 # Append-only install journal. Lives on the machine, not in the clone.
 # Format: timestamp<TAB>kind<TAB>path<TAB>extra
 #
-# Kinds: backup link copy skip patch package-new binary symlink
-#        opt-tree git-clone hide-clone locale
+# Kinds and uninstall behavior (uninstall.sh):
+#   backup       - no-op (restore uses dest.pre-dotfiles on disk)
+#   link         - restore home path from backup or remove symlink
+#   copy         - restore home path from backup or remove our copy
+#   skip         - no-op (pre-existing file left alone)
+#   patch        - reserved, no-op
+#   package-new  - apt/dnf remove when path names the package
+#   binary       - remove file or tree (home or system)
+#   symlink      - remove system symlink
+#   opt-tree     - remove system directory tree
+#   git-clone    - remove clone directory under $HOME
+#   hide-clone   - no-op (informational; purge removes the clone)
+#   locale       - no-op (system locale left enabled)
+#   gsettings-key - remove GNOME custom keybinding (path = binding id)
+#   system-dropin - remove system config file we created (path = absolute path)
 #
 # Callers: link.sh, github-release.sh, install-deps, hide-clone, uninstall.sh
 
@@ -92,4 +105,25 @@ df_collect_missing_packages() {
     fi
     printf '%s\n' "$pkg"
   done
+}
+
+# Print unique paths for a journal kind (last column ignored).
+df_journal_paths_for_kind() {
+  local want="$1"
+  local file p kind
+  file="$(df_journal_file)"
+  [[ -f "$file" ]] || return 0
+  while IFS=$'\t' read -r _ts kind p _extra; do
+    [[ "$kind" == "$want" ]] || continue
+    [[ -n "$p" ]] || continue
+    printf '%s\n' "$p"
+  done <"$file" | awk 'NF && !seen[$0]++'
+}
+
+# Kinds uninstall.sh does not act on (by design).
+df_journal_is_skip_kind() {
+  case "$1" in
+    backup | skip | patch | hide-clone | locale) return 0 ;;
+    *) return 1 ;;
+  esac
 }

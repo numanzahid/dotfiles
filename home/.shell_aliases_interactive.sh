@@ -72,6 +72,23 @@ fkill() {
   [[ -n "$pid" ]] && echo "$pid" | xargs kill -"$sig"
 }
 
+# Fuzzy tldr page picker (needs tldr from tealdeer-install-update.sh).
+ftldr() {
+  if ! command -v tldr >/dev/null 2>&1; then
+    echo "tldr not found. Run: dotfiles install devbox --tldr" >&2
+    return 1
+  fi
+  if ! command -v fzf >/dev/null 2>&1; then
+    tldr "$@"
+    return $?
+  fi
+  if [[ $# -gt 0 ]]; then
+    tldr "$@"
+    return $?
+  fi
+  tldr --list | fzf --preview 'tldr {}' | xargs -r tldr
+}
+
 ##### zoxide ############################################################
 
 # Smarter cd with zoxide.

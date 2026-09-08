@@ -37,6 +37,8 @@ df_no_args_or_help "$@"
 source "$SCRIPT_DIR/lib/platform.sh"
 # shellcheck source=scripts/lib/privilege.sh
 source "$SCRIPT_DIR/lib/privilege.sh"
+# shellcheck source=scripts/lib/journal.sh
+source "$SCRIPT_DIR/lib/journal.sh"
 
 AVAHI_CONF="/etc/avahi/avahi-daemon.conf"
 RESOLVED_DROPIN="/etc/systemd/resolved.conf.d/dotfiles-mdns.conf"
@@ -63,15 +65,24 @@ os_family() {
 
 install_packages() {
   local family="$1"
+  local -a missing=() pkg
   case "$family" in
     fedora)
+      for pkg in avahi nss-mdns avahi-tools; do
+        df_pkg_is_installed "$pkg" || missing+=("$pkg")
+      done
       echo "Installing Fedora packages: avahi nss-mdns avahi-tools"
       df_run_privileged dnf install -y avahi nss-mdns avahi-tools
+      ((${#missing[@]} > 0)) && df_journal_new_packages "${missing[@]}"
       ;;
     debian)
+      for pkg in avahi-daemon libnss-mdns avahi-utils; do
+        df_pkg_is_installed "$pkg" || missing+=("$pkg")
+      done
       echo "Installing Debian/Ubuntu packages: avahi-daemon libnss-mdns avahi-utils"
       df_run_privileged apt-get update
       df_run_privileged apt-get install -y avahi-daemon libnss-mdns avahi-utils
+      ((${#missing[@]} > 0)) && df_journal_new_packages "${missing[@]}"
       ;;
     *)
       echo "ERROR: unsupported OS ($(df_host_os_id)). Need Fedora or Debian/Ubuntu." >&2
@@ -115,6 +126,9 @@ write_file() {
   dir="$(dirname "$dest")"
   df_run_privileged mkdir -p "$dir"
   df_run_privileged tee "$dest" >/dev/null
+  if declare -F df_journal_once >/dev/null 2>&1; then
+    df_journal_once system-dropin "$dest"
+  fi
 }
 
 configure_resolved() {

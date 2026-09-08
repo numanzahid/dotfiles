@@ -292,6 +292,9 @@ gr_install_binary() {
   local sudo_cmd="$3"
   echo "Installing $dest"
   $sudo_cmd install -m 755 "$binary" "$dest"
+  if declare -F df_journal_once >/dev/null 2>&1; then
+    df_journal_once binary "$dest"
+  fi
 }
 
 gr_arch_gnu() {
@@ -360,7 +363,4 @@ gr_install_from_targz() {
   fi
 
   gr_install_binary "$binary" "$dest_path" "$sudo_cmd"
-  if declare -F df_journal_once >/dev/null 2>&1; then
-    df_journal_once binary "$dest_path"
-  fi
 }

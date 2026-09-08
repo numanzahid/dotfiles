@@ -8,44 +8,34 @@ Quick reference for shell aliases, fzf, tmux, and CLI commands installed by this
 
 ## dotfiles CLI
 
-Available after install as `dotfiles` (`~/.local/bin/dotfiles`).
+Available after the first install as `dotfiles` (`~/.local/bin/dotfiles`).
 
 | Command | What it does |
 |---------|----------------|
-| `dotfiles update` | Pull repo, refresh configs, update software (skips components updated in last 30 days) |
-| `dotfiles update --force` | Discard tracked repo changes, pull (does not force-reinstall software) |
-| `dotfiles update --dry-run` | Show what would run |
-| `dotfiles status` | Show install profile and last-updated time per component |
-| `dotfiles install devbox [flags]` | Same flags as `./devbox.sh` |
-| `dotfiles install desktop [flags]` | Same flags as `./desktop.sh` |
-| `dotfiles install server [flags]` | Same flags as `./server.sh` |
-| `dotfiles install lazyvim [flags]` | Same flags as `./lazyvim/install-lazyvim.sh` |
-| `dotfiles install lazyvim-lite [flags]` | Same flags as `./lazyvim-lite/install-lazyvim-lite.sh` |
-| `dotfiles --help` | Full usage |
+| `dotfiles update` | Pull repo, refresh configs, update software older than 30 days |
+| `dotfiles update --config-only` | Pull repo and refresh configs only |
+| `dotfiles update --force` | Discard repo changes, pull, full reinstall |
+| `dotfiles status` | Profile, nvim, fetch, versions, last updated |
+| `dotfiles install lazyvim` | Install full LazyVim |
+| `dotfiles install lazyvim-lite` | Install LazyVim lite |
+| `dotfiles install fetch` | Install fastfetch banner (interactive picker) |
+| `dotfiles uninstall` | Interactive undo: dry-run, uninstall, or purge |
 
-To reinstall or upgrade software immediately (ignores the 30-day skip):
+First-time full install: `./devbox.sh`, `./desktop.sh`, or `./server.sh` (no flags).
 
-```bash
-./devbox.sh --all      # Debian/Ubuntu
-./desktop.sh --all     # Fedora
-```
-
-Other useful scripts (see `README.md` for full list):
+Other useful scripts:
 
 | Command | What it does |
 |---------|----------------|
 | `./install-ai-rules.sh` | Refresh Cursor, Codex, and Claude rules |
-| `./install-fetch.sh` | Install fastfetch + boxed banner config |
 | `scripts/nvim-profile.sh status` | Show current nvim profile |
-| `scripts/nvim-profile.sh none` | Switch to plain nvim |
-| `scripts/nvim-profile.sh lazyvim` | Switch to full LazyVim |
-| `scripts/nvim-profile.sh lazyvim-lite` | Switch to LazyVim lite |
+| `scripts/<tool>-install-update.sh` | Upgrade one tool directly |
 
 ---
 
 ## fzf key bindings
 
-Installed by `devbox.sh --fzf` / `desktop.sh --fzf` via `fzf install --all`. Active in interactive bash when fzf is on PATH.
+Installed by `./devbox.sh` / `./desktop.sh` via `fzf install --all`. Active in interactive bash when fzf is on PATH.
 
 | Key | Action |
 |-----|--------|
@@ -93,6 +83,9 @@ Custom helpers in `home/.shell_aliases_interactive.sh`:
 | `fe` | Fuzzy pick a file and open in `$EDITOR` (default `nvim`) |
 | `fkill` | Fuzzy pick process(es) to kill (default signal 9) |
 | `fkill 15` | Same, but send SIGTERM instead |
+| `ftldr` | Fuzzy pick a tldr page (`ftldr tar` still works like `tldr tar`) |
+| `tldr cmd` | Show example-focused help for a command |
+| `tldr --update` | Refresh cached tldr pages |
 
 ### fzf tips that work well here
 
@@ -109,6 +102,14 @@ nvim $(rg -l 'searchterm' | fzf)
 fd -e md | fzf -m | xargs nvim
 ```
 
+**tldr page picker:**
+
+```bash
+ftldr                  # fuzzy list of all cached pages
+tldr tar               # direct lookup
+tldr --update          # refresh pages (also runs on install)
+```
+
 **Git log picker (optional; lazygit covers most git UI):**
 
 ```bash
@@ -123,12 +124,6 @@ git log --oneline --color=always |
 man -k . 2>/dev/null | awk -F' - ' '{print $1}' |
   fzf --preview 'man {} 2>/dev/null | bat --color=always' |
   xargs man
-```
-
-**Simpler docs with examples (not installed by default; package is often `tealdeer`):**
-
-```bash
-tldr --list | fzf | xargs tldr
 ```
 
 **Paste multiple paths at the cursor:**

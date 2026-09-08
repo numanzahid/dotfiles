@@ -10,7 +10,7 @@ usage() {
 Usage: ./install-deps.sh
 
 Base apt packages for Debian/Ubuntu workstation installs (not Fedora).
-Invoked by ./devbox.sh --deps / --all.
+Invoked by ./devbox.sh (full install).
 
 Installs: bash bash-completion ca-certificates curl git gzip jq less
 locales ripgrep tar tmux trash-cli wget unzip fontconfig.
@@ -118,9 +118,10 @@ echo "Done. CLI tools (bat, fd, zoxide, eza): ./install-tools.sh"
 echo "Lazygit:   ./scripts/lazygit-install-update.sh"
 echo "Gh:        ./scripts/gh-install-update.sh"
 echo "Fzf:       ./devbox.sh --fzf  (git install, recommended)"
+echo "Tldr:      ./devbox.sh --tldr  (tealdeer from GitHub)"
 echo "Fastfetch: ./install-fetch.sh"
-echo "Neovim:    ./devbox.sh --neovim  (or --all)"
-echo "Btop:      ./devbox.sh --btop    (or --all)"
+echo "Neovim:    ./scripts/neovim-install-update.sh  (or re-run ./devbox.sh)"
+echo "Btop:      ./scripts/btop-install-update.sh    (or re-run ./devbox.sh)"
 echo "Nvm/Node:  ./scripts/nvm-install-update.sh"
 
 echo "LazyVim:   ./lazyvim/install-lazyvim.sh or ./lazyvim-lite/install-lazyvim-lite.sh"

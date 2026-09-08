@@ -1,10 +1,10 @@
 # dotfiles
 
-Bash, tmux, nvim, and CLI tools. One `main` branch. Clone to `~/.dotfiles`, pick an installer, run `--all`.
+Bash, tmux, nvim, and CLI tools. One `main` branch. Clone to `~/.dotfiles`, run the installer for your OS, then use `dotfiles` day to day.
 
 The clone lives at `~/.dotfiles` (hidden). If you clone to `~/dotfiles`, the installer renames it on first run and continues from there.
 
-## Installers
+## Installers (first time)
 
 | Script | Profile |
 |--------|---------|
@@ -16,92 +16,96 @@ The clone lives at `~/.dotfiles` (hidden). If you clone to `~/dotfiles`, the ins
 git clone git@github.com:numanzahid/dotfiles.git ~/.dotfiles
 cd ~/.dotfiles
 
-./devbox.sh --all      # Debian/Ubuntu
-./desktop.sh --all     # Fedora
-./server.sh --all      # light host / CT
+./devbox.sh      # Debian/Ubuntu full install
+./desktop.sh     # Fedora full install
+./server.sh      # light host / CT full install
 ```
 
-`--all` is the daily box: configs, packages, bat/fd/zoxide/eza, lazygit, gh, neovim, btop, fzf, tmux plugins, and Nerd Fonts (Cascadia Code + JetBrains Mono, user fonts + fc-cache). Fedora also gets starship. `devbox.sh` and `desktop.sh` also install AI agent rules (Cursor, Codex, Claude Code). `server.sh` is slimmer: configs, apt, neovim; no gitconfig, fzf, zoxide, lazygit, gh, btop, TPM, fonts, fastfetch, or AI rules.
+Each script does a **full install** by default: configs, packages, CLI tools, fonts, tmux TPM, and AI agent rules (devbox/desktop). No `--all` flag.
 
-Fetch on a light host: `./server.sh --fetch`. On devbox/desktop: `./install-fetch.sh`.
+**devbox/desktop** includes: bat, fd, zoxide, eza, lazygit, gh, neovim, btop, fzf, tldr, nerd fonts, TPM.
 
-Want a subset? `./devbox.sh -h`, `./desktop.sh -h`, or `./server.sh -h`. After a devbox/desktop install, copy SSH keys into `~/.ssh/` yourself, then in tmux hit `prefix + Shift + I` once.
+**server** is slimmer: copied configs, apt packages, neovim only (no gitconfig, fzf, zoxide, lazygit, gh, btop, tldr, TPM, fonts).
 
-Light host: `rm -rf ~/.dotfiles` when you are done. Later upgrades live in `~/.install-scripts/` (`neovim-install-update.sh`, `fastfetch-install-update.sh`).
-
-Refresh AI rules only: `./install-ai-rules.sh`
-
-## Not part of --all
+Installer options (all profiles):
 
 ```bash
-./install-fetch.sh                      # fastfetch + boxed config + art picker
-./server.sh --fetch                     # same fetch on a light host (copies)
-./install-ai-rules.sh                   # refresh Cursor/Codex/Claude rules
-./lazyvim/install-lazyvim.sh            # LazyVim IDE
-./lazyvim-lite/install-lazyvim-lite.sh  # LazyVim, no Mason/LSP/Node
-./scripts/nvm-install-update.sh         # Node via nvm
-./scripts/lazydocker-install-update.sh
-./scripts/alacritty-install-update.sh    # Fedora: dnf. Ubuntu: GitHub source + cargo
-./scripts/kitty-install-update.sh        # GitHub Linux tarball (local Kitty binary)
-./scripts/kitty-terminfo-install-update.sh   # xterm-kitty terminfo (part of --all; SSH/tmux from Kitty)
-./scripts/kitty-image-support-install-update.sh  # optional: ImageMagick + LazyVim snacks image
-./scripts/gnome-super-enter-terminal-install-update.sh  # GNOME Super+Enter -> default terminal (skip if no GNOME)
-./scripts/avahi-install-update.sh       # hostname.local
-./scripts/install-tmux-config.sh        # tmux only; clone can go after
+./devbox.sh --configs-only    # link/copy configs only
+./devbox.sh --software-only   # software only
+./devbox.sh --dry-run         # preview
 ```
 
-Fetch: one boxed layout (`~/.config/fastfetch/config.jsonc`) for `fastfetch`, tmux, and `fetch`. Workstation: `./install-fetch.sh`. Light host: `./server.sh --fetch`. Art: `--art 1` is default, `--art c` is custom. Repo templates: `home/.config/fastfetch/custom-fetch-art.example.txt` and `custom-fetch-padding.example.jsonc`. First `--fetch` copies those to `~/.config/custom-fetch-art.txt` and `~/.config/custom-fetch-padding.jsonc` if missing, then never overwrites. Foreign fastfetch files are backed up before cleanup.
+Single-tool upgrades: `./scripts/<tool>-install-update.sh`
 
-Default nvim is the plain editor. LazyVim is linked only by the lazyvim scripts. See `lazyvim/README.md` if you go that route.
+## dotfiles command
 
-## Day to day
-
-After the first install, use the `dotfiles` command (symlinked to `~/.local/bin/dotfiles`):
+Registered on PATH as `dotfiles` after the first install.
 
 ```bash
-dotfiles update              # pull repo, refresh configs, update stale software
-dotfiles update --force      # discard tracked repo changes, then pull (software unchanged)
-dotfiles status              # profile + last-updated time per component
-dotfiles install devbox --all
+dotfiles update                 # pull repo, refresh configs, update stale software
+dotfiles update --config-only   # pull repo and refresh configs only
+dotfiles update --force         # discard repo changes, pull, full reinstall
+dotfiles status                 # profile, nvim, fetch, versions, last updated
+dotfiles install lazyvim        # optional LazyVim profile
+dotfiles install lazyvim-lite   # optional LazyVim lite
+dotfiles install fetch          # fastfetch banner (interactive art picker)
+```
+
+**update** always re-links configs. Software is skipped when updated within the last 30 days (except `--force`).
+
+If the repo has local changes, **update** shows a diff and asks before discarding.
+
+## Optional extras
+
+Not part of the main install scripts:
+
+```bash
+dotfiles install fetch
 dotfiles install lazyvim
+dotfiles install lazyvim-lite
+./install-ai-rules.sh
+./scripts/nvm-install-update.sh
+./scripts/alacritty-install-update.sh
+./scripts/kitty-install-update.sh
 ```
 
-`dotfiles update` skips software that was updated within the last 30 days. To reinstall or upgrade immediately, use `./devbox.sh --all` or `./desktop.sh --all` directly.
-
-Manual equivalent:
-
-```bash
-cd ~/.dotfiles && git pull && ./devbox.sh          # or ./desktop.sh
-```
-
-Re-runs overwrite files this repo already manages. Something it did not put there gets one `*.pre-dotfiles` backup. LazyVim is left alone unless you run those scripts.
-
-Prompt is `~/.config/dotfiles/prompt.sh` (custom on Debian, starship on Fedora). `del` is `trash-put`. `rm` is still `rm`.
-
-**Shortcuts:** shell aliases, fzf bindings, tmux keys, and CLI cheatsheet in [`SHORTCUTS.md`](SHORTCUTS.md).
+See [`SHORTCUTS.md`](SHORTCUTS.md) for shell aliases, fzf, and tmux keys.
 
 ## Uninstall
 
-Undoes `./devbox.sh`, `./desktop.sh`, and `./server.sh` only. LazyVim and LazyVim-lite are left alone.
-
-The installer records dests in `~/.local/share/dotfiles/managed-paths`, originals next to them as `*.pre-dotfiles`, and a journal at `~/.local/share/dotfiles/install-journal.tsv`.
-
 ```bash
-cd ~/.dotfiles
-./uninstall.sh                         # dry-run
-./uninstall.sh --apply                 # restore originals, remove what we placed
-./uninstall.sh --apply --remove-clone  # also trash ~/.dotfiles
+dotfiles uninstall
+# or from the clone:
+cd ~/.dotfiles && ./uninstall.sh
 ```
 
-Hosts that ran `--all` before this journal existed:
+Prompts for:
 
-```bash
-./uninstall.sh --seed-workstation         # review
-./uninstall.sh --seed-workstation --apply
-./uninstall.sh                            # review
-./uninstall.sh --apply
-```
+1. **Dry run** -- show `+` lines, change nothing (default)
+2. **Uninstall** -- restore configs, remove journaled tools, keep clone and journal
+3. **Purge** -- uninstall plus trash `~/.dotfiles`, `~/.local/share/dotfiles`, and server CLI copy
 
-Does not revert locale. Does not `apt autoremove`. Does not touch skipped files (`~/.ssh/config`, a real `prompt.sh`). Does not undo LazyVim or LazyVim-lite (`./lazyvim/install-lazyvim.sh`, `./lazyvim-lite/install-lazyvim-lite.sh`).
+Pre-journal hosts are auto-seeded on uninstall/purge. Non-interactive: `DOTFILES_UNINSTALL_MODE=uninstall` or `purge`.
 
-Do not commit keys, tokens, `auth.json`, `hosts.yml`, or `.env*`. SSH templates are `home/.ssh/*.example`.
+Does not undo LazyVim unless you run the lazyvim uninstall scripts separately.
+
+## Install journal
+
+Each install records actions in `~/.local/share/dotfiles/install-journal.tsv`:
+
+`timestamp<TAB>kind<TAB>path<TAB>extra`
+
+Uninstall reads the journal to restore configs and remove tools. Kinds:
+
+| Kind | Recorded by | Uninstall action |
+|------|-------------|------------------|
+| `link` / `copy` | devbox, server, fetch, AI rules, terminals | Restore from `*.pre-dotfiles` or remove our file |
+| `binary` | GitHub release scripts, kitty, alacritty | Remove binary or install tree |
+| `git-clone` | fzf, tpm | Remove clone directory |
+| `package-new` | install-deps (only packages that were missing) | `apt`/`dnf` remove |
+| `symlink` / `opt-tree` | neovim | Remove `/opt/nvim` tree and symlinks |
+| `gsettings-key` | GNOME terminal shortcuts | Reset keybinding or default terminal |
+| `system-dropin` | avahi installer, etc. | Remove `/etc/...` drop-in we created |
+| `skip` / `locale` / `hide-clone` | skipped paths, locale, clone rename | Left alone (by design) |
+
+Not journaled (manual cleanup): LazyVim, `~/.cargo`/`~/.rustup` from Alacritty source builds, locale system config, user edits to skipped paths.

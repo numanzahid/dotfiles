@@ -61,6 +61,7 @@ copy_file() {
   log "copied: $dest"
   df_migrate_original_backup "$dest"
   df_track_path "$dest"
+  df_journal_once copy "$dest" "$src"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -105,6 +106,10 @@ if [[ "$INSTALL_TPM" -eq 1 ]]; then
     mkdir -p "$TARGET_HOME/.tmux/plugins"
     git -c http.version=HTTP/1.1 clone -4 https://github.com/tmux-plugins/tpm "$tpm_dir"
   fi
+fi
+tpm_dir="$TARGET_HOME/.tmux/plugins/tpm"
+if [[ -d "$tpm_dir/.git" ]]; then
+  df_journal_once git-clone "$tpm_dir"
 fi
 
 if ! command -v tmux >/dev/null 2>&1; then

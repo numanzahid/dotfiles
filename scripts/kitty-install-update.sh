@@ -155,11 +155,14 @@ install_from_github() {
   gr_track_path "$BIN"
   gr_track_path "$KITTEN"
   df_journal_once binary "$APP" "$tag"
+  df_journal_once link "$BIN" "${APP}/bin/kitty"
+  df_journal_once link "$KITTEN" "${APP}/bin/kitten"
 
   install_desktop
 
   printf '%s\n' "$ver" >"$STAMP"
   gr_track_path "$STAMP"
+  df_journal_once copy "$STAMP" "kitty"
 }
 
 os="$(df_os_family)"

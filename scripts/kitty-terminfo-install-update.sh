@@ -37,6 +37,8 @@ df_no_args_or_help "$@"
 
 # shellcheck source=lib/platform.sh
 source "$SCRIPT_DIR/lib/platform.sh"
+# shellcheck source=lib/journal.sh
+source "$SCRIPT_DIR/lib/journal.sh"
 
 case "$(df_os_family)" in
   fedora | debian) ;;
@@ -71,6 +73,8 @@ install_terminfo() {
   # Compiled terminfo blob; ncurses reads ~/.terminfo without tic or fc-cache.
   cp -f "$src" "$USER_TERMINFO"
   cp -f "$src" "$CACHE_TERMINFO"
+  df_journal_once copy "$USER_TERMINFO" "$src"
+  df_journal_once copy "$CACHE_TERMINFO" "$src"
 }
 
 src="$(pick_source || true)"
@@ -89,6 +93,7 @@ fi
 install_terminfo "$src"
 mkdir -p "$(dirname "$STAMP")"
 printf '%s\n' "$src_hash" >"$STAMP"
+df_journal_once copy "$STAMP" "kitty-terminfo"
 
 echo "Done."
 echo "xterm-kitty terminfo: $USER_TERMINFO"

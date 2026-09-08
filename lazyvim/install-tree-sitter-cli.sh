@@ -143,6 +143,9 @@ try_install_tree_sitter_release() {
 
   run install -m 755 "$binary" "${INSTALL_BIN}.new"
   run mv -f "${INSTALL_BIN}.new" "$INSTALL_BIN"
+  if declare -F df_journal_once >/dev/null 2>&1; then
+    df_journal_once binary "$INSTALL_BIN"
+  fi
 
   if ! df_tree_sitter_cli_runs "$INSTALL_BIN"; then
     err="$(tree_sitter_error "$INSTALL_BIN")"
@@ -186,6 +189,9 @@ main() {
 
   if df_tree_sitter_cli_meets_nvim_treesitter_min "$INSTALL_BIN"; then
     log "tree-sitter already installed: $("$INSTALL_BIN" --version) ($INSTALL_BIN)"
+    if declare -F df_journal_once >/dev/null 2>&1; then
+      df_journal_once binary "$INSTALL_BIN"
+    fi
     return 0
   fi
 

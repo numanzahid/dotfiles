@@ -17,11 +17,9 @@ INSTALL_SCRIPTS_DIR="$TARGET_HOME/.install-scripts"
 source "$SCRIPTS_DIR/lib/hide-clone.sh"
 df_reexec_from_hidden_clone "$DOTFILES_DIR" "${BASH_SOURCE[0]}" "$@"
 
-INSTALL_DEPS=0
-INSTALL_NEOVIM=0
-INSTALL_FETCH=0
+RUN_CONFIGS=1
+RUN_SOFTWARE=1
 DRY_RUN=0
-ART=""
 
 usage() {
   cat <<'EOF'
@@ -30,34 +28,26 @@ Usage: ./server.sh [options]
 Copy shell/tmux/nvim configs into $HOME as real files, then you can
 remove the dotfiles folder.
 
-Does not install or copy: gitconfig, fzf, zoxide, lazygit, lazydocker,
-gh, btop, TPM/tmux plugins, or nerd fonts.
+Full install (default): copy configs, apt packages, and Neovim.
 
-Fastfetch banner is optional (not part of --all):
-  ./server.sh --fetch
-  ./server.sh --fetch --art 1
-That copies ~/.config/fastfetch/config.jsonc, arts, example
-templates, the banner script, installs fastfetch, and runs the art
-picker on a tty. Custom art/padding in ~/.config are seeded once
-from those templates and never overwritten.
-
-Always copies the Neovim updater into ~/.install-scripts
-(overwrite, no backups) so you can upgrade after deleting this clone:
-  ~/.install-scripts/neovim-install-update.sh
-With --fetch also:
-  ~/.install-scripts/fastfetch-install-update.sh
-
-Also copies xterm-kitty terminfo to ~/.terminfo (SSH from Kitty).
-Does not install Kitty or Alacritty.
+Does not install: gitconfig, fzf, zoxide, lazygit, gh, btop, tldr,
+TPM/tmux plugins, or nerd fonts.
 
 Options:
-  --deps       Run server/install-deps.sh (apt packages + locale)
-  --neovim     Install latest Neovim (same GitHub build as ./devbox.sh)
-  --all        Copy configs, --deps, and --neovim (no fetch, no fonts)
-  --fetch      Fastfetch boxed config + art picker (or --art N)
-  --art N      Set text art (implies --fetch)
-  --dry-run    Print actions without changing anything
-  -h, --help   Show this help
+  --configs-only   Copy configs only (no apt packages or Neovim)
+  --software-only  Apt packages and Neovim only (no config copy)
+  --dry-run        Print actions without changing anything
+  -h, --help       Show this help
+
+Environment (used by dotfiles update):
+  DOTFILES_RESPECT_COMPONENT_AGE=1   Skip software updated within 30 days
+
+Optional extras:
+  dotfiles install fetch
+  dotfiles install lazyvim | lazyvim-lite
+
+Copies ~/.install-scripts/neovim-install-update.sh for upgrades
+after you delete the clone.
 EOF
 }
 
@@ -159,9 +149,8 @@ copy_if_missing() {
   fi
   log "copy template: $dest"
   run cp "$src" "$dest"
+  df_journal_once copy "$dest" "$src"
 }
-
-# Overwrite a helper script. No .pre-dotfiles backups.
 copy_overwrite() {
   local src="$1"
   local dest="$2"
@@ -358,9 +347,6 @@ install_configs() {
   copy_file "$SERVER_DIR/tmux.conf" "$TARGET_HOME/.tmux.conf"
   copy_kitty_terminfo
 
-  if [[ "$INSTALL_FETCH" -eq 1 ]]; then
-    copy_fastfetch_banner
-  fi
   copy_nvim_plain
   copy_install_scripts
 
@@ -399,23 +385,46 @@ install_dotfiles_cli() {
   fi
 }
 
+df_skip_software_component() {
+  local component="$1"
+  if [[ "${DOTFILES_RESPECT_COMPONENT_AGE:-0}" -eq 1 ]] &&
+    df_component_is_fresh "$component" "$DOTFILES_UPDATE_SKIP_DAYS"; then
+    log "skip $component ($(df_component_age_label "$component"))"
+    return 0
+  fi
+  return 1
+}
+
+install_software_server() {
+  if ! df_skip_software_component deps; then
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+      run bash "$SERVER_DIR/install-deps.sh"
+    else
+      bash "$SERVER_DIR/install-deps.sh"
+    fi
+    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch deps ""
+  fi
+
+  if ! df_skip_software_component neovim; then
+    log "installing neovim via ~/.install-scripts/neovim-install-update.sh"
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+      run bash "$INSTALL_SCRIPTS_DIR/neovim-install-update.sh"
+    else
+      bash "$INSTALL_SCRIPTS_DIR/neovim-install-update.sh"
+    fi
+    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch neovim "$(df_component_detect_version neovim)"
+  fi
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --deps) INSTALL_DEPS=1 ;;
-    --neovim) INSTALL_NEOVIM=1 ;;
-    --all)
-      INSTALL_DEPS=1
-      INSTALL_NEOVIM=1
+    --configs-only)
+      RUN_CONFIGS=1
+      RUN_SOFTWARE=0
       ;;
-    --fetch) INSTALL_FETCH=1 ;;
-    --art)
-      if [[ $# -lt 2 ]]; then
-        echo "ERROR: --art needs 0, N, or c (custom)" >&2
-        exit 1
-      fi
-      ART="$2"
-      INSTALL_FETCH=1
-      shift
+    --software-only)
+      RUN_CONFIGS=0
+      RUN_SOFTWARE=1
       ;;
     --dry-run) DRY_RUN=1 ;;
     -h | --help)
@@ -431,82 +440,26 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
-install_configs
-
-if [[ "$DRY_RUN" -eq 0 ]]; then
-  df_component_touch configs "$(df_component_detect_version configs)"
-fi
-
-if [[ "$INSTALL_DEPS" -eq 1 ]]; then
-  if [[ "$DRY_RUN" -eq 1 ]]; then
-    run bash "$SERVER_DIR/install-deps.sh"
-  else
-    bash "$SERVER_DIR/install-deps.sh"
+if [[ "$RUN_CONFIGS" -eq 1 ]]; then
+  install_configs
+  if [[ "$DRY_RUN" -eq 0 ]]; then
+    df_component_touch configs "$(df_component_detect_version configs)"
   fi
-  [[ "$DRY_RUN" -eq 0 ]] && df_component_touch deps ""
 fi
 
-if [[ "$INSTALL_NEOVIM" -eq 1 ]]; then
-  log "installing neovim via ~/.install-scripts/neovim-install-update.sh"
-  if [[ "$DRY_RUN" -eq 1 ]]; then
-    run bash "$INSTALL_SCRIPTS_DIR/neovim-install-update.sh"
-  else
-    bash "$INSTALL_SCRIPTS_DIR/neovim-install-update.sh"
-  fi
-  [[ "$DRY_RUN" -eq 0 ]] && df_component_touch neovim "$(df_component_detect_version neovim)"
+if [[ "$RUN_SOFTWARE" -eq 1 ]]; then
+  install_software_server
 fi
 
-if [[ "$INSTALL_FETCH" -eq 1 ]]; then
-  log "installing fastfetch via ~/.install-scripts/fastfetch-install-update.sh"
-  if [[ "$DRY_RUN" -eq 1 ]]; then
-    run bash "$INSTALL_SCRIPTS_DIR/fastfetch-install-update.sh"
-  elif command -v git >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
-    bash "$INSTALL_SCRIPTS_DIR/fastfetch-install-update.sh"
-  else
-    log "WARN: git and jq required for fastfetch; run ./server.sh --fetch"
-  fi
-  [[ "$DRY_RUN" -eq 0 ]] && df_component_touch fetch ""
-fi
-
-cat <<'EOF'
+if [[ "$RUN_CONFIGS" -eq 1 && "$RUN_SOFTWARE" -eq 1 ]]; then
+  cat <<'EOF'
 
 server install finished. Configs are real files in $HOME.
-You can delete the dotfiles clone:
+You can delete the dotfiles clone: rm -rf ~/.dotfiles
 
-  rm -rf ~/.dotfiles
+Optional: dotfiles install fetch
+Day to day: dotfiles update
 
-Not included: gitconfig, fzf, zoxide, lazygit, lazydocker, TPM.
-
-Copied configs:
-  ~/.bashrc
-  ~/.config/dotfiles/prompt.sh  (custom prompt)
-  ~/.config/dotfiles/locale.sh
-  ~/.shell_aliases_interactive.sh
-  ~/.inputrc
-  ~/.profile
-  ~/.tmux.conf  (no TPM)
-  ~/.terminfo/x/xterm-kitty  (Kitty SSH/tmux; no Kitty config on copy hosts)
-  ~/.config/nvim/init.lua  (plain nvim, if LazyVim was not already there)
-  ~/.ssh/config  (only if missing)
-  ~/.ssh/authorized_keys  (only if missing)
-  ~/.install-scripts/neovim-install-update.sh
-
-Apt deps (--deps / --all):
-  bash bash-completion ca-certificates curl git gzip htop jq less locales tar tmux wget
-
-Neovim (--neovim / --all):
-  same GitHub build as ./devbox.sh --neovim  (/usr/local/bin/nvim)
-  later: ~/.install-scripts/neovim-install-update.sh
-
-Fastfetch banner (optional, not part of --all):
-  ./server.sh --fetch
-  ./server.sh --fetch --art 1
-  ~/.config/fastfetch/config.jsonc
-  later: ~/.install-scripts/fastfetch-install-update.sh
-
-If tmux is already running: tmux source-file ~/.tmux.conf
-
-UTF-8 glyphs (box drawing, nerd icons): close this SSH client and ssh in again.
-exec bash / tmux kill-server is not enough (the pty keeps the old encoding).
-A CT reboot is not required.
+Later neovim upgrades: ~/.install-scripts/neovim-install-update.sh
 EOF
+fi
