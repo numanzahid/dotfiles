@@ -65,7 +65,8 @@ os_family() {
 
 install_packages() {
   local family="$1"
-  local -a missing=() pkg
+  local -a missing=()
+  local pkg
   case "$family" in
     fedora)
       for pkg in avahi nss-mdns avahi-tools; do

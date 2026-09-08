@@ -1,0 +1,41 @@
+---
+description: Bash local/declare rules for dotfiles shell scripts
+globs: "{**/*.sh,scripts/dotfiles,devbox.sh,desktop.sh,uninstall.sh}"
+alwaysApply: false
+---
+
+# Bash local declarations
+
+## Invalid (breaks at runtime)
+
+Do not put `-a`, `-A`, `-i`, or `-n` after scalar names. Bash treats the flag as a variable name:
+
+```bash
+# BAD
+local profile script -a args=()
+local mode="$1" -a items=()
+
+# GOOD
+local profile script
+local -a args=()
+local mode="$1"
+local -a items=()
+```
+
+## Arrays
+
+- Declare arrays on their own `local -a` line (or `local -A` for associative).
+- Scalars and arrays can be separate lines in the same function.
+- `local pkg missing=()` is OK (implicit array for `missing` in bash 4+), but prefer `local -a missing=()` for clarity.
+
+## Empty array command prefixes
+
+Safe pattern when a command prefix may be empty:
+
+```bash
+local -a env_args=()
+# ...
+"${env_args[@]}" bash "$script" "${args[@]}"
+```
+
+Requires bash 4.4+ with `set -u` (our scripts use bash 4+).

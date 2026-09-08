@@ -185,7 +185,8 @@ dotfiles_profile_script() {
 
 dotfiles_run_profile_installer() {
   local mode="$1"
-  local profile script -a args=() env_args=()
+  local profile script
+  local -a args=() env_args=()
 
   profile="$(df_profile_detect)"
   script="$(dotfiles_profile_script "$profile")"
