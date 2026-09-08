@@ -13,7 +13,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 usage() {
   cat <<'EOF'
-Usage: ./scripts/cascadia-nerd-font-install-update.sh
+Usage: ./scripts/cascadia-nerd-font-install-update.sh [options]
 
 Install Cascadia Code and JetBrains Mono nerd fonts into user fonts
 (~/.local/share/fonts/dotfiles-*). Latest GitHub nerd-fonts release.
@@ -23,15 +23,33 @@ Invoked by ./devbox.sh --all and ./desktop.sh --all.
 Not part of copy-install (light hosts skip fonts).
 
 Options:
+  --uninstall  Remove dotfiles font dirs, version stamp, and journal entries
+  --dry-run    Show actions only
+  --yes, -y    Skip confirmation (with --uninstall)
   -h, --help   Show this help
 
 Re-run to upgrade.
 EOF
 }
 
-# shellcheck source=lib/cli-args.sh
-source "$SCRIPT_DIR/lib/cli-args.sh"
-df_no_args_or_help "$@"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# shellcheck source=lib/install-cli.sh
+source "$SCRIPT_DIR/lib/install-cli.sh"
+# shellcheck source=lib/software-uninstall.sh
+source "$SCRIPT_DIR/lib/software-uninstall.sh"
+
+uninstall_fonts() {
+  df_inst_remove_nerd_fonts
+}
+
+_df_entry=0
+df_install_cli_entry "$@" || _df_entry=$?
+case "$_df_entry" in
+  1) df_inst_run_uninstall fonts uninstall_fonts; exit 0 ;;
+  2) usage; exit 0 ;;
+  3) usage >&2; exit 1 ;;
+esac
 
 # shellcheck source=lib/github-release.sh
 source "$SCRIPT_DIR/lib/github-release.sh"

@@ -20,6 +20,8 @@ Available after the first install as `dotfiles` (`~/.local/bin/dotfiles`).
 | `dotfiles install lazyvim-lite` | Install LazyVim lite |
 | `dotfiles install fetch` | Install fastfetch banner (interactive picker) |
 | `dotfiles uninstall` | Interactive undo: dry-run, uninstall, or purge |
+| `dotfiles uninstall lazyvim` | Remove LazyVim/lite; switch nvim to nvim-plain |
+| `dotfiles uninstall <software>` | Remove one tool (see `dotfiles uninstall --list`) |
 
 First-time full install: `./devbox.sh`, `./desktop.sh`, or `./server.sh` (no flags).
 

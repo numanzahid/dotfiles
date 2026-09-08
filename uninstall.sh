@@ -42,10 +42,10 @@ Prompts for dry-run, uninstall, or purge.
 Pre-journal hosts: uninstall/purge auto-seeds the journal from detected
 files before removing tools.
 
-Does not undo LazyVim:
+Does not undo LazyVim (use dotfiles uninstall lazyvim):
   ./lazyvim/install-lazyvim.sh
   ./lazyvim-lite/install-lazyvim-lite.sh
-If ~/.config/nvim is a LazyVim profile, it is left untouched.
+If ~/.config/nvim is a LazyVim profile, it is left untouched by this script.
 
 Non-interactive: set DOTFILES_UNINSTALL_MODE to dry-run, uninstall, or purge.
 

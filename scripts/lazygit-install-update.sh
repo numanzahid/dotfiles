@@ -8,10 +8,11 @@ set -euo pipefail
 # Re-run anytime to upgrade.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BIN_PATH="/usr/local/bin/lazygit"
 
 usage() {
   cat <<'EOF'
-Usage: ./scripts/lazygit-install-update.sh
+Usage: ./scripts/lazygit-install-update.sh [options]
 
 Install or upgrade lazygit from GitHub releases (not apt).
 https://github.com/jesseduffield/lazygit
@@ -21,21 +22,36 @@ Invoked by ./devbox.sh --lazygit / --all and ./desktop.sh --lazygit
 (not in Fedora repos). Not part of copy-install.
 
 Options:
+  --uninstall  Remove /usr/local/bin/lazygit and journaled paths
+  --dry-run    Show actions only
+  --yes, -y    Skip confirmation (with --uninstall)
   -h, --help   Show this help
 
 Re-run anytime to upgrade.
 EOF
 }
 
-# shellcheck source=lib/cli-args.sh
-source "$SCRIPT_DIR/lib/cli-args.sh"
-df_no_args_or_help "$@"
+# shellcheck source=lib/install-cli.sh
+source "$SCRIPT_DIR/lib/install-cli.sh"
+# shellcheck source=lib/software-uninstall.sh
+source "$SCRIPT_DIR/lib/software-uninstall.sh"
+
+uninstall_lazygit() {
+  df_inst_remove_github_binary lazygit "$BIN_PATH"
+}
+
+_df_entry=0
+df_install_cli_entry "$@" || _df_entry=$?
+case "$_df_entry" in
+  1) df_inst_run_uninstall lazygit uninstall_lazygit; exit 0 ;;
+  2) usage; exit 0 ;;
+  3) usage >&2; exit 1 ;;
+esac
 
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/lib/github-release.sh"
 
 REPO="jesseduffield/lazygit"
-BIN_PATH="/usr/local/bin/lazygit"
 
 need_cmd() { command -v "$1" >/dev/null 2>&1; }
 

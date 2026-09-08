@@ -12,10 +12,11 @@ set -euo pipefail
 # Light host: ~/.install-scripts/fastfetch-install-update.sh
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BIN_PATH="/usr/local/bin/fastfetch"
 
 usage() {
   cat <<'EOF'
-Usage: ./scripts/fastfetch-install-update.sh
+Usage: ./scripts/fastfetch-install-update.sh [options]
 
 Install or upgrade fastfetch from GitHub releases (never apt, never PPA).
 https://github.com/fastfetch-cli/fastfetch
@@ -28,21 +29,33 @@ On a light host, ./server.sh --fetch copies this script to
 ~/.install-scripts/fastfetch-install-update.sh for later upgrades.
 
 Options:
+  --uninstall  Remove installed binary and journaled paths
+  --dry-run    Show actions only
+  --yes, -y    Skip confirmation (with --uninstall)
   -h, --help   Show this help
 
 Re-run anytime to upgrade the binary only.
 EOF
 }
 
-if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
-  usage
-  exit 0
-fi
-if [[ $# -gt 0 ]]; then
-  echo "Unknown option: $1" >&2
-  usage >&2
-  exit 1
-fi
+# shellcheck source=lib/install-cli.sh
+source "$SCRIPT_DIR/lib/install-cli.sh"
+# shellcheck source=lib/software-uninstall.sh
+source "$SCRIPT_DIR/lib/software-uninstall.sh"
+# shellcheck source=lib/pfetch-remove.sh
+source "$SCRIPT_DIR/lib/pfetch-remove.sh"
+
+uninstall_fastfetch() {
+  df_inst_remove_fastfetch
+}
+
+_df_entry=0
+df_install_cli_entry "$@" || _df_entry=$?
+case "$_df_entry" in
+  1) df_inst_run_uninstall fetch uninstall_fastfetch; exit 0 ;;
+  2) usage; exit 0 ;;
+  3) usage >&2; exit 1 ;;
+esac
 
 # shellcheck disable=SC1091
 if [[ -f "$SCRIPT_DIR/lib/github-release.sh" ]]; then
@@ -55,7 +68,6 @@ else
 fi
 
 REPO="fastfetch-cli/fastfetch"
-BIN_PATH="/usr/local/bin/fastfetch"
 PPA="ppa:zhangsongcui3371/fastfetch"
 
 gr_require_cmds curl jq tar

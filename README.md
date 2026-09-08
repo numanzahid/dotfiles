@@ -87,7 +87,22 @@ Prompts for:
 
 Pre-journal hosts are auto-seeded on uninstall/purge. Non-interactive: `DOTFILES_UNINSTALL_MODE=uninstall` or `purge`.
 
-Does not undo LazyVim unless you run the lazyvim uninstall scripts separately.
+Remove LazyVim completely (plugin data; switches nvim back to nvim-plain):
+
+```bash
+dotfiles uninstall lazyvim
+```
+
+Remove one dotfiles-managed tool (binary, packages, journaled files):
+
+```bash
+dotfiles uninstall lazygit
+dotfiles uninstall --list
+# or directly:
+./scripts/lazygit-install-update.sh --uninstall
+```
+
+Each install script owns its `--uninstall` logic (journal + known paths).
 
 ## Install journal
 

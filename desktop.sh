@@ -380,7 +380,7 @@ install_software_desktop() {
   fi
 
   if ! df_skip_software_component tpm; then
-    run_github_step "tpm" install_tpm
+    run_github_step "tpm" bash "$SCRIPTS_DIR/tpm-install-update.sh"
     [[ "$DRY_RUN" -eq 0 ]] && df_component_touch tpm ""
   fi
 

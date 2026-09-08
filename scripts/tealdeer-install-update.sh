@@ -8,7 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 usage() {
   cat <<'EOF'
-Usage: ./scripts/tealdeer-install-update.sh
+Usage: ./scripts/tealdeer-install-update.sh [options]
 
 Install or upgrade tealdeer from GitHub releases (tldr command).
 https://github.com/tealdeer-rs/tealdeer
@@ -19,21 +19,40 @@ Needs curl, jq, sudo.
 Invoked by ./devbox.sh --tldr / --all and ./desktop.sh --tldr / --all.
 
 Options:
+  --uninstall  Remove tldr binary, cache, config, and custom pages
+  --dry-run    Show actions only
+  --yes, -y    Skip confirmation (with --uninstall)
   -h, --help   Show this help
 
 Re-run anytime to upgrade the client or refresh pages.
 EOF
 }
 
-# shellcheck source=lib/cli-args.sh
-source "$SCRIPT_DIR/lib/cli-args.sh"
-df_no_args_or_help "$@"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BIN_PATH="/usr/local/bin/tldr"
+
+# shellcheck source=lib/install-cli.sh
+source "$SCRIPT_DIR/lib/install-cli.sh"
+# shellcheck source=lib/software-uninstall.sh
+source "$SCRIPT_DIR/lib/software-uninstall.sh"
+
+uninstall_tldr() {
+  df_inst_remove_github_binary tldr "$BIN_PATH"
+  df_inst_remove_tealdeer_data
+}
+
+_df_entry=0
+df_install_cli_entry "$@" || _df_entry=$?
+case "$_df_entry" in
+  1) df_inst_run_uninstall tldr uninstall_tldr; exit 0 ;;
+  2) usage; exit 0 ;;
+  3) usage >&2; exit 1 ;;
+esac
 
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/lib/github-release.sh"
 
 REPO="tealdeer-rs/tealdeer"
-BIN_PATH="/usr/local/bin/tldr"
 
 gr_require_cmds curl jq
 

@@ -120,6 +120,39 @@ df_journal_paths_for_kind() {
   done <"$file" | awk 'NF && !seen[$0]++'
 }
 
+# Drop journal rows whose path column equals $1 (any kind).
+df_journal_remove_path() {
+  local path="$1"
+  local file tmp
+
+  [[ -n "$path" ]] || return 0
+  if [[ "${DRY_RUN:-0}" -eq 1 ]]; then
+    return 0
+  fi
+  file="$(df_journal_file)"
+  [[ -f "$file" ]] || return 0
+  tmp="$(mktemp)"
+  awk -F '\t' -v p="$path" '($3 != p) { print }' "$file" >"$tmp"
+  mv -f "$tmp" "$file"
+}
+
+# Drop journal rows with a given kind and path.
+df_journal_remove_kind_path() {
+  local kind="$1"
+  local path="$2"
+  local file tmp
+
+  [[ -n "$kind" && -n "$path" ]] || return 0
+  if [[ "${DRY_RUN:-0}" -eq 1 ]]; then
+    return 0
+  fi
+  file="$(df_journal_file)"
+  [[ -f "$file" ]] || return 0
+  tmp="$(mktemp)"
+  awk -F '\t' -v k="$kind" -v p="$path" '($2 != k || $3 != p) { print }' "$file" >"$tmp"
+  mv -f "$tmp" "$file"
+}
+
 # Kinds uninstall.sh does not act on (by design).
 df_journal_is_skip_kind() {
   case "$1" in

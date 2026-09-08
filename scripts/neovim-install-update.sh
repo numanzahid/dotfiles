@@ -8,13 +8,12 @@ set -euo pipefail
 #
 # Re-run anytime to upgrade.
 
-REPO="neovim/neovim"
-
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+NVIM_BIN="${NVIM_BIN:-/usr/local/bin/nvim}"
 
 usage() {
   cat <<'EOF'
-Usage: ./scripts/neovim-install-update.sh
+Usage: ./scripts/neovim-install-update.sh [options]
 
 Install or upgrade Neovim from official GitHub tarballs (never apt).
 https://github.com/neovim/neovim
@@ -22,26 +21,36 @@ https://github.com/neovim/neovim
 Installs /opt/nvim-<ver>-<arch>, symlink /opt/nvim, and
 /usr/local/bin/nvim. Needs curl or wget, tar, sudo.
 Invoked by ./devbox.sh --neovim / --all.
-Copy-install copies this script to ~/.install-scripts/ so you can
-upgrade after deleting the clone.
 On Fedora, ./desktop.sh --neovim uses dnf neovim instead.
 
 Options:
+  --uninstall  Remove /opt/nvim*, /usr/local/bin/nvim, journaled package
+  --dry-run    Show actions only
+  --yes, -y    Skip confirmation (with --uninstall)
   -h, --help   Show this help
 
 Re-run anytime to upgrade.
 EOF
 }
 
-if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
-  usage
-  exit 0
-fi
-if [[ $# -gt 0 ]]; then
-  echo "Unknown option: $1" >&2
-  usage >&2
-  exit 1
-fi
+# shellcheck source=lib/install-cli.sh
+source "$SCRIPT_DIR/lib/install-cli.sh"
+# shellcheck source=lib/software-uninstall.sh
+source "$SCRIPT_DIR/lib/software-uninstall.sh"
+
+uninstall_neovim() {
+  df_inst_remove_neovim_install
+}
+
+_df_entry=0
+df_install_cli_entry "$@" || _df_entry=$?
+case "$_df_entry" in
+  1) df_inst_run_uninstall neovim uninstall_neovim; exit 0 ;;
+  2) usage; exit 0 ;;
+  3) usage >&2; exit 1 ;;
+esac
+
+REPO="neovim/neovim"
 
 # shellcheck disable=SC1091
 if [[ -f "$SCRIPT_DIR/lib/github-release.sh" ]]; then

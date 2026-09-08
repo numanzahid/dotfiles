@@ -116,11 +116,13 @@ Rust in `~/.cargo` is reported, not deleted.
 ## Uninstall
 
 ```bash
+dotfiles uninstall lazyvim
+# or:
 ./lazyvim/uninstall-lazyvim.sh
 ```
 
-This restores the plain editor config (`nvim-plain`) and removes LazyVim plugin data.
-The Neovim binary is not removed.
+Removes LazyVim and lazyvim-lite plugin data, then switches nvim back to
+the plain editor config (`nvim-plain`). Does not uninstall the Neovim binary.
 
 ## Disk usage
 

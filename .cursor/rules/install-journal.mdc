@@ -35,6 +35,7 @@ Format: `timestamp<TAB>kind<TAB>path<TAB>extra`
 
 - Source `scripts/lib/journal.sh` (or a lib that sources it) in new install scripts.
 - Call `df_journal_once kind path [extra]` after each side effect. It skips duplicates and no-ops on `--dry-run`.
+- Each `*-install-update.sh` (and `install-deps.sh`, `install-tools.sh`, `install-fetch.sh`) supports `--uninstall` to remove what that installer created. `dotfiles uninstall <name>` delegates to the matching script.
 - Do not use `declare -F df_journal_once` to skip journaling; source the journal lib instead.
 - If uninstall should revert it, it must be journaled. See `scripts/lib/journal.sh` for kind behavior.
 - After adding a new journal kind, add an uninstall handler in `uninstall.sh` and document it in `README.md`.

@@ -115,3 +115,21 @@ clear_nvim_profile() {
   fi
   link_nvim_plain_config
 }
+
+nvim_config_is_dotfiles_managed() {
+  local dest lazyvim_src plain_src
+
+  dest="$(nvim_home_config_dir)"
+  lazyvim_src="$(nvim_lazyvim_config_dir)"
+  plain_src="$(nvim_plain_config_dir)"
+  [[ -e "$dest" || -L "$dest" ]] || return 1
+  df_paths_same "$dest" "$lazyvim_src" && return 0
+  df_paths_same "$dest" "$plain_src"
+}
+
+nvim_lazyvim_profile_active() {
+  local profile
+
+  profile="$(get_nvim_profile)"
+  [[ "$profile" == lazyvim || "$profile" == lazyvim-lite ]]
+}

@@ -10,6 +10,17 @@ TARGET_HOME="${HOME:?}"
 DRY_RUN=0
 ART=""
 STATUS=0
+UNINSTALL=0
+ASSUME_YES=0
+
+# shellcheck source=scripts/lib/install-cli.sh
+source "$SCRIPTS_DIR/lib/install-cli.sh"
+# shellcheck source=scripts/lib/software-uninstall.sh
+source "$SCRIPTS_DIR/lib/software-uninstall.sh"
+
+uninstall_fetch() {
+  df_inst_remove_fastfetch
+}
 
 # shellcheck source=scripts/lib/platform.sh
 source "$SCRIPTS_DIR/lib/platform.sh"
@@ -44,6 +55,7 @@ Live copies (not in git), seeded once, never overwritten:
   ~/.config/custom-fetch-padding.jsonc
 
 Options:
+  --uninstall  Remove fastfetch binary and legacy pfetch leftovers
   --art N     Set text art (0=none, 1=default, artN.txt, or c=custom)
   --status    Show current text art (with preview)
   --dry-run   Print actions without changing anything
@@ -120,7 +132,9 @@ while [[ $# -gt 0 ]]; do
       usage
       exit 0
       ;;
-    --dry-run) DRY_RUN=1 ;;
+    --uninstall) UNINSTALL=1 ;;
+    --yes | -y) ASSUME_YES=1 ;;
+    --dry-run) DRY_RUN=1; export DRY_RUN=1 ;;
     --status) STATUS=1 ;;
     --art)
       if [[ $# -lt 2 ]]; then
@@ -142,6 +156,13 @@ while [[ $# -gt 0 ]]; do
   esac
   shift
 done
+
+if [[ "$UNINSTALL" -eq 1 ]]; then
+  DF_INSTALL_YES=$ASSUME_YES
+  DF_INSTALL_DRY_RUN=$DRY_RUN
+  df_inst_run_uninstall fetch uninstall_fetch
+  exit 0
+fi
 
 # List/preview the files in this clone (same names after link).
 DF_FF_ART_DIR="$SOURCE_DIR/.config/fastfetch"

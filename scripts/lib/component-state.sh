@@ -105,6 +105,22 @@ df_component_touch() {
   mv -f "$tmp" "$file"
 }
 
+df_component_forget() {
+  local component="$1"
+  local file tmp
+
+  [[ -n "$component" ]] || return 1
+  if [[ "${DRY_RUN:-0}" -eq 1 ]]; then
+    return 0
+  fi
+
+  file="$(df_component_state_file)"
+  [[ -f "$file" ]] || return 0
+  tmp="$(mktemp)"
+  awk -F '\t' -v c="$component" '($1 != c) { print }' "$file" >"$tmp"
+  mv -f "$tmp" "$file"
+}
+
 df_component_get_field() {
   local component="$1"
   local field="$2"

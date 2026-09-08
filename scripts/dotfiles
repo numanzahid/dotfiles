@@ -63,8 +63,10 @@ Commands:
       lazyvim-lite  Editor-only LazyVim
       fetch         Fastfetch banner (interactive art picker)
 
-  uninstall
-      Interactive undo: dry-run, uninstall, or purge (removes clone and state).
+  uninstall [target] [--dry-run] [--yes]
+      Default: interactive undo of devbox/desktop/server install.
+      lazyvim: remove LazyVim/lite data; switch nvim back to nvim-plain.
+      <software>: remove one dotfiles-managed tool (see --list).
 
 First-time setup (before dotfiles is on PATH):
   ./devbox.sh          Debian/Ubuntu full install
@@ -253,12 +255,76 @@ dotfiles_cmd_status() {
 }
 
 dotfiles_cmd_uninstall() {
-  local script
+  local what="" script lazyvim_dry=0 software_dry=0 assume_yes=0
+  local -a lazyvim_args=() sw_args=()
 
   require_dotfiles_dir
-  script="$DOTFILES_DIR/uninstall.sh"
-  [[ -f "$script" ]] || die "uninstall script missing: $script"
-  exec bash "$script"
+
+  if [[ "${1:-}" == "--list" ]]; then
+    bash "$DOTFILES_DIR/scripts/uninstall-software.sh" --list
+    return 0
+  fi
+
+  what="${1:-}"
+  shift || true
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --dry-run)
+        lazyvim_dry=1
+        software_dry=1
+        ;;
+      --yes | -y) assume_yes=1 ;;
+      -h | --help)
+        dotfiles_cmd_uninstall_help
+        return 0
+        ;;
+      *)
+        die "unknown option for uninstall: $1"
+        ;;
+    esac
+    shift
+  done
+
+  case "$what" in
+    lazyvim)
+      [[ "$lazyvim_dry" -eq 1 ]] && lazyvim_args+=(--dry-run)
+      [[ "$assume_yes" -eq 1 ]] && lazyvim_args+=(--yes)
+      bash "$DOTFILES_DIR/lazyvim/uninstall-lazyvim.sh" "${lazyvim_args[@]}"
+      ;;
+    "")
+      script="$DOTFILES_DIR/uninstall.sh"
+      [[ -f "$script" ]] || die "uninstall script missing: $script"
+      exec bash "$script"
+      ;;
+    *)
+      [[ "$software_dry" -eq 1 ]] && sw_args+=(--dry-run)
+      [[ "$assume_yes" -eq 1 ]] && sw_args+=(--yes)
+      bash "$DOTFILES_DIR/scripts/uninstall-software.sh" "$what" "${sw_args[@]}"
+      ;;
+  esac
+}
+
+dotfiles_cmd_uninstall_help() {
+  cat <<'EOF'
+Usage: dotfiles uninstall [target] [options]
+
+  dotfiles uninstall
+      Interactive undo of devbox/desktop/server install.
+
+  dotfiles uninstall lazyvim [--dry-run] [--yes]
+      Remove LazyVim/lite plugin data; switch nvim to nvim-plain.
+
+  dotfiles uninstall <software> [--dry-run] [--yes]
+      Remove one dotfiles-managed tool and journaled files it created.
+
+  dotfiles uninstall --list
+      Show uninstallable software names.
+
+Options:
+  --dry-run   Show actions only
+  --yes, -y   Skip confirmation
+EOF
 }
 
 dotfiles_cmd_install() {
@@ -318,7 +384,7 @@ main() {
   case "$cmd" in
     update) dotfiles_cmd_update ;;
     status) dotfiles_cmd_status ;;
-    uninstall) dotfiles_cmd_uninstall ;;
+    uninstall) dotfiles_cmd_uninstall "$@" ;;
     install) dotfiles_cmd_install "$@" ;;
     -h | --help)
       usage
