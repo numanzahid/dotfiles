@@ -40,7 +40,7 @@ Installed by `./devbox.sh` / `./desktop.sh` via `fzf install --all`. Active in i
 | Key | Action |
 |-----|--------|
 | `Ctrl+R` | Fuzzy search bash history |
-| `Ctrl+T` | Fuzzy pick a file; insert path at cursor |
+| `Ctrl+T` | Fuzzy pick a file or directory; insert path at cursor |
 | `Alt+C` | Fuzzy cd into a directory |
 | `**` + `Tab` | Fuzzy path completion |
 
@@ -63,8 +63,8 @@ When `fd`, `bat`, and `eza` are installed, dotfiles sets:
 
 | Setting | Effect |
 |---------|--------|
-| `FZF_DEFAULT_COMMAND` | `fd` for files (respects `.gitignore`, includes hidden) |
-| `FZF_CTRL_T_COMMAND` | Same as above for `Ctrl+T` |
+| `FZF_DEFAULT_COMMAND` | `fd --type f` for files (`ff`, default fzf) |
+| `FZF_CTRL_T_COMMAND` | `fd` files + directories for `Ctrl+T` path insert |
 | `FZF_ALT_C_COMMAND` | `fd --type d` for `Alt+C` |
 | `FZF_CTRL_T_OPTS` | `bat` preview on file pick |
 | `FZF_ALT_C_OPTS` | `eza` listing preview on directory pick |
@@ -84,6 +84,7 @@ Custom helpers in `home/.shell_aliases_interactive.sh`:
 | `fkill` | Fuzzy pick process(es) to kill (default signal 9) |
 | `fkill 15` | Same, but send SIGTERM instead |
 | `ftldr` | Fuzzy pick a tldr page (`ftldr tar` still works like `tldr tar`) |
+| `fssh` | Fuzzy pick a `Host` from `~/.ssh/config` and `ssh` to it |
 | `tldr cmd` | Show example-focused help for a command |
 | `tldr --update` | Refresh cached tldr pages |
 
@@ -140,6 +141,32 @@ export FZF_CTRL_T_OPTS="$FZF_CTRL_T_OPTS --multi"
 | `z foo` / `cd foo` | Jump to a dir you have visited before (zoxide) |
 | `Alt+C` | Explore and cd under the current directory |
 | `fcd` | Same idea as `Alt+C`, but as an explicit command |
+
+---
+
+## SSH (devbox/desktop)
+
+Hosts live in `~/.ssh/config` (template: `home/.ssh/config.example` in the repo).
+
+| Command | What it does |
+|---------|----------------|
+| `fssh` | Fuzzy pick a `Host` alias and connect (`ssh` with extra args: `fssh -L 8080:localhost:80`) |
+| `sshk host` | Kitty only: `kitten ssh host` (terminfo sync) |
+| `NO_TMUX=1 ssh host` | SSH without tmux autostart |
+
+Example `~/.ssh/config`:
+
+```
+Host office
+  HostName office.example.com
+  User numan
+
+Host vps
+  HostName 1.2.3.4
+  User root
+```
+
+Then run `fssh`, type `office`, Enter. Preview pane shows `ssh -G` resolved settings for the selected host.
 
 ---
 
@@ -232,6 +259,8 @@ SSH autostart: interactive SSH sessions attach to or create tmux automatically. 
 |---------|----------------|
 | `sshk host` | `kitten ssh host` (only if Kitty `kitten` is installed) |
 
+See [SSH (devbox/desktop)](#ssh-devboxdesktop) for `fssh` and `~/.ssh/config`.
+
 ---
 
 ## Desktop
@@ -275,7 +304,7 @@ Install profiles: `dotfiles install lazyvim` or `dotfiles install lazyvim-lite`.
 
 | Feature | server |
 |---------|--------|
-| fzf (`ff`, `fcd`, `fe`, `fkill`, key bindings) | No |
+| fzf (`ff`, `fcd`, `fe`, `fkill`, `fssh`, key bindings) | No |
 | zoxide (`cd` override) | No |
 | `del` (trash-put) | No |
 | eza | No (GNU `ls` aliases instead) |

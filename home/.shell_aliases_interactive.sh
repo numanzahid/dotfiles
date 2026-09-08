@@ -16,7 +16,8 @@ fi
 
 if command -v fd >/dev/null 2>&1; then
   export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
-  export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+  # Ctrl+T inserts a path at the cursor (files and dirs; e.g. mv src <pick dest dir>).
+  export FZF_CTRL_T_COMMAND='fd --hidden --follow --exclude .git'
   export FZF_ALT_C_COMMAND='fd --type d --hidden --follow --exclude .git'
 fi
 
@@ -87,6 +88,36 @@ ftldr() {
     return $?
   fi
   tldr --list | fzf --preview 'tldr {}' | xargs -r tldr
+}
+
+# Fuzzy ssh from ~/.ssh/config Host aliases (skips Host * and other patterns).
+_dotfiles_ssh_config_hosts() {
+  local config="${HOME}/.ssh/config"
+  [[ -f "$config" ]] || return 1
+  awk '
+    /^[[:space:]]*Host[[:space:]]+/ {
+      for (i = 2; i <= NF; i++) {
+        if ($i !~ /[*?]/) print $i
+      }
+    }
+  ' "$config"
+}
+
+fssh() {
+  local host config="${HOME}/.ssh/config"
+  if ! command -v fzf >/dev/null 2>&1; then
+    echo "fzf not found" >&2
+    return 1
+  fi
+  if [[ ! -f "$config" ]]; then
+    echo "no ~/.ssh/config (see ~/.dotfiles/home/.ssh/config.example)" >&2
+    return 1
+  fi
+  host="$(
+    _dotfiles_ssh_config_hosts | sort -u | fzf --prompt 'ssh> ' \
+      --preview 'ssh -G {} 2>/dev/null | grep -v "^$" | head -40'
+  )"
+  [[ -n "$host" ]] && ssh "$host" "$@"
 }
 
 ##### zoxide ############################################################
