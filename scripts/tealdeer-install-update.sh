@@ -5,6 +5,9 @@ set -euo pipefail
 # https://github.com/tealdeer-rs/tealdeer
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DOTFILES_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+BIN_PATH="/usr/local/bin/tldr"
+TLDR_PAGE_SRC="$DOTFILES_DIR/share/tldr/dotfiles.page.md"
 
 usage() {
   cat <<'EOF'
@@ -14,6 +17,7 @@ Install or upgrade tealdeer from GitHub releases (tldr command).
 https://github.com/tealdeer-rs/tealdeer
 
 Installs /usr/local/bin/tldr and refreshes the local tldr-pages cache.
+Links share/tldr/dotfiles.page.md into ~/.local/share/tealdeer/pages/.
 Needs curl, jq, sudo.
 
 Invoked by ./devbox.sh --tldr / --all and ./desktop.sh --tldr / --all.
@@ -27,9 +31,6 @@ Options:
 Re-run anytime to upgrade the client or refresh pages.
 EOF
 }
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BIN_PATH="/usr/local/bin/tldr"
 
 # shellcheck source=lib/install-cli.sh
 source "$SCRIPT_DIR/lib/install-cli.sh"
@@ -100,10 +101,28 @@ tealdeer_update_pages() {
   fi
   echo "Updating tldr pages cache..."
   if "$BIN_PATH" --update; then
-    return 0
+    :
+  else
+    echo "WARN: tldr --update failed (offline or GitHub); client is still installed" >&2
   fi
-  echo "WARN: tldr --update failed (offline or GitHub); client is still installed" >&2
-  return 0
+}
+
+tealdeer_install_dotfiles_page() {
+  local dest dir
+
+  [[ -f "$TLDR_PAGE_SRC" ]] || {
+    echo "WARN: missing dotfiles tldr page: $TLDR_PAGE_SRC" >&2
+    return 0
+  }
+
+  dest="${XDG_DATA_HOME:-$HOME/.local/share}/tealdeer/pages/dotfiles.page.md"
+  dir="$(dirname "$dest")"
+  mkdir -p "$dir"
+  ln -sfn "$TLDR_PAGE_SRC" "$dest"
+  # shellcheck source=lib/journal.sh
+  source "$SCRIPT_DIR/lib/journal.sh"
+  df_journal_once link "$dest" "$TLDR_PAGE_SRC"
+  echo "Dotfiles tldr page: $dest"
 }
 
 tag="$(gr_latest_tag "$REPO" || true)"
@@ -116,6 +135,7 @@ tag="$(gr_latest_tag "$REPO" || true)"
 if gr_bin_has_tag "$BIN_PATH" "$tag"; then
   echo "Already current: $BIN_PATH ($tag)"
   tealdeer_update_pages
+  tealdeer_install_dotfiles_page
   echo "Done."
   echo "tldr path: $(command -v tldr || true)"
   gr_print_version_line tldr
@@ -147,6 +167,7 @@ sudo_cmd="$(gr_sudo)"
 gr_install_binary "$binary" "$BIN_PATH" "$sudo_cmd"
 
 tealdeer_update_pages
+tealdeer_install_dotfiles_page
 
 echo "Done."
 echo "tldr path: $(command -v tldr || true)"

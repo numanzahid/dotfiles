@@ -88,6 +88,7 @@ Custom helpers in `home/.shell_aliases_interactive.sh`:
 | `ftldr` | Fuzzy pick a tldr page (`ftldr tar` still works like `tldr tar`) |
 | `fssh` | Fuzzy pick a `Host` from `~/.ssh/config` and `ssh` to it |
 | `tldr cmd` | Show example-focused help for a command |
+| `tldr dotfiles` | Dotfiles CLI cheat sheet (custom page from this repo) |
 | `tldr --update` | Refresh cached tldr pages |
 
 ### fzf tips that work well here
@@ -109,6 +110,7 @@ fd -e md | fzf -m | xargs nvim
 
 ```bash
 ftldr                  # fuzzy list of all cached pages
+tldr dotfiles          # dotfiles CLI cheat sheet
 tldr tar               # direct lookup
 tldr --update          # refresh pages (also runs on install)
 ```

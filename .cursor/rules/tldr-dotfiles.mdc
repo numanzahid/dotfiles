@@ -1,0 +1,36 @@
+---
+description: Keep the dotfiles tldr custom page in sync with the CLI
+globs: "{scripts/dotfiles,share/tldr/**,SHORTCUTS.md}"
+alwaysApply: false
+---
+
+# Dotfiles tldr page
+
+Custom page for tealdeer: `share/tldr/dotfiles.page.md`
+Installed to: `~/.local/share/tealdeer/pages/dotfiles.page.md` (symlink on install)
+
+## When to update
+
+Update `share/tldr/dotfiles.page.md` in the same change when you:
+
+- Add, rename, or remove a `dotfiles` subcommand or flag
+- Change default install/uninstall behavior users run from the CLI
+- Move first-time setup entry points (`devbox.sh`, `desktop.sh`, `server.sh`)
+
+Do not duplicate every script flag; keep the page short like upstream tldr (common tasks only).
+
+## Format
+
+- Title: `# dotfiles`
+- One-line description after `>`
+- Sections use `-` bullets; commands in backticks on their own line
+- ASCII only; no emojis
+
+## Verify
+
+```bash
+tldr dotfiles
+./scripts/tealdeer-install-update.sh   # re-link page on existing hosts
+```
+
+If `tldr dotfiles` fails, check `tldr --show-paths` and that the symlink exists under Custom pages dir.
