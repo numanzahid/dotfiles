@@ -1,0 +1,366 @@
+#!/usr/bin/env bash
+# Unified dotfiles CLI: update, status, install profiles.
+set -euo pipefail
+
+DOTFILES_DIR="${DOTFILES_DIR:-}"
+if [[ -z "$DOTFILES_DIR" ]]; then
+  if [[ -n "${BASH_SOURCE[0]:-}" && "${BASH_SOURCE[0]}" != "${0:-}" ]]; then
+    _df_self="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  else
+    _df_self="$(cd "$(dirname "$0")/.." && pwd)"
+  fi
+  if [[ -f "$_df_self/devbox.sh" ]]; then
+    DOTFILES_DIR="$_df_self"
+  elif [[ -d "${HOME}/.dotfiles" && -f "${HOME}/.dotfiles/devbox.sh" ]]; then
+    DOTFILES_DIR="${HOME}/.dotfiles"
+  elif [[ -d "${HOME}/dotfiles" && -f "${HOME}/dotfiles/devbox.sh" ]]; then
+    DOTFILES_DIR="${HOME}/dotfiles"
+  fi
+  unset _df_self
+fi
+
+STANDALONE_CLI_DIR="${HOME}/.install-scripts/dotfiles-cli"
+if [[ -f "${DOTFILES_DIR}/scripts/lib/component-state.sh" ]]; then
+  SCRIPTS_DIR="${DOTFILES_DIR}/scripts"
+  LIB_DIR="$SCRIPTS_DIR/lib"
+elif [[ -f "$STANDALONE_CLI_DIR/lib/component-state.sh" ]]; then
+  LIB_DIR="$STANDALONE_CLI_DIR/lib"
+  SCRIPTS_DIR="${DOTFILES_DIR:+$DOTFILES_DIR/scripts}"
+else
+  SCRIPTS_DIR="${DOTFILES_DIR}/scripts"
+  LIB_DIR="$SCRIPTS_DIR/lib"
+fi
+
+# shellcheck source=lib/component-state.sh
+source "$LIB_DIR/component-state.sh"
+# shellcheck source=lib/platform.sh
+source "$LIB_DIR/platform.sh"
+
+DRY_RUN=0
+FORCE=0
+
+usage() {
+  cat <<'EOF'
+Usage: dotfiles <command> [options]
+
+Commands:
+  update [--force] [--dry-run]
+      Pull latest dotfiles repo, refresh configs, update installed software.
+      Stops if the repo has local changes unless --force is given.
+      --force resets tracked repo changes and pulls (software is not
+      force-reinstalled; use ./devbox.sh --all for that).
+      Software steps skip when last updated within 30 days.
+
+  status
+      Show install profile and last-updated times per component.
+
+  install <profile> [installer flags...]
+      devbox, desktop, server  - same flags as ./devbox.sh, ./desktop.sh,
+                                 ./server.sh
+      lazyvim, lazyvim-lite    - same flags as their install scripts
+
+Examples:
+  dotfiles update
+  dotfiles update --force
+  dotfiles status
+  dotfiles install devbox --all
+  dotfiles install desktop --deps --tools
+  dotfiles install server --all
+  dotfiles install lazyvim
+  dotfiles install lazyvim-lite --skip-sync
+
+Reinstall or upgrade software immediately (ignores 30-day skip):
+  ./devbox.sh --all
+  ./desktop.sh --all
+EOF
+}
+
+log() {
+  printf '[dotfiles] %s\n' "$*"
+}
+
+die() {
+  printf '[dotfiles] ERROR: %s\n' "$*" >&2
+  exit 1
+}
+
+require_dotfiles_dir() {
+  [[ -n "$DOTFILES_DIR" && -d "$DOTFILES_DIR" ]] ||
+    die "dotfiles repo not found. Set DOTFILES_DIR or clone to ~/.dotfiles (needed for update/install)"
+}
+
+run_installer() {
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    printf '+'
+    printf ' %q' "$@"
+    printf '\n'
+  else
+    "$@"
+  fi
+}
+
+dotfiles_show_repo_dirty() {
+  local has_unstaged=0 has_staged=0
+
+  git diff --quiet --exit-code || has_unstaged=1
+  git diff --cached --quiet --exit-code || has_staged=1
+
+  log "local changes in $DOTFILES_DIR:"
+  git status --short
+  if [[ "$has_unstaged" -eq 1 ]]; then
+    printf '\n'
+    log "unstaged diff:"
+    git diff --stat
+  fi
+  if [[ "$has_staged" -eq 1 ]]; then
+    printf '\n'
+    log "staged diff:"
+    git diff --cached --stat
+  fi
+  printf '\n'
+}
+
+dotfiles_repo_update() {
+  local force="$1"
+
+  require_dotfiles_dir
+  cd "$DOTFILES_DIR"
+
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    die "not a git repository: $DOTFILES_DIR"
+  fi
+
+  if [[ "$force" -eq 0 ]]; then
+    if ! git diff --quiet --exit-code || ! git diff --cached --quiet --exit-code; then
+      dotfiles_show_repo_dirty
+      die "repo has local changes. Commit, stash, or run: dotfiles update --force"
+    fi
+  else
+    log "discarding tracked repo changes (--force)"
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+      log "would run: git reset --hard HEAD"
+    else
+      git reset --hard HEAD
+    fi
+  fi
+
+  log "pulling latest dotfiles"
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    log "would run: git pull --ff-only"
+  else
+    git pull --ff-only
+    df_component_touch repo "$(df_component_detect_version repo)"
+  fi
+}
+
+dotfiles_should_skip_component() {
+  local component="$1"
+  if df_component_is_fresh "$component" "$DOTFILES_UPDATE_SKIP_DAYS"; then
+    log "skip $component ($(df_component_age_label "$component"))"
+    return 0
+  fi
+  return 1
+}
+
+dotfiles_run_profile_step() {
+  local profile="$1"
+  local component="$2"
+  local -a cmd=()
+
+  if dotfiles_should_skip_component "$component"; then
+    return 0
+  fi
+
+  case "$profile:$component" in
+    devbox:configs)
+      cmd=(bash "$DOTFILES_DIR/devbox.sh")
+      ;;
+    devbox:*)
+      cmd=(bash "$DOTFILES_DIR/devbox.sh" "--$component")
+      ;;
+    desktop:configs)
+      cmd=(bash "$DOTFILES_DIR/desktop.sh")
+      ;;
+    desktop:*)
+      cmd=(bash "$DOTFILES_DIR/desktop.sh" "--$component")
+      ;;
+    server:configs)
+      cmd=(bash "$DOTFILES_DIR/server.sh")
+      ;;
+    server:deps)
+      cmd=(bash "$DOTFILES_DIR/server.sh" --deps)
+      ;;
+    server:neovim)
+      cmd=(bash "$DOTFILES_DIR/server.sh" --neovim)
+      ;;
+    server:fetch)
+      cmd=(bash "$DOTFILES_DIR/server.sh" --fetch)
+      ;;
+    *)
+      die "unknown step: $profile / $component"
+      ;;
+  esac
+
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    DRY_RUN=1 run_installer "${cmd[@]}"
+    return 0
+  fi
+
+  if run_installer "${cmd[@]}"; then
+    df_component_touch "$component" "$(df_component_detect_version "$component")"
+    return 0
+  fi
+  log "WARN: $component step failed"
+  return 1
+}
+
+dotfiles_cmd_update() {
+  local profile failed=0 component
+
+  require_dotfiles_dir
+  profile="$(df_profile_detect)"
+  log "profile: $profile"
+
+  dotfiles_repo_update "$FORCE" || exit 1
+
+  while IFS= read -r component; do
+    [[ -n "$component" ]] || continue
+    if [[ "$component" == fetch ]] && ! df_component_get_field fetch 1 >/dev/null 2>&1; then
+      continue
+    fi
+    dotfiles_run_profile_step "$profile" "$component" || failed=1
+  done < <(df_component_list_known "$profile")
+
+  if [[ "$failed" -eq 1 ]]; then
+    die "one or more update steps failed"
+  fi
+  log "update finished"
+}
+
+dotfiles_cmd_status() {
+  local profile
+  profile="$(df_profile_detect)"
+  df_component_status_print "$profile"
+}
+
+dotfiles_cmd_install() {
+  local profile="$1"
+  shift
+  local -a args=("$@")
+  local script rc=0
+
+  require_dotfiles_dir
+  [[ -n "$profile" ]] || die "install requires a profile (devbox, desktop, server, lazyvim, lazyvim-lite)"
+
+  case "$profile" in
+    devbox)
+      df_profile_save devbox
+      run_installer bash "$DOTFILES_DIR/devbox.sh" "${args[@]}"
+      ;;
+    desktop)
+      df_profile_save desktop
+      run_installer bash "$DOTFILES_DIR/desktop.sh" "${args[@]}"
+      ;;
+    server)
+      df_profile_save server
+      run_installer bash "$DOTFILES_DIR/server.sh" "${args[@]}"
+      ;;
+    lazyvim)
+      df_profile_save lazyvim
+      run_installer bash "$DOTFILES_DIR/lazyvim/install-lazyvim.sh" "${args[@]}"
+      rc=$?
+      [[ "$DRY_RUN" -eq 1 || "$rc" -ne 0 ]] || df_component_touch lazyvim "$(df_component_detect_version lazyvim)"
+      return "$rc"
+      ;;
+    lazyvim-lite)
+      df_profile_save lazyvim-lite
+      run_installer bash "$DOTFILES_DIR/lazyvim-lite/install-lazyvim-lite.sh" "${args[@]}"
+      rc=$?
+      [[ "$DRY_RUN" -eq 1 || "$rc" -ne 0 ]] || df_component_touch lazyvim-lite "$(df_component_detect_version lazyvim-lite)"
+      return "$rc"
+      ;;
+    *)
+      die "unknown profile: $profile (try devbox, desktop, server, lazyvim, lazyvim-lite)"
+      ;;
+  esac
+
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    return 0
+  fi
+
+  # Record components touched by common install flags.
+  case "$profile" in
+    devbox | desktop)
+      df_component_touch configs "$(df_component_detect_version configs)"
+      local arg
+      for arg in "${args[@]}"; do
+        case "$arg" in
+          --all)
+            while IFS= read -r component; do
+              [[ "$component" == configs ]] && continue
+              df_component_touch "$component" "$(df_component_detect_version "$component")"
+            done < <(df_component_list_known "$profile")
+            break
+            ;;
+          --deps | --tools | --lazygit | --gh | --fzf | --tpm | --neovim | --btop | --fonts | --starship)
+            df_component_touch "${arg#--}" "$(df_component_detect_version "${arg#--}")"
+            ;;
+        esac
+      done
+      ;;
+    server)
+      df_component_touch configs "$(df_component_detect_version configs)"
+      for arg in "${args[@]}"; do
+        case "$arg" in
+          --all)
+            df_component_touch deps ""
+            df_component_touch neovim "$(df_component_detect_version neovim)"
+            ;;
+          --deps) df_component_touch deps "" ;;
+          --neovim) df_component_touch neovim "$(df_component_detect_version neovim)" ;;
+          --fetch) df_component_touch fetch "" ;;
+        esac
+      done
+      ;;
+  esac
+}
+
+main() {
+  local cmd="${1:-}"
+
+  if [[ -z "$cmd" ]]; then
+    usage
+    exit 0
+  fi
+
+  shift || true
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --dry-run) DRY_RUN=1 ;;
+      --force) FORCE=1 ;;
+      -h | --help)
+        usage
+        exit 0
+        ;;
+      *)
+        break
+        ;;
+    esac
+    shift
+  done
+
+  case "$cmd" in
+    update) dotfiles_cmd_update ;;
+    status) dotfiles_cmd_status ;;
+    install) dotfiles_cmd_install "$@" ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    *)
+      die "unknown command: $cmd (try: update, status, install)"
+      ;;
+  esac
+}
+
+main "$@"

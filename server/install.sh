@@ -77,6 +77,8 @@ run() {
 
 # shellcheck source=../scripts/lib/link.sh
 source "$SCRIPTS_DIR/lib/link.sh"
+# shellcheck source=../scripts/lib/component-state.sh
+source "$SCRIPTS_DIR/lib/component-state.sh"
 # shellcheck source=../scripts/fastfetch-banner.sh
 source "$SCRIPTS_DIR/fastfetch-banner.sh"
 
@@ -196,15 +198,20 @@ copy_install_scripts() {
   local dest_fetch="$INSTALL_SCRIPTS_DIR/fastfetch-install-update.sh"
   local dest_lib="$INSTALL_SCRIPTS_DIR/lib/github-release.sh"
   local dest_journal="$INSTALL_SCRIPTS_DIR/lib/journal.sh"
+  local cli_dir="$INSTALL_SCRIPTS_DIR/dotfiles-cli"
   local old_share="$TARGET_HOME/.local/share/dotfiles"
   local old_hidden="$TARGET_HOME/.local/bin/neovim-install-update"
   local old_bin="$TARGET_HOME/bin/neovim-install-update"
 
-  mkdir -p "$INSTALL_SCRIPTS_DIR/lib"
+  mkdir -p "$INSTALL_SCRIPTS_DIR/lib" "$cli_dir/lib"
   copy_overwrite "$SCRIPTS_DIR/neovim-install-update.sh" "$dest_nvim"
   copy_overwrite "$SCRIPTS_DIR/lib/github-release.sh" "$dest_lib"
   copy_overwrite "$SCRIPTS_DIR/lib/journal.sh" "$dest_journal"
-  run chmod 755 "$dest_nvim"
+  copy_overwrite "$SCRIPTS_DIR/dotfiles" "$cli_dir/dotfiles"
+  copy_overwrite "$SCRIPTS_DIR/lib/component-state.sh" "$cli_dir/lib/component-state.sh"
+  copy_overwrite "$SCRIPTS_DIR/lib/journal.sh" "$cli_dir/lib/journal.sh"
+  copy_overwrite "$SCRIPTS_DIR/lib/platform.sh" "$cli_dir/lib/platform.sh"
+  run chmod 755 "$dest_nvim" "$cli_dir/dotfiles"
   if [[ "$INSTALL_FETCH" -eq 1 ]]; then
     copy_overwrite "$SCRIPTS_DIR/fastfetch-install-update.sh" "$dest_fetch"
     run chmod 755 "$dest_fetch"
@@ -363,6 +370,33 @@ install_configs() {
   copy_if_missing "$SOURCE_DIR/.ssh/authorized_keys.example" "$TARGET_HOME/.ssh/authorized_keys"
   run chmod 600 "$TARGET_HOME/.ssh/config" 2>/dev/null || true
   run chmod 600 "$TARGET_HOME/.ssh/authorized_keys" 2>/dev/null || true
+
+  install_dotfiles_cli
+  df_profile_save server
+}
+
+install_dotfiles_cli() {
+  local src="$SCRIPTS_DIR/dotfiles"
+  local dest="$TARGET_HOME/.local/bin/dotfiles"
+  local standalone="$INSTALL_SCRIPTS_DIR/dotfiles-cli/dotfiles"
+
+  mkdir -p "$TARGET_HOME/.local/bin"
+  if [[ -d "$DOTFILES_DIR" && -f "$src" ]]; then
+    run chmod +x "$src"
+    if [[ -e "$dest" && ! -L "$dest" ]]; then
+      log "dotfiles CLI left untouched: $dest"
+    else
+      log "dotfiles CLI: $dest -> $src"
+      run ln -sfn "$src" "$dest"
+      df_track_path "$dest"
+      df_journal_once link "$dest" "$src"
+    fi
+  elif [[ -x "$standalone" ]]; then
+    copy_overwrite "$standalone" "$dest"
+    run chmod 755 "$dest"
+    df_track_path "$dest"
+    df_journal_once copy "$dest" "$standalone"
+  fi
 }
 
 while [[ $# -gt 0 ]]; do
@@ -399,12 +433,17 @@ done
 
 install_configs
 
+if [[ "$DRY_RUN" -eq 0 ]]; then
+  df_component_touch configs "$(df_component_detect_version configs)"
+fi
+
 if [[ "$INSTALL_DEPS" -eq 1 ]]; then
   if [[ "$DRY_RUN" -eq 1 ]]; then
     run bash "$SERVER_DIR/install-deps.sh"
   else
     bash "$SERVER_DIR/install-deps.sh"
   fi
+  [[ "$DRY_RUN" -eq 0 ]] && df_component_touch deps ""
 fi
 
 if [[ "$INSTALL_NEOVIM" -eq 1 ]]; then
@@ -414,6 +453,7 @@ if [[ "$INSTALL_NEOVIM" -eq 1 ]]; then
   else
     bash "$INSTALL_SCRIPTS_DIR/neovim-install-update.sh"
   fi
+  [[ "$DRY_RUN" -eq 0 ]] && df_component_touch neovim "$(df_component_detect_version neovim)"
 fi
 
 if [[ "$INSTALL_FETCH" -eq 1 ]]; then
@@ -425,6 +465,7 @@ if [[ "$INSTALL_FETCH" -eq 1 ]]; then
   else
     log "WARN: git and jq required for fastfetch; run ./server.sh --fetch"
   fi
+  [[ "$DRY_RUN" -eq 0 ]] && df_component_touch fetch ""
 fi
 
 cat <<'EOF'

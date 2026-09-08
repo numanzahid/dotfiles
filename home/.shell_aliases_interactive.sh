@@ -1,6 +1,7 @@
 # ~/.shell_aliases_interactive.sh
 # Interactive-only shell customizations.
 # This file is sourced from ~/.bashrc only for real interactive terminals.
+# Shortcuts reference: ~/.dotfiles/SHORTCUTS.md
 
 ##### fzf ###############################################################
 
@@ -13,7 +14,63 @@ elif command -v fzf >/dev/null 2>&1; then
   unset _dotfiles_fzf_bash
 fi
 
-alias ff="fzf --preview 'bat --style=numbers --color=always {}'"
+if command -v fd >/dev/null 2>&1; then
+  export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
+  export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+  export FZF_ALT_C_COMMAND='fd --type d --hidden --follow --exclude .git'
+fi
+
+export FZF_DEFAULT_OPTS='--height 40% --layout=reverse --border --preview-window right:50%'
+if command -v bat >/dev/null 2>&1; then
+  export FZF_CTRL_T_OPTS='--preview "bat --color=always --line-range :500 {}"'
+fi
+if command -v eza >/dev/null 2>&1; then
+  export FZF_ALT_C_OPTS='--preview "eza -1 --color=always {}"'
+fi
+
+# File browser with bat preview (uses FZF_DEFAULT_COMMAND when fd is available).
+alias ff='fzf --preview "bat --color=always --line-range :500 {}"'
+
+# Fuzzy cd into a directory under the current tree.
+fcd() {
+  local dir
+  if ! command -v fzf >/dev/null 2>&1; then
+    echo "fzf not found" >&2
+    return 1
+  fi
+  if command -v fd >/dev/null 2>&1; then
+    dir="$(fd --type d --hidden --follow --exclude .git | fzf --preview 'eza -1 --color=always {} 2>/dev/null || ls -1 --color=always {}')"
+  else
+    dir="$(find . -type d 2>/dev/null | fzf)"
+  fi
+  [[ -n "$dir" ]] && cd "$dir" && pwd
+}
+
+# Fuzzy find a file and open it in $EDITOR.
+fe() {
+  local file
+  if ! command -v fzf >/dev/null 2>&1; then
+    echo "fzf not found" >&2
+    return 1
+  fi
+  if command -v fd >/dev/null 2>&1; then
+    file="$(fd --type f --hidden --follow --exclude .git | fzf --preview 'bat --color=always --line-range :500 {} 2>/dev/null || head -200 {}')"
+  else
+    file="$(find . -type f 2>/dev/null | fzf)"
+  fi
+  [[ -n "$file" ]] && "${EDITOR:-nvim}" "$file"
+}
+
+# Fuzzy kill by process list (default signal 9; pass 15 for SIGTERM).
+fkill() {
+  local pid sig="${1:-9}"
+  if ! command -v fzf >/dev/null 2>&1; then
+    echo "fzf not found" >&2
+    return 1
+  fi
+  pid="$(ps -ef | sed 1d | fzf -m --header 'Select process(es) to kill' | awk '{print $2}')"
+  [[ -n "$pid" ]] && echo "$pid" | xargs kill -"$sig"
+}
 
 ##### zoxide ############################################################
 

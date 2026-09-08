@@ -145,6 +145,8 @@ ensure_sudo_for_install() {
 source "$SCRIPTS_DIR/lib/link.sh"
 # shellcheck source=scripts/lib/ai-rules.sh
 source "$SCRIPTS_DIR/lib/ai-rules.sh"
+# shellcheck source=scripts/lib/component-state.sh
+source "$SCRIPTS_DIR/lib/component-state.sh"
 
 link_path() {
   df_link_path "$@"
@@ -242,6 +244,22 @@ remove_old_fedora_dropin() {
   fi
 }
 
+install_dotfiles_cli() {
+  local src="$DOTFILES_DIR/scripts/dotfiles"
+  local dest="$TARGET_HOME/.local/bin/dotfiles"
+
+  mkdir -p "$TARGET_HOME/.local/bin"
+  run chmod +x "$src"
+  if [[ -e "$dest" && ! -L "$dest" ]]; then
+    log "dotfiles CLI left untouched: $dest"
+    return 0
+  fi
+  log "dotfiles CLI: $dest"
+  run ln -sfn "$src" "$dest"
+  df_track_path "$dest"
+  df_journal_once link "$dest" "$src"
+}
+
 remove_local_bin() {
   local name="$1"
   local dest="/usr/local/bin/${name}"
@@ -317,6 +335,9 @@ install_dotfiles() {
     log "kitty terminfo (xterm-kitty for SSH/tmux from Kitty)"
     bash "$DOTFILES_DIR/scripts/kitty-terminfo-install-update.sh"
   fi
+
+  install_dotfiles_cli
+  df_profile_save desktop
 }
 
 install_tpm() {
@@ -397,51 +418,65 @@ fi
 
 install_dotfiles
 
+if [[ "$DRY_RUN" -eq 0 ]]; then
+  df_component_touch configs "$(df_component_detect_version configs)"
+fi
+
 if [[ "$INSTALL_DEPS" -eq 1 ]]; then
   run_github_step "install-fedora-deps.sh" bash "$DOTFILES_DIR/install-fedora-deps.sh"
+  [[ "$DRY_RUN" -eq 0 ]] && df_component_touch deps ""
 fi
 
 if [[ "$INSTALL_TOOLS" -eq 1 ]]; then
   run_github_step "tools" install_tools
+  [[ "$DRY_RUN" -eq 0 ]] && df_component_touch tools ""
 fi
 
 if [[ "$INSTALL_LAZYGIT" -eq 1 ]]; then
   log "lazygit from GitHub (not in Fedora repos)"
   run_github_step "lazygit" bash "$SCRIPTS_DIR/lazygit-install-update.sh"
+  [[ "$DRY_RUN" -eq 0 ]] && df_component_touch lazygit "$(df_component_detect_version lazygit)"
 fi
 
 if [[ "$INSTALL_GH" -eq 1 ]]; then
   run_github_step "gh" dnf_install gh
   remove_local_bin gh
+  [[ "$DRY_RUN" -eq 0 ]] && df_component_touch gh "$(df_component_detect_version gh)"
 fi
 
 if [[ "$INSTALL_FZF" -eq 1 ]]; then
   run_github_step "fzf" dnf_install fzf
   remove_local_bin fzf
+  [[ "$DRY_RUN" -eq 0 ]] && df_component_touch fzf "$(df_component_detect_version fzf)"
 fi
 
 if [[ "$INSTALL_TPM" -eq 1 ]]; then
   run_github_step "tpm" install_tpm
+  [[ "$DRY_RUN" -eq 0 ]] && df_component_touch tpm ""
 fi
 
 if [[ "$INSTALL_NEOVIM" -eq 1 ]]; then
   run_github_step "neovim" dnf_install neovim
   remove_local_bin nvim
+  [[ "$DRY_RUN" -eq 0 ]] && df_component_touch neovim "$(df_component_detect_version neovim)"
 fi
 
 if [[ "$INSTALL_BTOP" -eq 1 ]]; then
   run_github_step "btop" dnf_install btop
   remove_local_bin btop
+  [[ "$DRY_RUN" -eq 0 ]] && df_component_touch btop "$(df_component_detect_version btop)"
 fi
 
 if [[ "$INSTALL_STARSHIP" -eq 1 ]]; then
   log "starship from GitHub"
   run_github_step "starship" bash "$SCRIPTS_DIR/starship-install-update.sh"
+  [[ "$DRY_RUN" -eq 0 ]] && df_component_touch starship "$(df_component_detect_version starship)"
 fi
 
 if [[ "$INSTALL_FONTS" -eq 1 ]]; then
   log "Nerd fonts: Cascadia Code + JetBrains Mono (user fonts + fc-cache)"
   run_github_step "cascadia-nerd-font" bash "$SCRIPTS_DIR/cascadia-nerd-font-install-update.sh"
+  [[ "$DRY_RUN" -eq 0 ]] && df_component_touch fonts ""
 fi
 
 if [[ "$GITHUB_STEP_FAILED" -eq 1 ]]; then

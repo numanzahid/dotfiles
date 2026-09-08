@@ -56,6 +56,20 @@ Default nvim is the plain editor. LazyVim is linked only by the lazyvim scripts.
 
 ## Day to day
 
+After the first install, use the `dotfiles` command (symlinked to `~/.local/bin/dotfiles`):
+
+```bash
+dotfiles update              # pull repo, refresh configs, update stale software
+dotfiles update --force      # discard tracked repo changes, then pull (software unchanged)
+dotfiles status              # profile + last-updated time per component
+dotfiles install devbox --all
+dotfiles install lazyvim
+```
+
+`dotfiles update` skips software that was updated within the last 30 days. To reinstall or upgrade immediately, use `./devbox.sh --all` or `./desktop.sh --all` directly.
+
+Manual equivalent:
+
 ```bash
 cd ~/.dotfiles && git pull && ./devbox.sh          # or ./desktop.sh
 ```
@@ -63,6 +77,8 @@ cd ~/.dotfiles && git pull && ./devbox.sh          # or ./desktop.sh
 Re-runs overwrite files this repo already manages. Something it did not put there gets one `*.pre-dotfiles` backup. LazyVim is left alone unless you run those scripts.
 
 Prompt is `~/.config/dotfiles/prompt.sh` (custom on Debian, starship on Fedora). `del` is `trash-put`. `rm` is still `rm`.
+
+**Shortcuts:** shell aliases, fzf bindings, tmux keys, and CLI cheatsheet in [`SHORTCUTS.md`](SHORTCUTS.md).
 
 ## Uninstall
 

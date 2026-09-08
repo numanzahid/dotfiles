@@ -131,6 +131,8 @@ ensure_sudo_for_install() {
 source "$SCRIPTS_DIR/lib/link.sh"
 # shellcheck source=scripts/lib/ai-rules.sh
 source "$SCRIPTS_DIR/lib/ai-rules.sh"
+# shellcheck source=scripts/lib/component-state.sh
+source "$SCRIPTS_DIR/lib/component-state.sh"
 
 link_path() {
   df_link_path "$@"
@@ -223,6 +225,22 @@ link_prompt_default() {
   df_journal_once link "$dest" "$src"
 }
 
+install_dotfiles_cli() {
+  local src="$DOTFILES_DIR/scripts/dotfiles"
+  local dest="$TARGET_HOME/.local/bin/dotfiles"
+
+  mkdir -p "$TARGET_HOME/.local/bin"
+  run chmod +x "$src"
+  if [[ -e "$dest" && ! -L "$dest" ]]; then
+    log "dotfiles CLI left untouched: $dest"
+    return 0
+  fi
+  log "dotfiles CLI: $dest"
+  run ln -sfn "$src" "$dest"
+  df_track_path "$dest"
+  df_journal_once link "$dest" "$src"
+}
+
 install_dotfiles() {
   log "source: $SOURCE_DIR"
   log "target: $TARGET_HOME"
@@ -263,6 +281,9 @@ install_dotfiles() {
     log "kitty terminfo (xterm-kitty for SSH/tmux from Kitty)"
     bash "$DOTFILES_DIR/scripts/kitty-terminfo-install-update.sh"
   fi
+
+  install_dotfiles_cli
+  df_profile_save devbox
 }
 
 install_tpm() {
@@ -355,45 +376,58 @@ fi
 
 install_dotfiles
 
+if [[ "$DRY_RUN" -eq 0 ]]; then
+  df_component_touch configs "$(df_component_detect_version configs)"
+fi
+
 if [[ "$INSTALL_DEPS" -eq 1 ]]; then
   run_github_step "install-deps.sh" bash "$DOTFILES_DIR/install-deps.sh"
+  [[ "$DRY_RUN" -eq 0 ]] && df_component_touch deps ""
 fi
 
 if [[ "$INSTALL_TOOLS" -eq 1 ]]; then
   run_github_step "install-tools.sh" bash "$DOTFILES_DIR/install-tools.sh"
+  [[ "$DRY_RUN" -eq 0 ]] && df_component_touch tools ""
 fi
 
 if [[ "$INSTALL_LAZYGIT" -eq 1 ]]; then
   log "installing lazygit via scripts/lazygit-install-update.sh"
   run_github_step "lazygit" bash "$SCRIPTS_DIR/lazygit-install-update.sh"
+  [[ "$DRY_RUN" -eq 0 ]] && df_component_touch lazygit "$(df_component_detect_version lazygit)"
 fi
 
 if [[ "$INSTALL_GH" -eq 1 ]]; then
   log "installing gh via scripts/gh-install-update.sh"
   run_github_step "gh" bash "$SCRIPTS_DIR/gh-install-update.sh"
+  [[ "$DRY_RUN" -eq 0 ]] && df_component_touch gh "$(df_component_detect_version gh)"
 fi
 
 if [[ "$INSTALL_FZF" -eq 1 ]]; then
   run_github_step "fzf" install_fzf
+  [[ "$DRY_RUN" -eq 0 ]] && df_component_touch fzf "$(df_component_detect_version fzf)"
 fi
 
 if [[ "$INSTALL_TPM" -eq 1 ]]; then
   run_github_step "tpm" install_tpm
+  [[ "$DRY_RUN" -eq 0 ]] && df_component_touch tpm ""
 fi
 
 if [[ "$INSTALL_NEOVIM" -eq 1 ]]; then
   log "installing neovim via scripts/neovim-install-update.sh"
   run_github_step "neovim" bash "$SCRIPTS_DIR/neovim-install-update.sh"
+  [[ "$DRY_RUN" -eq 0 ]] && df_component_touch neovim "$(df_component_detect_version neovim)"
 fi
 
 if [[ "$INSTALL_BTOP" -eq 1 ]]; then
   log "installing btop via scripts/btop-install-update.sh"
   run_github_step "btop" bash "$SCRIPTS_DIR/btop-install-update.sh"
+  [[ "$DRY_RUN" -eq 0 ]] && df_component_touch btop "$(df_component_detect_version btop)"
 fi
 
 if [[ "$INSTALL_FONTS" -eq 1 ]]; then
   log "Nerd fonts: Cascadia Code + JetBrains Mono (user fonts + fc-cache)"
   run_github_step "cascadia-nerd-font" bash "$SCRIPTS_DIR/cascadia-nerd-font-install-update.sh"
+  [[ "$DRY_RUN" -eq 0 ]] && df_component_touch fonts ""
 fi
 
 if [[ "$GITHUB_STEP_FAILED" -eq 1 ]]; then
