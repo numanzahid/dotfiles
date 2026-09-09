@@ -315,6 +315,8 @@ Install profiles: `dotfiles install lazyvim` or `dotfiles install lazyvim-lite`.
 | eza | No (GNU `ls` aliases instead) |
 | `sshk` | No |
 | `fetch` / fastfetch wrapper | Yes (if fastfetch installed) |
+| `gdu` | Yes (GitHub binary; `~/.install-scripts/gdu-install-update.sh` after copy-install) |
+| `.gitconfig` | Copied (not symlinked) |
 | `..`, `mkcd`, `alert`, tmux alias | Yes |
 
 Server hosts can still use `dotfiles` if the clone remains, or the copy under `~/.install-scripts/dotfiles-cli/` after `server.sh`.

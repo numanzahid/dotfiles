@@ -320,7 +320,7 @@ df_inst_run_uninstall() {
 
   df_inst_confirm "$component"
   case "$component" in
-    deps | neovim | gh | btop | fzf | lazygit | tldr | starship | bat | fd | eza | zoxide | fetch | tools)
+    deps | neovim | gh | btop | gdu | fzf | lazygit | tldr | starship | bat | fd | eza | zoxide | fetch | tools)
       if ! df_inst_dry; then
         df_ensure_sudo
       fi

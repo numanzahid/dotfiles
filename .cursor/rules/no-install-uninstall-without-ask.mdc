@@ -1,0 +1,39 @@
+---
+description: Do not run dotfiles install or uninstall scripts unless the user explicitly asks
+globs: "{devbox.sh,desktop.sh,server.sh,server/**,uninstall.sh,install-*.sh,scripts/*install*.sh,scripts/dotfiles,lazyvim/**/install*.sh,lazyvim/**/uninstall*.sh}"
+alwaysApply: true
+---
+
+# No install or uninstall without explicit user request
+
+This machine may be devbox, desktop, or server. Never assume which profile to use.
+
+## Do not run unless the user explicitly asks
+
+- `./devbox.sh`, `./desktop.sh`, `./server.sh`, `./server/install.sh`
+- `./uninstall.sh`, `dotfiles uninstall`, `dotfiles uninstall --purge`, `dotfiles update --force`
+- `./install-*.sh`, `./scripts/*-install-update.sh`, `./lazyvim/**/install*.sh`
+- Uninstall variants: `--uninstall`, `dotfiles uninstall <software>`, lazyvim uninstall scripts
+- Package steps inside installers: apt/dnf install, git clone into `$HOME`, `sudo` for tool binaries
+
+## Allowed without asking
+
+- Read files, `git status`, `git diff`, `git log`
+- `dotfiles status` (read-only)
+- Dry-run only when debugging an install/uninstall bug the user reported:
+  - `DOTFILES_UNINSTALL_MODE=dry-run ./uninstall.sh`
+  - `./devbox.sh --dry-run` (or equivalent flags)
+- Explain what a script would do; suggest commands for the user to run
+
+## When the user asks to install or uninstall
+
+- Confirm profile if unclear (devbox vs desktop vs server)
+- Prefer the profile they name; do not run `server.sh` on devbox or `devbox.sh` on server
+- For uninstall, confirm uninstall vs purge if they did not say
+- Do not chain install after uninstall unless they ask
+
+## Mistakes to avoid
+
+- Do not "verify a fix" by running a real install or purge on the user's machine
+- Do not run installers to "test" after editing install scripts; use dry-run or describe steps
+- Investigation on a live host is read-only unless the user says run it

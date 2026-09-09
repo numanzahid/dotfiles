@@ -396,6 +396,12 @@ install_software_desktop() {
     [[ "$DRY_RUN" -eq 0 ]] && df_component_touch btop "$(df_component_detect_version btop)"
   fi
 
+  if ! df_skip_software_component gdu; then
+    log "gdu from GitHub"
+    run_github_step "gdu" bash "$SCRIPTS_DIR/gdu-install-update.sh"
+    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch gdu "$(df_component_detect_version gdu)"
+  fi
+
   if ! df_skip_software_component starship; then
     log "starship from GitHub"
     run_github_step "starship" bash "$SCRIPTS_DIR/starship-install-update.sh"

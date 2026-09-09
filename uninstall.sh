@@ -370,13 +370,61 @@ seed_if_exists() {
   fi
 }
 
+seed_home_path_if_managed() {
+  local rel="$1"
+  local path="$TARGET_HOME/$rel"
+
+  if [[ -L "$path" ]]; then
+    seed_if_new link "$path"
+  elif [[ -e "$path" ]]; then
+    seed_if_new copy "$path"
+  fi
+}
+
+seed_home_configs() {
+  local rel rule
+
+  log "seed home configs (symlinks and copy-install files)"
+
+  for rel in \
+    .bashrc \
+    .profile \
+    .inputrc \
+    .tmux.conf \
+    .shell_aliases_interactive.sh \
+    .gitconfig \
+    .config/dotfiles/prompt.sh \
+    .config/dotfiles/locale.sh \
+    .config/nvim \
+    .config/fastfetch \
+    .config/tmux/tmux-logo.txt \
+    .config/tmux/fastfetch-banner.sh \
+    .config/btop/btop.conf \
+    .config/lazygit/config.yml \
+    .config/starship.toml \
+    .config/alacritty \
+    .config/kitty \
+    .terminfo/x/xterm-kitty \
+    .local/bin/dotfiles; do
+    seed_home_path_if_managed "$rel"
+  done
+
+  shopt -s nullglob
+  for rule in "$TARGET_HOME/.cursor/rules"/*.mdc; do
+    [[ -L "$rule" ]] && seed_if_new link "$rule"
+  done
+  shopt -u nullglob
+}
+
 seed_workstation() {
   local b p target pkg
 
   log "seed journal for a pre-journal full install"
   log "packages: only typical new ones (ripgrep, trash-cli, gh), not git/tmux/bash"
 
-  for b in bat fd zoxide eza lazygit btop nvim fastfetch starship pfetch tldr; do
+  seed_home_configs
+
+  for b in bat fd zoxide eza lazygit btop gdu nvim fastfetch starship pfetch tldr; do
     seed_if_exists binary "/usr/local/bin/$b"
   done
   seed_if_exists binary "$TARGET_HOME/.local/bin/alacritty"
@@ -419,6 +467,7 @@ seed_workstation() {
 
   if [[ -d "$TARGET_HOME/.install-scripts" ]]; then
     seed_if_exists copy "$TARGET_HOME/.install-scripts/neovim-install-update.sh"
+    seed_if_exists copy "$TARGET_HOME/.install-scripts/gdu-install-update.sh"
     seed_if_exists copy "$TARGET_HOME/.install-scripts/fastfetch-install-update.sh"
     seed_if_exists copy "$TARGET_HOME/.install-scripts/lib/github-release.sh"
     seed_if_exists copy "$TARGET_HOME/.install-scripts/lib/journal.sh"
@@ -693,19 +742,32 @@ clear_managed_paths() {
   fi
 }
 
+purge_remove_tree() {
+  local dest="$1"
+
+  if [[ ! -e "$dest" && ! -L "$dest" ]]; then
+    return 0
+  fi
+  if [[ "$APPLY" -eq 0 ]]; then
+    printf '+ rm -rf %q\n' "$dest"
+    return 0
+  fi
+  rm -rf "$dest"
+}
+
 purge_dotfiles_trace() {
-  local local_clone state_dir standalone_cli dest
+  local local_clone state_dir dest
 
   local_clone="$(clone_dir)"
   if [[ -n "$local_clone" && -d "$local_clone" ]]; then
     log "purge clone: $local_clone"
-    remove_home_path "$local_clone"
+    # remove_home_path skips the clone root (resolves_inside_clone); purge must not.
+    purge_remove_tree "$local_clone"
   fi
 
-  standalone_cli="$TARGET_HOME/.install-scripts/dotfiles-cli"
-  if [[ -e "$standalone_cli" || -L "$standalone_cli" ]]; then
-    log "purge standalone CLI copy: $standalone_cli"
-    remove_home_path "$standalone_cli"
+  if [[ -d "$TARGET_HOME/.install-scripts" ]]; then
+    log "purge install-scripts: $TARGET_HOME/.install-scripts"
+    purge_remove_tree "$TARGET_HOME/.install-scripts"
   fi
 
   dest="$TARGET_HOME/.local/bin/dotfiles"

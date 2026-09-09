@@ -145,6 +145,12 @@ install_software_devbox() {
     [[ "$DRY_RUN" -eq 0 ]] && df_component_touch btop "$(df_component_detect_version btop)"
   fi
 
+  if ! df_skip_software_component gdu; then
+    log "installing gdu via scripts/gdu-install-update.sh"
+    run_github_step "gdu" bash "$SCRIPTS_DIR/gdu-install-update.sh"
+    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch gdu "$(df_component_detect_version gdu)"
+  fi
+
   if ! df_skip_software_component fonts; then
     log "Nerd fonts: Cascadia Code + JetBrains Mono (user fonts + fc-cache)"
     run_github_step "cascadia-nerd-font" bash "$SCRIPTS_DIR/cascadia-nerd-font-install-update.sh"

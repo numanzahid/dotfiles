@@ -23,9 +23,9 @@ cd ~/.dotfiles
 
 Each script does a **full install** by default: configs, packages, CLI tools, fonts, tmux TPM, and AI agent rules (devbox/desktop). No `--all` flag.
 
-**devbox/desktop** includes: bat, fd, zoxide, eza, lazygit, gh, neovim, btop, fzf, tldr, nerd fonts, TPM.
+**devbox/desktop** includes: bat, fd, zoxide, eza, lazygit, gh, neovim, btop, gdu, fzf, tldr, nerd fonts, TPM.
 
-**server** is slimmer: copied configs, apt packages, neovim only (no gitconfig, fzf, zoxide, lazygit, gh, btop, tldr, TPM, fonts).
+**server** is slimmer: copied configs (including `.gitconfig`), apt packages, neovim, gdu (no fzf, zoxide, lazygit, gh, btop, tldr, TPM, fonts).
 
 Installer options (all profiles):
 

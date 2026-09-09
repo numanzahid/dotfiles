@@ -214,6 +214,9 @@ df_live_version() {
     btop)
       v="$(btop --version 2>/dev/null | head -n1 | sed -n 's/.*version[= ]*\([0-9.]*\).*/\1/p')"
       ;;
+    gdu)
+      v="$(gdu --version 2>/dev/null | head -n1 | sed -n 's/.*v\([0-9.]*\).*/\1/p')"
+      ;;
     fzf)
       v="$(fzf --version 2>/dev/null | head -n1 | awk '{print $1}')"
       ;;
@@ -333,19 +336,19 @@ df_component_list_known() {
   local profile="$1"
   case "$profile" in
     devbox)
-      printf '%s\n' configs deps tools lazygit gh fzf tldr tpm neovim btop fonts
+      printf '%s\n' configs deps tools lazygit gh fzf tldr tpm neovim btop gdu fonts
       ;;
     desktop)
-      printf '%s\n' configs deps tools lazygit gh fzf tldr tpm neovim btop fonts starship
+      printf '%s\n' configs deps tools lazygit gh fzf tldr tpm neovim btop gdu fonts starship
       ;;
     server)
-      printf '%s\n' configs deps neovim
+      printf '%s\n' configs deps neovim gdu
       ;;
     lazyvim | lazyvim-lite)
       printf '%s\n' "$profile"
       ;;
     *)
-      printf '%s\n' configs deps tools lazygit gh fzf tldr tpm neovim btop fonts starship
+      printf '%s\n' configs deps tools lazygit gh fzf tldr tpm neovim btop gdu fonts starship
       ;;
   esac
 }

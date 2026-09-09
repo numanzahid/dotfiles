@@ -31,8 +31,10 @@ remove the dotfiles folder.
 
 Full install (default): copy configs, apt packages, and Neovim.
 
-Does not install: gitconfig, fzf, zoxide, lazygit, gh, btop, tldr,
+Does not install: fzf, zoxide, lazygit, gh, btop, tldr,
 TPM/tmux plugins, or nerd fonts.
+
+Installs: apt deps, neovim, gdu (disk usage). Copies .gitconfig.
 
 Options:
   --configs-only   Copy configs only (no apt packages or Neovim)
@@ -47,7 +49,7 @@ Optional extras:
   dotfiles install fetch
   dotfiles install lazyvim | lazyvim-lite
 
-Copies ~/.install-scripts/neovim-install-update.sh for upgrades
+Copies ~/.install-scripts/{neovim,gdu}-install-update.sh for upgrades
 after you delete the clone.
 EOF
 }
@@ -185,6 +187,7 @@ copy_overwrite() {
 
 copy_install_scripts() {
   local dest_nvim="$INSTALL_SCRIPTS_DIR/neovim-install-update.sh"
+  local dest_gdu="$INSTALL_SCRIPTS_DIR/gdu-install-update.sh"
   local dest_fetch="$INSTALL_SCRIPTS_DIR/fastfetch-install-update.sh"
   local cli_dir="$INSTALL_SCRIPTS_DIR/dotfiles-cli"
   local lib_file
@@ -203,6 +206,7 @@ copy_install_scripts() {
 
   mkdir -p "$INSTALL_SCRIPTS_DIR/lib" "$cli_dir/lib"
   copy_overwrite "$SCRIPTS_DIR/neovim-install-update.sh" "$dest_nvim"
+  copy_overwrite "$SCRIPTS_DIR/gdu-install-update.sh" "$dest_gdu"
   for lib_file in "${install_lib_files[@]}"; do
     copy_overwrite "$SCRIPTS_DIR/lib/$lib_file" "$INSTALL_SCRIPTS_DIR/lib/$lib_file"
   done
@@ -210,7 +214,7 @@ copy_install_scripts() {
   copy_overwrite "$SCRIPTS_DIR/lib/component-state.sh" "$cli_dir/lib/component-state.sh"
   copy_overwrite "$SCRIPTS_DIR/lib/journal.sh" "$cli_dir/lib/journal.sh"
   copy_overwrite "$SCRIPTS_DIR/lib/platform.sh" "$cli_dir/lib/platform.sh"
-  run chmod 755 "$dest_nvim" "$cli_dir/dotfiles"
+  run chmod 755 "$dest_nvim" "$dest_gdu" "$cli_dir/dotfiles"
   if [[ "$INSTALL_FETCH" -eq 1 ]]; then
     copy_overwrite "$SCRIPTS_DIR/fastfetch-install-update.sh" "$dest_fetch"
     copy_overwrite "$SCRIPTS_DIR/lib/pfetch-remove.sh" "$INSTALL_SCRIPTS_DIR/lib/pfetch-remove.sh"
@@ -334,6 +338,7 @@ install_configs() {
     local dest
     for dest in \
       "$TARGET_HOME/.bashrc" \
+      "$TARGET_HOME/.gitconfig" \
       "$TARGET_HOME/.config/dotfiles/prompt.sh" \
       "$TARGET_HOME/.shell_aliases_interactive.sh" \
       "$TARGET_HOME/.inputrc" \
@@ -354,6 +359,7 @@ install_configs() {
   copy_file "$SOURCE_DIR/.config/dotfiles/locale.sh" "$TARGET_HOME/.config/dotfiles/locale.sh"
   copy_file "$SERVER_DIR/shell_aliases_interactive.sh" "$TARGET_HOME/.shell_aliases_interactive.sh"
   copy_file "$SOURCE_DIR/.inputrc" "$TARGET_HOME/.inputrc"
+  copy_file "$SOURCE_DIR/.gitconfig" "$TARGET_HOME/.gitconfig"
   copy_file "$SOURCE_DIR/.profile" "$TARGET_HOME/.profile"
   copy_file "$SERVER_DIR/tmux.conf" "$TARGET_HOME/.tmux.conf"
   copy_kitty_terminfo
@@ -424,6 +430,16 @@ install_software_server() {
       bash "$INSTALL_SCRIPTS_DIR/neovim-install-update.sh"
     fi
     [[ "$DRY_RUN" -eq 0 ]] && df_component_touch neovim "$(df_component_detect_version neovim)"
+  fi
+
+  if ! df_skip_software_component gdu; then
+    log "installing gdu via ~/.install-scripts/gdu-install-update.sh"
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+      run bash "$INSTALL_SCRIPTS_DIR/gdu-install-update.sh"
+    else
+      bash "$INSTALL_SCRIPTS_DIR/gdu-install-update.sh"
+    fi
+    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch gdu "$(df_component_detect_version gdu)"
   fi
 }
 
