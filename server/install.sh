@@ -186,17 +186,26 @@ copy_overwrite() {
 copy_install_scripts() {
   local dest_nvim="$INSTALL_SCRIPTS_DIR/neovim-install-update.sh"
   local dest_fetch="$INSTALL_SCRIPTS_DIR/fastfetch-install-update.sh"
-  local dest_lib="$INSTALL_SCRIPTS_DIR/lib/github-release.sh"
-  local dest_journal="$INSTALL_SCRIPTS_DIR/lib/journal.sh"
   local cli_dir="$INSTALL_SCRIPTS_DIR/dotfiles-cli"
+  local lib_file
   local old_share="$TARGET_HOME/.local/share/dotfiles"
   local old_hidden="$TARGET_HOME/.local/bin/neovim-install-update"
   local old_bin="$TARGET_HOME/bin/neovim-install-update"
+  # Standalone ~/.install-scripts/neovim-install-update.sh sources these.
+  local -a install_lib_files=(
+    github-release.sh
+    journal.sh
+    install-cli.sh
+    software-uninstall.sh
+    privilege.sh
+    component-state.sh
+  )
 
   mkdir -p "$INSTALL_SCRIPTS_DIR/lib" "$cli_dir/lib"
   copy_overwrite "$SCRIPTS_DIR/neovim-install-update.sh" "$dest_nvim"
-  copy_overwrite "$SCRIPTS_DIR/lib/github-release.sh" "$dest_lib"
-  copy_overwrite "$SCRIPTS_DIR/lib/journal.sh" "$dest_journal"
+  for lib_file in "${install_lib_files[@]}"; do
+    copy_overwrite "$SCRIPTS_DIR/lib/$lib_file" "$INSTALL_SCRIPTS_DIR/lib/$lib_file"
+  done
   copy_overwrite "$SCRIPTS_DIR/dotfiles" "$cli_dir/dotfiles"
   copy_overwrite "$SCRIPTS_DIR/lib/component-state.sh" "$cli_dir/lib/component-state.sh"
   copy_overwrite "$SCRIPTS_DIR/lib/journal.sh" "$cli_dir/lib/journal.sh"
@@ -204,6 +213,7 @@ copy_install_scripts() {
   run chmod 755 "$dest_nvim" "$cli_dir/dotfiles"
   if [[ "$INSTALL_FETCH" -eq 1 ]]; then
     copy_overwrite "$SCRIPTS_DIR/fastfetch-install-update.sh" "$dest_fetch"
+    copy_overwrite "$SCRIPTS_DIR/lib/pfetch-remove.sh" "$INSTALL_SCRIPTS_DIR/lib/pfetch-remove.sh"
     run chmod 755 "$dest_fetch"
   fi
 

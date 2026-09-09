@@ -422,6 +422,11 @@ seed_workstation() {
     seed_if_exists copy "$TARGET_HOME/.install-scripts/fastfetch-install-update.sh"
     seed_if_exists copy "$TARGET_HOME/.install-scripts/lib/github-release.sh"
     seed_if_exists copy "$TARGET_HOME/.install-scripts/lib/journal.sh"
+    seed_if_exists copy "$TARGET_HOME/.install-scripts/lib/install-cli.sh"
+    seed_if_exists copy "$TARGET_HOME/.install-scripts/lib/software-uninstall.sh"
+    seed_if_exists copy "$TARGET_HOME/.install-scripts/lib/privilege.sh"
+    seed_if_exists copy "$TARGET_HOME/.install-scripts/lib/component-state.sh"
+    seed_if_exists copy "$TARGET_HOME/.install-scripts/lib/pfetch-remove.sh"
   fi
 
   if [[ "$APPLY" -eq 1 ]]; then
