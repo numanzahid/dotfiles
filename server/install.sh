@@ -20,6 +20,7 @@ df_reexec_from_hidden_clone "$DOTFILES_DIR" "${BASH_SOURCE[0]}" "$@"
 RUN_CONFIGS=1
 RUN_SOFTWARE=1
 DRY_RUN=0
+INSTALL_FETCH=0
 
 usage() {
   cat <<'EOF'
