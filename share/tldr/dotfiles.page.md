@@ -61,3 +61,5 @@
 - Fuzzy tldr page picker:
 
 `ftldr`
+
+(or bare `tldr`)

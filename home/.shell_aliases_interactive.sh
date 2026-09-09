@@ -73,21 +73,26 @@ fkill() {
   [[ -n "$pid" ]] && echo "$pid" | xargs kill -"$sig"
 }
 
-# Fuzzy tldr page picker (needs tldr from tealdeer-install-update.sh).
-ftldr() {
-  if ! command -v tldr >/dev/null 2>&1; then
+# tldr with no args opens fuzzy page picker (needs tealdeer + fzf).
+# ftldr is kept as an explicit alias for the same behavior.
+tldr() {
+  if ! type -P tldr >/dev/null 2>&1; then
     echo "tldr not found. Run: dotfiles install devbox --tldr" >&2
     return 1
   fi
   if ! command -v fzf >/dev/null 2>&1; then
-    tldr "$@"
+    command tldr "$@"
     return $?
   fi
   if [[ $# -gt 0 ]]; then
-    tldr "$@"
+    command tldr "$@"
     return $?
   fi
-  tldr --list | fzf --preview 'tldr {}' | xargs -r tldr
+  command tldr --list | fzf --preview 'command tldr {}' | xargs -r command tldr
+}
+
+ftldr() {
+  tldr "$@"
 }
 
 # Fuzzy ssh from ~/.ssh/config Host aliases (skips Host * and other patterns).

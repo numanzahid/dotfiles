@@ -51,7 +51,7 @@ dotfiles install lazyvim-lite   # optional LazyVim lite
 dotfiles install fetch          # fastfetch banner (interactive art picker)
 ```
 
-Run `tldr dotfiles` for a short cheat sheet (custom page in `share/tldr/`).
+Run `tldr` (no args) to fuzzy-pick a page, or `tldr dotfiles` for the dotfiles cheat sheet (`share/tldr/`).
 
 **update** always re-links configs. Software is skipped when updated within the last 30 days (except `--force`).
 

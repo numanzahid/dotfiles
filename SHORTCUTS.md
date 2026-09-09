@@ -86,6 +86,7 @@ Custom helpers in `home/.shell_aliases_interactive.sh`:
 | `fkill` | Fuzzy pick process(es) to kill (default signal 9) |
 | `fkill 15` | Same, but send SIGTERM instead |
 | `ftldr` | Fuzzy pick a tldr page (`ftldr tar` still works like `tldr tar`) |
+| `tldr` | No args: same fuzzy picker as `ftldr`; with args: tealdeer (`tldr tar`, `tldr --update`) |
 | `fssh` | Fuzzy pick a `Host` from `~/.ssh/config` and `ssh` to it |
 | `tldr cmd` | Show example-focused help for a command |
 | `tldr dotfiles` | Dotfiles CLI cheat sheet (custom page from this repo) |
@@ -109,7 +110,7 @@ fd -e md | fzf -m | xargs nvim
 **tldr page picker:**
 
 ```bash
-ftldr                  # fuzzy list of all cached pages
+ftldr                  # fuzzy list of all cached pages (tldr with no args does the same)
 tldr dotfiles          # dotfiles CLI cheat sheet
 tldr tar               # direct lookup
 tldr --update          # refresh pages (also runs on install)
