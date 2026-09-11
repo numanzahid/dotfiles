@@ -30,6 +30,14 @@
 
 `dotfiles install fetch`
 
+- Sync LazyVim plugins to lazy-lock.json (after git pull):
+
+`dotfiles sync lazyvim`
+
+- Sync LazyVim lite plugins:
+
+`dotfiles sync lazyvim-lite`
+
 - Remove LazyVim data; switch nvim to plain config:
 
 `dotfiles uninstall lazyvim`

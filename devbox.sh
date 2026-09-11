@@ -38,6 +38,7 @@ Single-tool installs: ./scripts/<tool>-install-update.sh
 
 Optional extras:
   dotfiles install lazyvim | lazyvim-lite | fetch
+  dotfiles sync lazyvim | lazyvim-lite
   ./scripts/alacritty-install-update.sh
   ./scripts/kitty-install-update.sh
 
@@ -443,7 +444,7 @@ Next steps:
   1. Copy SSH private keys into ~/.ssh/ manually (never commit keys).
   2. Open tmux and press prefix + Shift + I to install tmux plugins.
   3. Optional: dotfiles install lazyvim | lazyvim-lite | fetch
-  4. Day to day: dotfiles update
+  4. Day to day: dotfiles update; dotfiles sync lazyvim after pull (LazyVim hosts)
 
 EOF
 fi

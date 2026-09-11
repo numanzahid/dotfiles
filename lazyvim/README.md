@@ -173,9 +173,9 @@ This repo does not vendor LazyVim as a second git clone. `home/.config/nvim` is 
 
 1. On one machine, update plugins (`:Lazy update` in nvim, or `./lazyvim/sync-lazyvim.sh`).
 2. Commit `home/.config/nvim/lazy-lock.json` (and any lua you changed).
-3. On other machines: `git pull`, then `./lazyvim/sync-lazyvim.sh`.
+3. On other machines: `git pull`, then `dotfiles sync lazyvim` (or `./lazyvim/sync-lazyvim.sh`).
 
-`sync-lazyvim.sh` is enough after a pull if Neovim, system deps, and Tree-sitter CLI are already in place.
+`dotfiles sync lazyvim` is enough after a pull if Neovim, system deps, and Tree-sitter CLI are already in place. Use `:Lazy update` in nvim to bump plugin pins before committing `lazy-lock.json`.
 
 ### Full installer again
 

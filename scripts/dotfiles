@@ -63,6 +63,10 @@ Commands:
       lazyvim-lite  Editor-only LazyVim
       fetch         Fastfetch banner (interactive art picker)
 
+  sync <what> [--dry-run]
+      lazyvim       Headless Lazy! sync (apply lazy-lock.json)
+      lazyvim-lite  Same for LazyVim lite
+
   uninstall [target] [--dry-run] [--yes]
       Default: interactive undo of devbox/desktop/server install.
       lazyvim: remove LazyVim/lite data; switch nvim back to nvim-plain.
@@ -352,6 +356,29 @@ dotfiles_cmd_install() {
   esac
 }
 
+dotfiles_cmd_sync() {
+  local what="${1:-}"
+  local -a args=()
+
+  require_dotfiles_dir
+  [[ -n "$what" ]] || die "sync requires: lazyvim or lazyvim-lite"
+  [[ "$DRY_RUN" -eq 1 ]] && args+=(--dry-run)
+
+  case "$what" in
+    lazyvim)
+      run_installer bash "$DOTFILES_DIR/lazyvim/sync-lazyvim.sh" "${args[@]}"
+      [[ "$DRY_RUN" -eq 1 ]] || df_component_touch lazyvim "$(df_component_detect_version lazyvim)"
+      ;;
+    lazyvim-lite)
+      run_installer bash "$DOTFILES_DIR/lazyvim-lite/sync-lazyvim-lite.sh" "${args[@]}"
+      [[ "$DRY_RUN" -eq 1 ]] || df_component_touch lazyvim-lite "$(df_component_detect_version lazyvim-lite)"
+      ;;
+    *)
+      die "unknown sync target: $what (try: lazyvim, lazyvim-lite)"
+      ;;
+  esac
+}
+
 main() {
   local cmd="${1:-}"
 
@@ -386,12 +413,13 @@ main() {
     status) dotfiles_cmd_status ;;
     uninstall) dotfiles_cmd_uninstall "$@" ;;
     install) dotfiles_cmd_install "$@" ;;
+    sync) dotfiles_cmd_sync "$@" ;;
     -h | --help)
       usage
       exit 0
       ;;
     *)
-      die "unknown command: $cmd (try: update, status, install, uninstall)"
+      die "unknown command: $cmd (try: update, status, install, sync, uninstall)"
       ;;
   esac
 }

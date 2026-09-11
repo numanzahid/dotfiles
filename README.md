@@ -48,6 +48,7 @@ dotfiles update --force         # discard repo changes, pull, full reinstall
 dotfiles status                 # profile, nvim, fetch, versions, last updated
 dotfiles install lazyvim        # optional LazyVim profile
 dotfiles install lazyvim-lite   # optional LazyVim lite
+dotfiles sync lazyvim           # apply lazy-lock.json after pull
 dotfiles install fetch          # fastfetch banner (interactive art picker)
 ```
 
@@ -65,6 +66,8 @@ Not part of the main install scripts:
 dotfiles install fetch
 dotfiles install lazyvim
 dotfiles install lazyvim-lite
+dotfiles sync lazyvim
+dotfiles sync lazyvim-lite
 ./install-ai-rules.sh
 ./scripts/nvm-install-update.sh
 ./scripts/alacritty-install-update.sh

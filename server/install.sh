@@ -48,6 +48,7 @@ Environment (used by dotfiles update):
 Optional extras:
   dotfiles install fetch
   dotfiles install lazyvim | lazyvim-lite
+  dotfiles sync lazyvim | lazyvim-lite
 
 Copies ~/.install-scripts/{neovim,gdu}-install-update.sh for upgrades
 after you delete the clone.
@@ -484,8 +485,8 @@ if [[ "$RUN_CONFIGS" -eq 1 && "$RUN_SOFTWARE" -eq 1 ]]; then
 server install finished. Configs are real files in $HOME.
 You can delete the dotfiles clone: rm -rf ~/.dotfiles
 
-Optional: dotfiles install fetch
-Day to day: dotfiles update
+Optional: dotfiles install fetch | lazyvim | lazyvim-lite
+Day to day: dotfiles update; dotfiles sync lazyvim after pull (LazyVim hosts)
 
 Later neovim upgrades: ~/.install-scripts/neovim-install-update.sh
 EOF

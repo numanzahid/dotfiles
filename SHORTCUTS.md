@@ -19,6 +19,8 @@ Available after the first install as `dotfiles` (`~/.local/bin/dotfiles`).
 | `dotfiles install lazyvim` | Install full LazyVim |
 | `dotfiles install lazyvim-lite` | Install LazyVim lite |
 | `dotfiles install fetch` | Install fastfetch banner (interactive picker) |
+| `dotfiles sync lazyvim` | Headless Lazy! sync (apply `lazy-lock.json`) |
+| `dotfiles sync lazyvim-lite` | Same for LazyVim lite |
 | `dotfiles uninstall` | Interactive undo: dry-run, uninstall, or purge |
 | `dotfiles uninstall lazyvim` | Remove LazyVim/lite; switch nvim to nvim-plain |
 | `dotfiles uninstall <software>` | Remove one tool (see `dotfiles uninstall --list`) |
@@ -300,6 +302,8 @@ Set on the `ssh`/`bash` command line or export in the session.
 | `scripts/nvim-profile.sh lazyvim-lite` | LazyVim without Mason/LSP/Node |
 
 Install profiles: `dotfiles install lazyvim` or `dotfiles install lazyvim-lite`.
+After pull: `dotfiles sync lazyvim` or `dotfiles sync lazyvim-lite` (applies `lazy-lock.json`).
+Bump plugin pins: `:Lazy update` in nvim on one machine, commit lock, sync on others.
 
 ---
 
