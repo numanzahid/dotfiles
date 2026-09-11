@@ -236,7 +236,7 @@ link_btop_conf() {
 
 link_prompt_default() {
   local dest="$TARGET_HOME/.config/dotfiles/prompt.sh"
-  local src="$SOURCE_DIR/.config/dotfiles/prompt-custom.sh"
+  local src="$SOURCE_DIR/.config/dotfiles/prompt-optimized.sh"
   local target base newsrc
 
   mkdir -p "$TARGET_HOME/.config/dotfiles"
@@ -246,8 +246,12 @@ link_prompt_default() {
   if [[ -L "$dest" ]]; then
     target="$(readlink "$dest")"
     base="$(basename "$target")"
-    if [[ "$base" == prompt-custom.sh || "$base" == prompt-starship.sh ]]; then
-      newsrc="$SOURCE_DIR/.config/dotfiles/$base"
+    if [[ "$base" == prompt-optimized.sh || "$base" == prompt-custom.sh || "$base" == prompt-starship.sh ]]; then
+      if [[ "$base" == prompt-starship.sh ]]; then
+        newsrc="$SOURCE_DIR/.config/dotfiles/prompt-starship.sh"
+      else
+        newsrc="$src"
+      fi
       [[ -e "$newsrc" ]] || newsrc="$src"
     else
       newsrc="$src"
@@ -271,7 +275,7 @@ link_prompt_default() {
     return 0
   fi
 
-  log "default prompt: custom -> $dest"
+  log "default prompt: optimized -> $dest"
   run ln -sfn "$src" "$dest"
   df_track_path "$dest"
   df_journal_once link "$dest" "$src"

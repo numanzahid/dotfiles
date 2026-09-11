@@ -170,7 +170,7 @@ link_prompt_default() {
   if [[ -L "$dest" ]]; then
     target="$(readlink "$dest")"
     base="$(basename "$target")"
-    if [[ "$base" == prompt-custom.sh || "$base" == prompt-starship.sh ]]; then
+    if [[ "$base" == prompt-optimized.sh || "$base" == prompt-custom.sh || "$base" == prompt-starship.sh ]]; then
       newsrc="$SOURCE_DIR/.config/dotfiles/$base"
       [[ -e "$newsrc" ]] || newsrc="$src"
     else
