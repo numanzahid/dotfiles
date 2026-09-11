@@ -39,3 +39,7 @@ home/.fzf.bash
 **/custom-fetch-art.txt
 **/custom-fetch-padding.jsonc
 **/.custom-fetch-art.txt
+
+# Install backups (live copies live under ~/.local/share/dotfiles/backups/)
+**/*.pre-dotfiles
+**/*.pre-dotfiles-*

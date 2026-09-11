@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Shared symlink/copy helpers for devbox.sh, server/, and LazyVim scripts.
 
-# One original backup per path: dest.pre-dotfiles (no timestamp).
+# One original backup per path. Inside the clone, backups go to
+# ~/.local/share/dotfiles/backups/ (see backup.sh). Else dest.pre-dotfiles.
 # Paths we have installed are tracked in ~/.local/share/dotfiles/managed-paths
 # so later edits are still treated as ours (overwrite, do not re-backup).
 # Re-runs overwrite managed files. Timestamped leftovers are dropped.
@@ -9,6 +10,8 @@
 
 # shellcheck source=journal.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/journal.sh"
+# shellcheck source=backup.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/backup.sh"
 
 df_managed_paths_file() {
   printf '%s/dotfiles/managed-paths' "${XDG_DATA_HOME:-$HOME/.local/share}"
@@ -38,76 +41,6 @@ df_track_path() {
   printf '%s\n' "$dest" >> "$file"
 }
 
-df_original_backup_path() {
-  printf '%s.pre-dotfiles' "$1"
-}
-
-df_list_timestamped_backups() {
-  local dest="$1"
-  local nullglob_on=0
-  local -a found=()
-
-  if shopt -q nullglob; then
-    nullglob_on=1
-  fi
-  shopt -s nullglob
-  found=("${dest}".pre-dotfiles-*)
-  if [[ "$nullglob_on" -eq 0 ]]; then
-    shopt -u nullglob
-  fi
-
-  if ((${#found[@]} > 0)); then
-    printf '%s\n' "${found[@]}"
-  fi
-}
-
-# Keep dest.pre-dotfiles as the original. Promote the oldest timestamped
-# backup if that file is missing, then delete dest.pre-dotfiles-*.
-df_migrate_original_backup() {
-  local dest="$1"
-  local backup
-  local f oldest=""
-  local -a stamped=()
-
-  backup="$(df_original_backup_path "$dest")"
-
-  while IFS= read -r f; do
-    [[ -n "$f" ]] && stamped+=("$f")
-  done < <(df_list_timestamped_backups "$dest" | sort)
-
-  if [[ -e "$backup" || -L "$backup" ]]; then
-    if ((${#stamped[@]} > 0)); then
-      for f in "${stamped[@]}"; do
-        log "removed extra backup: $f"
-        run rm -rf "$f"
-      done
-    fi
-    return 0
-  fi
-
-  if ((${#stamped[@]} == 0)); then
-    return 0
-  fi
-
-  oldest="${stamped[0]}"
-  log "keeping original backup: $oldest -> $backup"
-  run mv "$oldest" "$backup"
-  for f in "${stamped[@]}"; do
-    if [[ "$f" == "$oldest" ]]; then
-      continue
-    fi
-    if [[ -e "$f" || -L "$f" ]]; then
-      log "removed extra backup: $f"
-      run rm -rf "$f"
-    fi
-  done
-}
-
-# Back-compat name used by server.
-df_prune_pre_dotfiles_backups() {
-  df_migrate_original_backup "$1"
-}
-
 df_same_file() {
   local left="$1"
   local right="$2"
@@ -128,7 +61,7 @@ df_is_managed_copy() {
   return 1
 }
 
-# Save dest once as dest.pre-dotfiles if it is a foreign original.
+# Save dest once as a pre-dotfiles backup if it is a foreign original.
 # Tracked paths and exact copies are ours, including user-edited copies.
 df_stash_original_if_needed() {
   local src="${1:-}"
@@ -147,7 +80,7 @@ df_stash_original_if_needed() {
   if df_path_is_tracked "$dest"; then
     return 0
   fi
-  if [[ -e "$backup" || -L "$backup" ]]; then
+  if df_backup_exists_for_dest "$dest"; then
     df_track_path "$dest"
     return 0
   fi
@@ -156,6 +89,7 @@ df_stash_original_if_needed() {
     return 0
   fi
 
+  mkdir -p "$(dirname "$backup")"
   log "backup original: $dest -> $backup"
   run mv "$dest" "$backup"
   df_journal_once backup "$dest" "$backup"

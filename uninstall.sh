@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Undo a dotfiles install using machine-local records:
 #   ~/.local/share/dotfiles/managed-paths
-#   dest.pre-dotfiles originals
+#   pre-dotfiles originals (beside dest or ~/.local/share/dotfiles/backups/)
 #   ~/.local/share/dotfiles/install-journal.tsv
 #
 # Interactive uninstall. Prompts for dry-run, uninstall, or purge.
@@ -14,6 +14,8 @@ TARGET_HOME="${HOME:?}"
 
 # shellcheck source=scripts/lib/journal.sh
 source "$SCRIPTS_DIR/lib/journal.sh"
+# shellcheck source=scripts/lib/backup.sh
+source "$SCRIPTS_DIR/lib/backup.sh"
 # shellcheck source=scripts/lib/privilege.sh
 source "$SCRIPTS_DIR/lib/privilege.sh"
 # shellcheck source=scripts/lib/pfetch-remove.sh
@@ -53,10 +55,10 @@ Records:
   ~/.local/share/dotfiles/managed-paths
   ~/.local/share/dotfiles/install-journal.tsv
   ~/.local/share/dotfiles/install.log
-  dest.pre-dotfiles next to each replaced path
+  pre-dotfiles backups (beside dest or ~/.local/share/dotfiles/backups/)
 
 Uninstall reverts every journaled kind except skip, locale, hide-clone,
-and backup (backup uses dest.pre-dotfiles on disk). See README "Install journal".
+and backup (restore uses pre-dotfiles on disk). See README "Install journal".
 
 Not undone: LazyVim/lite, locale, skipped files (~/.ssh/config, a real
 prompt.sh), ~/.cargo ~/.rustup, tmux *.log in $HOME, unrelated project dirs.
@@ -137,10 +139,6 @@ run() {
   else
     "$@"
   fi
-}
-
-df_original_backup_path() {
-  printf '%s.pre-dotfiles' "$1"
 }
 
 df_managed_paths_file() {
@@ -287,7 +285,7 @@ restore_skel() {
 restore_dest() {
   local dest="$1"
   local backup
-  backup="$(df_original_backup_path "$dest")"
+  backup="$(df_resolve_original_backup "$dest")"
 
   if resolves_inside_clone "$dest"; then
     log "skip restore (would delete clone file): $dest"

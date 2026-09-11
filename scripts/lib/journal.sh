@@ -3,7 +3,7 @@
 # Format: timestamp<TAB>kind<TAB>path<TAB>extra
 #
 # Kinds and uninstall behavior (uninstall.sh):
-#   backup       - no-op (restore uses dest.pre-dotfiles on disk)
+#   backup       - no-op (restore uses pre-dotfiles on disk; clone paths use ~/.local/share/dotfiles/backups/)
 #   link         - restore home path from backup or remove symlink
 #   copy         - restore home path from backup or remove our copy
 #   skip         - no-op (pre-existing file left alone)

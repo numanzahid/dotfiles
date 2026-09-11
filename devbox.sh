@@ -338,6 +338,7 @@ install_dotfiles() {
     bash "$DOTFILES_DIR/scripts/kitty-terminfo-install-update.sh"
   fi
 
+  df_relocate_stray_clone_backups
   install_dotfiles_cli
   df_profile_save devbox
 }

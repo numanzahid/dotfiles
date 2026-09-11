@@ -116,7 +116,7 @@ Uninstall reads the journal to restore configs and remove tools. Kinds:
 
 | Kind | Recorded by | Uninstall action |
 |------|-------------|------------------|
-| `link` / `copy` | devbox, server, fetch, AI rules, terminals | Restore from `*.pre-dotfiles` or remove our file |
+| `link` / `copy` | devbox, server, fetch, AI rules, terminals | Restore from `*.pre-dotfiles` (or `~/.local/share/dotfiles/backups/` when dest is inside the clone) or remove our file |
 | `binary` | GitHub release scripts, kitty, alacritty | Remove binary or install tree |
 | `git-clone` | fzf, tpm | Remove clone directory |
 | `package-new` | install-deps (only packages that were missing) | `apt`/`dnf` remove |
