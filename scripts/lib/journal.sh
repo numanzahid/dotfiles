@@ -84,6 +84,10 @@ df_pkg_is_installed() {
     rpm -q "$pkg" >/dev/null 2>&1
     return $?
   fi
+  if command -v pacman >/dev/null 2>&1; then
+    pacman -Q "$pkg" >/dev/null 2>&1
+    return $?
+  fi
   return 1
 }
 

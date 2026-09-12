@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Install Avahi and configure .local mDNS (Fedora, Debian, Ubuntu).
+# Install Avahi and configure .local mDNS (Fedora, Debian/Ubuntu, Arch/Omarchy).
 # Re-run anytime to repair packages, NSS, firewall, and resolved/NM.
 #
 # Avahi publishes hostname.local. nss-mdns/libnss-mdns makes ping/ssh
@@ -10,28 +10,50 @@ set -euo pipefail
 #
 # Usage:
 #   ./scripts/avahi-install-update.sh
+#   ./scripts/avahi-install-update.sh --status
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+STATUS_ONLY=0
+REPAIR=0
+
 usage() {
   cat <<'EOF'
-Usage: ./scripts/avahi-install-update.sh
+Usage: ./scripts/avahi-install-update.sh [options]
 
-Install Avahi and configure hostname.local mDNS on Fedora, Debian, Ubuntu.
-Re-run to repair packages, NSS, firewall, and systemd-resolved/NetworkManager.
+Install Avahi and configure hostname.local mDNS on Fedora, Debian/Ubuntu,
+Arch Linux, and Omarchy (Arch-based). Re-run to repair packages, NSS,
+firewall, and systemd-resolved/NetworkManager.
 
 Avahi publishes hostname.local. nss-mdns makes ping/ssh resolve .local.
 systemd-resolved mDNS is turned off so it does not steal UDP 5353.
-Needs sudo. Optional, not part of --all.
+Needs sudo for install/configure. Optional, not part of --all.
 
 Options:
-  -h, --help   Show this help
+  --status   Show setup details only (no install or config changes)
+  --repair   Reinstall packages and restart avahi-daemon
+  -h, --help Show this help
 EOF
 }
 
-# shellcheck source=lib/cli-args.sh
-source "$SCRIPT_DIR/lib/cli-args.sh"
-df_no_args_or_help "$@"
+parse_args() {
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --status) STATUS_ONLY=1 ;;
+      --repair) REPAIR=1 ;;
+      -h | --help)
+        usage
+        exit 0
+        ;;
+      *)
+        echo "Unknown option: $1" >&2
+        usage >&2
+        exit 1
+        ;;
+    esac
+    shift
+  done
+}
 
 # shellcheck source=scripts/lib/platform.sh
 source "$SCRIPT_DIR/lib/platform.sh"
@@ -50,6 +72,7 @@ os_family() {
   case "$id" in
     fedora) printf '%s' fedora && return 0 ;;
     debian | ubuntu | linuxmint | pop) printf '%s' debian && return 0 ;;
+    arch | omarchy) printf '%s' arch && return 0 ;;
   esac
   if [[ -r /etc/os-release ]]; then
     # shellcheck disable=SC1091
@@ -59,34 +82,63 @@ os_family() {
   case " $like " in
     *" fedora "* | *" rhel "*) printf '%s' fedora && return 0 ;;
     *" debian "*) printf '%s' debian && return 0 ;;
+    *" arch "*) printf '%s' arch && return 0 ;;
   esac
   printf '%s' unknown
 }
 
+avahi_package_names() {
+  local family="$1"
+  case "$family" in
+    fedora) printf '%s\n' avahi nss-mdns avahi-tools ;;
+    debian) printf '%s\n' avahi-daemon libnss-mdns avahi-utils ;;
+    arch) printf '%s\n' avahi nss-mdns avahi-utils ;;
+  esac
+}
+
+avahi_packages_installed() {
+  local family="$1" pkg
+  while IFS= read -r pkg; do
+    [[ -n "$pkg" ]] || continue
+    df_pkg_is_installed "$pkg" || return 1
+  done < <(avahi_package_names "$family")
+}
+
 install_packages() {
   local family="$1"
-  local -a missing=()
+  local -a missing=() pkgs=()
   local pkg
+
+  while IFS= read -r pkg; do
+    [[ -n "$pkg" ]] || continue
+    pkgs+=("$pkg")
+    df_pkg_is_installed "$pkg" || missing+=("$pkg")
+  done < <(avahi_package_names "$family")
+
+  if ((${#missing[@]} == 0)) && [[ "$REPAIR" -eq 0 ]]; then
+    echo "Avahi packages already installed: ${pkgs[*]}"
+    return 0
+  fi
+
   case "$family" in
     fedora)
-      for pkg in avahi nss-mdns avahi-tools; do
-        df_pkg_is_installed "$pkg" || missing+=("$pkg")
-      done
       echo "Installing Fedora packages: avahi nss-mdns avahi-tools"
       df_run_privileged dnf install -y avahi nss-mdns avahi-tools
       ((${#missing[@]} > 0)) && df_journal_new_packages "${missing[@]}"
       ;;
     debian)
-      for pkg in avahi-daemon libnss-mdns avahi-utils; do
-        df_pkg_is_installed "$pkg" || missing+=("$pkg")
-      done
       echo "Installing Debian/Ubuntu packages: avahi-daemon libnss-mdns avahi-utils"
       df_run_privileged apt-get update
       df_run_privileged apt-get install -y avahi-daemon libnss-mdns avahi-utils
       ((${#missing[@]} > 0)) && df_journal_new_packages "${missing[@]}"
       ;;
+    arch)
+      echo "Installing Arch/Omarchy packages: avahi nss-mdns avahi-utils"
+      df_run_privileged pacman -Sy --needed --noconfirm avahi nss-mdns avahi-utils
+      ((${#missing[@]} > 0)) && df_journal_new_packages "${missing[@]}"
+      ;;
     *)
-      echo "ERROR: unsupported OS ($(df_host_os_id)). Need Fedora or Debian/Ubuntu." >&2
+      echo "ERROR: unsupported OS ($(df_host_os_id)). Need Fedora, Debian/Ubuntu, or Arch/Omarchy." >&2
       exit 1
       ;;
   esac
@@ -119,6 +171,9 @@ ensure_nss_mdns() {
   echo "WARN: /etc/nsswitch.conf hosts line has no mdns plugin." >&2
   echo "WARN: expected mdns4_minimal [NOTFOUND=return] before dns/resolve" >&2
   echo "WARN: current: $hosts" >&2
+  if [[ "$family" == "arch" ]]; then
+    echo "WARN: Arch/Omarchy: install nss-mdns and add mdns_minimal [NOTFOUND=return] to hosts:" >&2
+  fi
 }
 
 write_file() {
@@ -299,36 +354,114 @@ configure_ufw() {
 }
 
 enable_avahi() {
+  local restart=0
   echo "Enabling avahi-daemon"
   df_run_privileged systemctl enable --now avahi-daemon.service
-  df_run_privileged systemctl restart avahi-daemon.service
+  if [[ "$REPAIR" -eq 1 ]]; then
+    restart=1
+  elif ! systemctl is-active avahi-daemon.service >/dev/null 2>&1; then
+    restart=1
+  fi
+  if [[ "$restart" -eq 1 ]]; then
+    df_run_privileged systemctl restart avahi-daemon.service
+  else
+    echo "avahi-daemon already active; skip restart (use --repair to force)"
+  fi
+}
+
+avahi_conf_value() {
+  local key="$1"
+  [[ -f "$AVAHI_CONF" ]] || return 0
+  grep -E "^[[:space:]]*${key}=" "$AVAHI_CONF" 2>/dev/null | tail -1 | cut -d= -f2-
+}
+
+print_lan_addresses() {
+  local dev cidr any=0
+  while IFS= read -r dev; do
+    [[ -n "$dev" ]] || continue
+    while IFS= read -r cidr; do
+      [[ -n "$cidr" ]] || continue
+      printf '  %s on %s\n' "$cidr" "$dev"
+      any=1
+    done < <(ip -4 -o addr show dev "$dev" scope global 2>/dev/null | awk '{print $4}')
+  done < <(lan_interfaces)
+  if [[ "$any" -eq 0 ]]; then
+    echo "  (no connected LAN interface found)"
+  fi
 }
 
 print_status() {
-  local host
+  local host short configured=0
   host="$(hostname -s 2>/dev/null || hostname)"
-  echo
-  echo "Done."
-  echo "avahi-daemon: $(systemctl is-active avahi-daemon.service 2>/dev/null || echo unknown)"
-  echo "hosts line:   $(grep -E '^hosts:' /etc/nsswitch.conf 2>/dev/null || echo missing)"
-  if command -v avahi-resolve >/dev/null 2>&1; then
-    echo "self resolve: $(avahi-resolve -n -4 "${host}.local" 2>/dev/null || echo "failed (${host}.local)")"
+  short="$host"
+
+  if [[ -n "${FAMILY:-}" ]] && avahi_packages_installed "$FAMILY"; then
+    configured=1
   fi
-  echo "Test from another machine: ping ${host}.local"
-  echo "resolvectl query ${host}.local can succeed locally even without LAN mDNS."
+
+  echo
+  if [[ "$configured" -eq 1 ]]; then
+    echo "Avahi is configured on this machine."
+  else
+    echo "Avahi is not fully installed on this machine."
+  fi
+  echo
+  echo "mDNS hostname:  ${short}.local"
+  echo "SSH example:    ssh ${short}.local"
+  echo "Ping example:   ping ${short}.local"
+  echo
+  echo "Service:        $(systemctl is-active avahi-daemon.service 2>/dev/null || echo unknown)"
+  echo "Enabled:        $(systemctl is-enabled avahi-daemon.service 2>/dev/null || echo unknown)"
+  echo "nsswitch:       $(grep -E '^hosts:' /etc/nsswitch.conf 2>/dev/null || echo missing)"
+  if [[ -f "$AVAHI_CONF" ]]; then
+    echo "host-name:      $(avahi_conf_value host-name || echo "$short")"
+    echo "allow-ifaces:   $(avahi_conf_value allow-interfaces || echo "(not set)")"
+    echo "deny-ifaces:    $(avahi_conf_value deny-interfaces || echo "(not set)")"
+  fi
+  echo "LAN addresses:"
+  print_lan_addresses
+  if command -v avahi-resolve >/dev/null 2>&1; then
+    echo "Self resolve:   $(avahi-resolve -n -4 "${short}.local" 2>/dev/null || echo "failed (${short}.local)")"
+  fi
+  if [[ -f "$RESOLVED_DROPIN" ]]; then
+    echo "resolved drop:  $RESOLVED_DROPIN (MulticastDNS=no)"
+  fi
+  if [[ -f "$NM_DROPIN" ]]; then
+    echo "NM drop-in:     $NM_DROPIN (connection.mdns=0)"
+  fi
+  echo
+  echo "Test from another machine on the LAN: ping ${short}.local"
+  echo "Note: resolvectl query ${short}.local can work locally without LAN mDNS."
 }
 
-df_ensure_sudo
+main() {
+  parse_args "$@"
 
-FAMILY="$(os_family)"
-echo "OS family: $FAMILY ($(df_host_os_id))"
+  if [[ "$STATUS_ONLY" -eq 1 ]]; then
+    FAMILY="$(os_family)"
+    echo "OS family: $FAMILY ($(df_host_os_id))"
+    print_status
+    exit 0
+  fi
 
-install_packages "$FAMILY"
-ensure_nss_mdns "$FAMILY"
-configure_resolved
-configure_networkmanager
-configure_avahi_conf
-configure_firewalld
-configure_ufw
-enable_avahi
-print_status
+  df_ensure_sudo
+
+  FAMILY="$(os_family)"
+  echo "OS family: $FAMILY ($(df_host_os_id))"
+
+  if avahi_packages_installed "$FAMILY"; then
+    echo "Avahi already configured; applying idempotent fixes and showing status."
+  fi
+
+  install_packages "$FAMILY"
+  ensure_nss_mdns "$FAMILY"
+  configure_resolved
+  configure_networkmanager
+  configure_avahi_conf
+  configure_firewalld
+  configure_ufw
+  enable_avahi
+  print_status
+}
+
+main "$@"
