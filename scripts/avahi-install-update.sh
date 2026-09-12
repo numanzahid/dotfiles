@@ -260,7 +260,20 @@ EOF
 avahi_conf_value() {
   local key="$1"
   [[ -f "$AVAHI_CONF" ]] || return 0
-  grep -E "^[[:space:]]*${key}=" "$AVAHI_CONF" 2>/dev/null | tail -1 | cut -d= -f2-
+  grep -E "^[[:space:]]*${key}=" "$AVAHI_CONF" 2>/dev/null | tail -1 | cut -d= -f2- || true
+}
+
+summary_avahi_key() {
+  local key="$1"
+  local value="$2"
+  local count
+
+  if [[ "$value" != *","* ]] || ((${#value} <= 100)); then
+    printf 'set %s=%s' "$key" "$value"
+    return 0
+  fi
+  count="$(awk -F, '{print NF}' <<<"$value")"
+  printf 'set %s=<%s interfaces>' "$key" "$count"
 }
 
 set_avahi_key() {
@@ -273,18 +286,27 @@ set_avahi_key() {
 
   old="$(avahi_conf_value "$key")"
   if grep -qE "^[[:space:]]*#?[[:space:]]*${key}=" "$file"; then
-    df_run_privileged sed -i "s|^[[:space:]]*#\\?[[:space:]]*${key}=.*|${key}=${value}|" "$file"
+    if ! df_run_privileged sed -i "s|^[[:space:]]*#\\?[[:space:]]*${key}=.*|${key}=${value}|" "$file"; then
+      echo "ERROR: failed to set ${key} in $file" >&2
+      return 1
+    fi
   elif grep -q '^\[server\]' "$file"; then
-    df_run_privileged sed -i "/^\[server\]/a ${key}=${value}" "$file"
+    if ! df_run_privileged sed -i "/^\[server\]/a ${key}=${value}" "$file"; then
+      echo "ERROR: failed to add ${key} in $file" >&2
+      return 1
+    fi
   else
-    printf '\n# Added by dotfiles avahi-install-update.sh\n%s=%s\n' "$key" "$value" |
-      df_run_privileged tee -a "$file" >/dev/null
+    if ! printf '\n# Added by dotfiles avahi-install-update.sh\n%s=%s\n' "$key" "$value" |
+      df_run_privileged tee -a "$file" >/dev/null; then
+      echo "ERROR: failed to append ${key} to $file" >&2
+      return 1
+    fi
   fi
 
   new="$(avahi_conf_value "$key")"
   if [[ "$old" != "$new" ]]; then
     AVAHI_CONF_CHANGED=1
-    summary_add "$file" "set ${key}=${value}"
+    summary_add "$file" "$(summary_avahi_key "$key" "$value")"
   fi
 }
 
@@ -399,21 +421,27 @@ configure_avahi_interfaces() {
     list="$(IFS=,; echo "${lan[*]}")"
     echo "Avahi allow-interfaces: $list"
     set_avahi_key allow-interfaces "$list"
-  else
-    echo "WARN: no LAN interface detected; skipping allow-interfaces" >&2
-    echo "WARN: set AVAHI_ALLOW_INTERFACES=eth0 and re-run" >&2
+    echo "Skipping deny-interfaces (allow-interfaces already limits Avahi to the LAN uplink)"
+    return 0
   fi
 
-  if docker_virtual_present; then
-    while IFS= read -r n; do
-      [[ -n "$n" ]] && deny+=("$n")
-    done < <(bridge_interfaces | sort -u)
-    if ((${#deny[@]} > 0)); then
-      list="$(IFS=,; echo "${deny[*]}")"
-      echo "Avahi deny-interfaces (Docker/virtual backup): $list"
-      set_avahi_key deny-interfaces "$list"
-    fi
+  echo "WARN: no LAN interface detected; skipping allow-interfaces" >&2
+  echo "WARN: set AVAHI_ALLOW_INTERFACES=eth0 and re-run" >&2
+
+  if ! docker_virtual_present; then
+    return 0
   fi
+
+  while IFS= read -r n; do
+    [[ -n "$n" ]] && deny+=("$n")
+  done < <(bridge_interfaces | sort -u)
+  if ((${#deny[@]} == 0)); then
+    return 0
+  fi
+
+  list="$(IFS=,; echo "${deny[*]}")"
+  echo "Avahi deny-interfaces (no allow list; blocking Docker/virtual): ${#deny[@]} interfaces"
+  set_avahi_key deny-interfaces "$list"
 }
 
 configure_avahi_conf() {
@@ -584,7 +612,7 @@ print_changes_summary() {
     echo "Key files to edit manually if needed:"
     echo "  $AVAHI_CONF"
     echo "    allow-interfaces=<your-lan-nic>"
-    echo "    deny-interfaces=docker0,br-...,veth-..."
+    echo "    deny-interfaces=... (fallback only when allow-interfaces is not set)"
     echo "  /etc/nsswitch.conf"
     echo "    hosts: files mdns4_minimal [NOTFOUND=return] dns"
     [[ -f "$RESOLVED_DROPIN" ]] && echo "  $RESOLVED_DROPIN"
