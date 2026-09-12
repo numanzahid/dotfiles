@@ -11,11 +11,16 @@ set -euo pipefail
 # Usage:
 #   ./scripts/avahi-install-update.sh
 #   ./scripts/avahi-install-update.sh --status
+#
+# Override auto-detected LAN interface(s):
+#   AVAHI_ALLOW_INTERFACES=eth0 ./scripts/avahi-install-update.sh
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 STATUS_ONLY=0
 REPAIR=0
+AVAHI_CONF_CHANGED=0
+declare -a SUMMARY=()
 
 usage() {
   cat <<'EOF'
@@ -28,6 +33,11 @@ firewall, and systemd-resolved/NetworkManager.
 Avahi publishes hostname.local. nss-mdns makes ping/ssh resolve .local.
 systemd-resolved mDNS is turned off so it does not steal UDP 5353.
 Needs sudo for install/configure. Optional, not part of --all.
+
+LAN interface(s) are detected automatically (NetworkManager or default route).
+Override when auto-detect is wrong:
+  AVAHI_ALLOW_INTERFACES=eth0 ./scripts/avahi-install-update.sh
+  AVAHI_ALLOW_INTERFACES=wlan0,enp3s0 ./scripts/avahi-install-update.sh
 
 Options:
   --status   Show setup details only (no install or config changes)
@@ -65,6 +75,12 @@ source "$SCRIPT_DIR/lib/journal.sh"
 AVAHI_CONF="/etc/avahi/avahi-daemon.conf"
 RESOLVED_DROPIN="/etc/systemd/resolved.conf.d/dotfiles-mdns.conf"
 NM_DROPIN="/etc/NetworkManager/conf.d/dotfiles-mdns.conf"
+
+summary_add() {
+  local file="$1"
+  local desc="$2"
+  SUMMARY+=("$file|$desc")
+}
 
 os_family() {
   local id like=""
@@ -125,17 +141,20 @@ install_packages() {
       echo "Installing Fedora packages: avahi nss-mdns avahi-tools"
       df_run_privileged dnf install -y avahi nss-mdns avahi-tools
       ((${#missing[@]} > 0)) && df_journal_new_packages "${missing[@]}"
+      ((${#missing[@]} > 0)) && summary_add "(packages)" "installed: ${missing[*]}"
       ;;
     debian)
       echo "Installing Debian/Ubuntu packages: avahi-daemon libnss-mdns avahi-utils"
       df_run_privileged apt-get update
       df_run_privileged apt-get install -y avahi-daemon libnss-mdns avahi-utils
       ((${#missing[@]} > 0)) && df_journal_new_packages "${missing[@]}"
+      ((${#missing[@]} > 0)) && summary_add "(packages)" "installed: ${missing[*]}"
       ;;
     arch)
       echo "Installing Arch/Omarchy packages: avahi nss-mdns avahi-utils"
       df_run_privileged pacman -Sy --needed --noconfirm avahi nss-mdns avahi-utils
       ((${#missing[@]} > 0)) && df_journal_new_packages "${missing[@]}"
+      ((${#missing[@]} > 0)) && summary_add "(packages)" "installed: ${missing[*]}"
       ;;
     *)
       echo "ERROR: unsupported OS ($(df_host_os_id)). Need Fedora, Debian/Ubuntu, or Arch/Omarchy." >&2
@@ -159,6 +178,7 @@ ensure_nss_mdns() {
       echo "Enabling authselect feature with-mdns4"
       df_run_privileged authselect enable-feature with-mdns4 ||
         echo "WARN: authselect enable-feature with-mdns4 failed" >&2
+      summary_add "/etc/nsswitch.conf" "enabled authselect with-mdns4"
     fi
   fi
 
@@ -178,13 +198,27 @@ ensure_nss_mdns() {
 
 write_file() {
   local dest="$1"
-  local dir
+  local note="$2"
+  local dir before after
+
   dir="$(dirname "$dest")"
+  before=""
+  if [[ -f "$dest" ]]; then
+    before="$(cat "$dest" 2>/dev/null || true)"
+  fi
+
   df_run_privileged mkdir -p "$dir"
-  df_run_privileged tee "$dest" >/dev/null
+  after="$(cat)"
+  if [[ "$before" == "$after" ]]; then
+    echo "Unchanged: $dest"
+    return 0
+  fi
+
+  printf '%s' "$after" | df_run_privileged tee "$dest" >/dev/null
   if declare -F df_journal_once >/dev/null 2>&1; then
     df_journal_once system-dropin "$dest"
   fi
+  summary_add "$dest" "$note"
 }
 
 configure_resolved() {
@@ -200,7 +234,7 @@ configure_resolved() {
   fi
 
   echo "Disabling systemd-resolved mDNS (Avahi owns UDP 5353)"
-  write_file "$RESOLVED_DROPIN" <<'EOF'
+  write_file "$RESOLVED_DROPIN" "MulticastDNS=no" <<'EOF'
 [Resolve]
 MulticastDNS=no
 EOF
@@ -212,7 +246,7 @@ configure_networkmanager() {
     return 0
   fi
   echo "Setting NetworkManager connection.mdns=0 (Avahi publishes)"
-  write_file "$NM_DROPIN" <<'EOF'
+  write_file "$NM_DROPIN" "connection.mdns=0" <<'EOF'
 [connection]
 connection.mdns=0
 EOF
@@ -223,15 +257,162 @@ EOF
   fi
 }
 
+avahi_conf_value() {
+  local key="$1"
+  [[ -f "$AVAHI_CONF" ]] || return 0
+  grep -E "^[[:space:]]*${key}=" "$AVAHI_CONF" 2>/dev/null | tail -1 | cut -d= -f2-
+}
+
 set_avahi_key() {
   local key="$1"
   local value="$2"
   local file="$AVAHI_CONF"
+  local old new
 
   [[ -f "$file" ]] || return 0
 
+  old="$(avahi_conf_value "$key")"
   if grep -qE "^[[:space:]]*#?[[:space:]]*${key}=" "$file"; then
     df_run_privileged sed -i "s|^[[:space:]]*#\\?[[:space:]]*${key}=.*|${key}=${value}|" "$file"
+  elif grep -q '^\[server\]' "$file"; then
+    df_run_privileged sed -i "/^\[server\]/a ${key}=${value}" "$file"
+  else
+    printf '\n# Added by dotfiles avahi-install-update.sh\n%s=%s\n' "$key" "$value" |
+      df_run_privileged tee -a "$file" >/dev/null
+  fi
+
+  new="$(avahi_conf_value "$key")"
+  if [[ "$old" != "$new" ]]; then
+    AVAHI_CONF_CHANGED=1
+    summary_add "$file" "set ${key}=${value}"
+  fi
+}
+
+is_virtual_iface() {
+  case "$1" in
+    docker* | br-* | veth* | virbr* | lxc* | cni* | flannel* | podman* | tun* | tap*)
+      return 0
+      ;;
+  esac
+  return 1
+}
+
+iface_has_global_ipv4() {
+  local dev="$1"
+  ip -4 -o addr show dev "$dev" scope global 2>/dev/null | grep -q .
+}
+
+default_route_iface() {
+  ip -o route show default 2>/dev/null | awk '{
+    for (i = 1; i <= NF; i++) if ($i == "dev") { print $(i + 1); exit }
+  }'
+}
+
+lan_interfaces_nmcli() {
+  local dev type state
+  while IFS=: read -r dev type state; do
+    [[ "$state" == "connected" ]] || continue
+    case "$type" in
+      wifi | ethernet | wifi-p2p)
+        is_virtual_iface "$dev" && continue
+        iface_has_global_ipv4 "$dev" || continue
+        printf '%s\n' "$dev"
+        ;;
+    esac
+  done < <(nmcli -t -f DEVICE,TYPE,STATE device status 2>/dev/null || true)
+}
+
+lan_interfaces_route() {
+  local dev
+  dev="$(default_route_iface)"
+  [[ -n "$dev" ]] || return 0
+  is_virtual_iface "$dev" && return 0
+  iface_has_global_ipv4 "$dev" || return 0
+  printf '%s\n' "$dev"
+}
+
+lan_interfaces() {
+  local dev part out
+
+  if [[ -n "${AVAHI_ALLOW_INTERFACES:-}" ]]; then
+    IFS=',' read -ra parts <<<"${AVAHI_ALLOW_INTERFACES}"
+    for part in "${parts[@]}"; do
+      part="${part// /}"
+      [[ -n "$part" ]] && printf '%s\n' "$part"
+    done
+    return 0
+  fi
+
+  if command -v nmcli >/dev/null 2>&1; then
+    out="$(lan_interfaces_nmcli)"
+    if [[ -n "$out" ]]; then
+      printf '%s\n' "$out"
+      return 0
+    fi
+  fi
+
+  lan_interfaces_route
+}
+
+bridge_interfaces() {
+  local name
+  while IFS= read -r name; do
+    name="${name%%@*}"
+    is_virtual_iface "$name" && printf '%s\n' "$name"
+  done < <(ip -o link show 2>/dev/null | awk -F': ' '{print $2}')
+}
+
+docker_virtual_present() {
+  if [[ -S /var/run/docker.sock ]] || ip link show docker0 >/dev/null 2>&1; then
+    return 0
+  fi
+  bridge_interfaces | grep -q .
+}
+
+iface_detection_note() {
+  local out
+  if [[ -n "${AVAHI_ALLOW_INTERFACES:-}" ]]; then
+    echo "LAN interfaces: ${AVAHI_ALLOW_INTERFACES} (AVAHI_ALLOW_INTERFACES override)"
+    return 0
+  fi
+  if command -v nmcli >/dev/null 2>&1; then
+    out="$(lan_interfaces_nmcli)"
+    if [[ -n "$out" ]]; then
+      echo "LAN interfaces: detected via NetworkManager (connected ethernet/wifi with IPv4)"
+      return 0
+    fi
+  fi
+  echo "LAN interfaces: detected via default route (physical iface with global IPv4)"
+}
+
+configure_avahi_interfaces() {
+  local -a lan=() deny=()
+  local n list
+
+  iface_detection_note
+
+  while IFS= read -r n; do
+    [[ -n "$n" ]] && lan+=("$n")
+  done < <(lan_interfaces)
+
+  if ((${#lan[@]} > 0)); then
+    list="$(IFS=,; echo "${lan[*]}")"
+    echo "Avahi allow-interfaces: $list"
+    set_avahi_key allow-interfaces "$list"
+  else
+    echo "WARN: no LAN interface detected; skipping allow-interfaces" >&2
+    echo "WARN: set AVAHI_ALLOW_INTERFACES=eth0 and re-run" >&2
+  fi
+
+  if docker_virtual_present; then
+    while IFS= read -r n; do
+      [[ -n "$n" ]] && deny+=("$n")
+    done < <(bridge_interfaces | sort -u)
+    if ((${#deny[@]} > 0)); then
+      list="$(IFS=,; echo "${deny[*]}")"
+      echo "Avahi deny-interfaces (Docker/virtual backup): $list"
+      set_avahi_key deny-interfaces "$list"
+    fi
   fi
 }
 
@@ -248,60 +429,6 @@ configure_avahi_conf() {
   set_avahi_key publish-addresses yes
   set_avahi_key publish-workstation yes
   configure_avahi_interfaces
-}
-
-lan_interfaces() {
-  local dev type state
-  if command -v nmcli >/dev/null 2>&1; then
-    while IFS=: read -r dev type state; do
-      [[ "$state" == "connected" ]] || continue
-      case "$type" in
-        wifi | ethernet | wifi-p2p) printf '%s\n' "$dev" ;;
-      esac
-    done < <(nmcli -t -f DEVICE,TYPE,STATE device status 2>/dev/null || true)
-    return 0
-  fi
-  ip -o route show default 2>/dev/null | awk '{
-    for (i = 1; i <= NF; i++) if ($i == "dev") { print $(i + 1); exit }
-  }'
-}
-
-bridge_interfaces() {
-  local name
-  while IFS= read -r name; do
-    name="${name%%@*}"
-    case "$name" in
-      docker* | br-* | veth* | virbr* | lxc* | cni* | flannel* | podman* | tun* | tap*)
-        printf '%s\n' "$name"
-        ;;
-    esac
-  done < <(ip -o link show 2>/dev/null | awk -F': ' '{print $2}')
-}
-
-configure_avahi_interfaces() {
-  local -a lan=() deny=()
-  local n list
-
-  while IFS= read -r n; do
-    [[ -n "$n" ]] && lan+=("$n")
-  done < <(lan_interfaces)
-
-  if ((${#lan[@]} > 0)); then
-    list="$(IFS=,; echo "${lan[*]}")"
-    echo "Avahi allow-interfaces: $list"
-    set_avahi_key allow-interfaces "$list"
-    return 0
-  fi
-
-  while IFS= read -r n; do
-    [[ -n "$n" ]] && deny+=("$n")
-  done < <(bridge_interfaces)
-
-  if ((${#deny[@]} > 0)); then
-    list="$(IFS=,; echo "${deny[*]}")"
-    echo "Avahi deny-interfaces: $list"
-    set_avahi_key deny-interfaces "$list"
-  fi
 }
 
 skip_firewall_zone() {
@@ -359,20 +486,18 @@ enable_avahi() {
   df_run_privileged systemctl enable --now avahi-daemon.service
   if [[ "$REPAIR" -eq 1 ]]; then
     restart=1
+  elif [[ "$AVAHI_CONF_CHANGED" -eq 1 ]]; then
+    restart=1
+    echo "avahi-daemon.conf changed; restarting avahi-daemon"
   elif ! systemctl is-active avahi-daemon.service >/dev/null 2>&1; then
     restart=1
   fi
   if [[ "$restart" -eq 1 ]]; then
     df_run_privileged systemctl restart avahi-daemon.service
+    summary_add "avahi-daemon.service" "restarted"
   else
     echo "avahi-daemon already active; skip restart (use --repair to force)"
   fi
-}
-
-avahi_conf_value() {
-  local key="$1"
-  [[ -f "$AVAHI_CONF" ]] || return 0
-  grep -E "^[[:space:]]*${key}=" "$AVAHI_CONF" 2>/dev/null | tail -1 | cut -d= -f2-
 }
 
 print_lan_addresses() {
@@ -387,6 +512,19 @@ print_lan_addresses() {
   done < <(lan_interfaces)
   if [[ "$any" -eq 0 ]]; then
     echo "  (no connected LAN interface found)"
+  fi
+}
+
+print_avahi_warnings() {
+  if ! command -v journalctl >/dev/null 2>&1; then
+    return 0
+  fi
+  if journalctl -u avahi-daemon -n 80 --no-pager 2>/dev/null |
+    grep -q 'IP_ADD_MEMBERSHIP failed'; then
+    echo
+    echo "WARN: avahi journal shows IP_ADD_MEMBERSHIP failed (multicast / too many interfaces)."
+    echo "WARN: check allow-interfaces in $AVAHI_CONF and restart avahi-daemon."
+    echo "WARN: override: AVAHI_ALLOW_INTERFACES=eth0 $0"
   fi
 }
 
@@ -429,9 +567,43 @@ print_status() {
   if [[ -f "$NM_DROPIN" ]]; then
     echo "NM drop-in:     $NM_DROPIN (connection.mdns=0)"
   fi
+  print_avahi_warnings
   echo
   echo "Test from another machine on the LAN: ping ${short}.local"
   echo "Note: resolvectl query ${short}.local can work locally without LAN mDNS."
+}
+
+print_changes_summary() {
+  local entry file desc
+
+  echo
+  echo "=== This run: files and settings ==="
+  if ((${#SUMMARY[@]} == 0)); then
+    echo "  No config files changed (packages and services were already in place)."
+    echo
+    echo "Key files to edit manually if needed:"
+    echo "  $AVAHI_CONF"
+    echo "    allow-interfaces=<your-lan-nic>"
+    echo "    deny-interfaces=docker0,br-...,veth-..."
+    echo "  /etc/nsswitch.conf"
+    echo "    hosts: files mdns4_minimal [NOTFOUND=return] dns"
+    [[ -f "$RESOLVED_DROPIN" ]] && echo "  $RESOLVED_DROPIN"
+    [[ -f "$NM_DROPIN" ]] && echo "  $NM_DROPIN"
+    echo
+    echo "After manual edits: sudo systemctl restart avahi-daemon"
+    echo "Override auto-detect: AVAHI_ALLOW_INTERFACES=eth0 $0"
+    return 0
+  fi
+
+  for entry in "${SUMMARY[@]}"; do
+    file="${entry%%|*}"
+    desc="${entry#*|}"
+    printf '  %s\n    -> %s\n' "$file" "$desc"
+  done
+  echo
+  echo "If interface detection was wrong, edit $AVAHI_CONF (allow-interfaces)"
+  echo "or re-run: AVAHI_ALLOW_INTERFACES=eth0 $0"
+  echo "Then: sudo systemctl restart avahi-daemon"
 }
 
 main() {
@@ -462,6 +634,7 @@ main() {
   configure_ufw
   enable_avahi
   print_status
+  print_changes_summary
 }
 
 main "$@"
