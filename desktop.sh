@@ -42,6 +42,7 @@ Single-tool installs: ./scripts/<tool>-install-update.sh
 Optional extras:
   dotfiles install lazyvim | lazyvim-lite | fetch
   dotfiles sync lazyvim | lazyvim-lite
+  ./scripts/localsend-install-update.sh
 
 Debian/Ubuntu: use ./devbox.sh instead.
 EOF
