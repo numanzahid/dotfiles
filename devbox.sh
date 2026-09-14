@@ -41,6 +41,7 @@ Optional extras:
   dotfiles sync lazyvim | lazyvim-lite
   ./scripts/alacritty-install-update.sh
   ./scripts/kitty-install-update.sh
+  ./scripts/localsend-install-update.sh
 
 Fedora: use ./desktop.sh instead.
 EOF

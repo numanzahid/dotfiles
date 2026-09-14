@@ -466,6 +466,7 @@ seed_workstation() {
   if [[ -d "$TARGET_HOME/.install-scripts" ]]; then
     seed_if_exists copy "$TARGET_HOME/.install-scripts/neovim-install-update.sh"
     seed_if_exists copy "$TARGET_HOME/.install-scripts/gdu-install-update.sh"
+    seed_if_exists copy "$TARGET_HOME/.install-scripts/localsend-install-update.sh"
     seed_if_exists copy "$TARGET_HOME/.install-scripts/fastfetch-install-update.sh"
     seed_if_exists copy "$TARGET_HOME/.install-scripts/lib/github-release.sh"
     seed_if_exists copy "$TARGET_HOME/.install-scripts/lib/journal.sh"

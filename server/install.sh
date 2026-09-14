@@ -50,7 +50,9 @@ Optional extras:
   dotfiles install lazyvim | lazyvim-lite
   dotfiles sync lazyvim | lazyvim-lite
 
-Copies ~/.install-scripts/{neovim,gdu}-install-update.sh for upgrades
+Optional: ./scripts/localsend-install-update.sh (LAN file send to phone)
+
+Copies ~/.install-scripts/{neovim,gdu,localsend}-install-update.sh for upgrades
 after you delete the clone.
 EOF
 }
@@ -189,6 +191,7 @@ copy_overwrite() {
 copy_install_scripts() {
   local dest_nvim="$INSTALL_SCRIPTS_DIR/neovim-install-update.sh"
   local dest_gdu="$INSTALL_SCRIPTS_DIR/gdu-install-update.sh"
+  local dest_localsend="$INSTALL_SCRIPTS_DIR/localsend-install-update.sh"
   local dest_fetch="$INSTALL_SCRIPTS_DIR/fastfetch-install-update.sh"
   local cli_dir="$INSTALL_SCRIPTS_DIR/dotfiles-cli"
   local lib_file
@@ -208,6 +211,7 @@ copy_install_scripts() {
   mkdir -p "$INSTALL_SCRIPTS_DIR/lib" "$cli_dir/lib"
   copy_overwrite "$SCRIPTS_DIR/neovim-install-update.sh" "$dest_nvim"
   copy_overwrite "$SCRIPTS_DIR/gdu-install-update.sh" "$dest_gdu"
+  copy_overwrite "$SCRIPTS_DIR/localsend-install-update.sh" "$dest_localsend"
   for lib_file in "${install_lib_files[@]}"; do
     copy_overwrite "$SCRIPTS_DIR/lib/$lib_file" "$INSTALL_SCRIPTS_DIR/lib/$lib_file"
   done
@@ -215,7 +219,7 @@ copy_install_scripts() {
   copy_overwrite "$SCRIPTS_DIR/lib/component-state.sh" "$cli_dir/lib/component-state.sh"
   copy_overwrite "$SCRIPTS_DIR/lib/journal.sh" "$cli_dir/lib/journal.sh"
   copy_overwrite "$SCRIPTS_DIR/lib/platform.sh" "$cli_dir/lib/platform.sh"
-  run chmod 755 "$dest_nvim" "$dest_gdu" "$cli_dir/dotfiles"
+  run chmod 755 "$dest_nvim" "$dest_gdu" "$dest_localsend" "$cli_dir/dotfiles"
   if [[ "$INSTALL_FETCH" -eq 1 ]]; then
     copy_overwrite "$SCRIPTS_DIR/fastfetch-install-update.sh" "$dest_fetch"
     copy_overwrite "$SCRIPTS_DIR/lib/pfetch-remove.sh" "$INSTALL_SCRIPTS_DIR/lib/pfetch-remove.sh"
