@@ -319,6 +319,7 @@ Bump plugin pins: `:Lazy update` in nvim on one machine, commit lock, sync on ot
 | eza | No (GNU `ls` aliases instead) |
 | `sshk` | No |
 | `fetch` / fastfetch wrapper | Yes (if fastfetch installed) |
+| `btop` | Yes (GitHub binary; `~/.config/btop/btop.conf` copied) |
 | `gdu` | Yes (GitHub binary; `~/.install-scripts/gdu-install-update.sh` after copy-install) |
 | `.gitconfig` | Copied (not symlinked) |
 | `..`, `mkcd`, `alert`, tmux alias | Yes |

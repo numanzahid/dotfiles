@@ -342,7 +342,7 @@ df_component_list_known() {
       printf '%s\n' configs deps tools lazygit gh fzf tldr tpm neovim btop gdu fonts starship
       ;;
     server)
-      printf '%s\n' configs deps neovim gdu
+      printf '%s\n' configs deps neovim btop gdu
       ;;
     lazyvim | lazyvim-lite)
       printf '%s\n' "$profile"

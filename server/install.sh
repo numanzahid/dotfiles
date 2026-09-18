@@ -31,10 +31,10 @@ remove the dotfiles folder.
 
 Full install (default): copy configs, apt packages, and Neovim.
 
-Does not install: fzf, zoxide, lazygit, gh, btop, tldr,
+Does not install: fzf, zoxide, lazygit, gh, tldr,
 TPM/tmux plugins, or nerd fonts.
 
-Installs: apt deps, neovim, gdu (disk usage). Copies .gitconfig.
+Installs: apt deps, neovim, btop, gdu. Copies .gitconfig and btop config.
 
 Options:
   --configs-only   Copy configs only (no apt packages or Neovim)
@@ -52,7 +52,7 @@ Optional extras:
 
 Optional: ./scripts/localsend-install-update.sh (LAN file send to phone)
 
-Copies ~/.install-scripts/{neovim,gdu,localsend}-install-update.sh for upgrades
+Copies ~/.install-scripts/{neovim,btop,gdu,localsend}-install-update.sh for upgrades
 after you delete the clone.
 EOF
 }
@@ -190,6 +190,7 @@ copy_overwrite() {
 
 copy_install_scripts() {
   local dest_nvim="$INSTALL_SCRIPTS_DIR/neovim-install-update.sh"
+  local dest_btop="$INSTALL_SCRIPTS_DIR/btop-install-update.sh"
   local dest_gdu="$INSTALL_SCRIPTS_DIR/gdu-install-update.sh"
   local dest_localsend="$INSTALL_SCRIPTS_DIR/localsend-install-update.sh"
   local dest_fetch="$INSTALL_SCRIPTS_DIR/fastfetch-install-update.sh"
@@ -210,6 +211,7 @@ copy_install_scripts() {
 
   mkdir -p "$INSTALL_SCRIPTS_DIR/lib" "$cli_dir/lib"
   copy_overwrite "$SCRIPTS_DIR/neovim-install-update.sh" "$dest_nvim"
+  copy_overwrite "$SCRIPTS_DIR/btop-install-update.sh" "$dest_btop"
   copy_overwrite "$SCRIPTS_DIR/gdu-install-update.sh" "$dest_gdu"
   copy_overwrite "$SCRIPTS_DIR/localsend-install-update.sh" "$dest_localsend"
   for lib_file in "${install_lib_files[@]}"; do
@@ -219,7 +221,7 @@ copy_install_scripts() {
   copy_overwrite "$SCRIPTS_DIR/lib/component-state.sh" "$cli_dir/lib/component-state.sh"
   copy_overwrite "$SCRIPTS_DIR/lib/journal.sh" "$cli_dir/lib/journal.sh"
   copy_overwrite "$SCRIPTS_DIR/lib/platform.sh" "$cli_dir/lib/platform.sh"
-  run chmod 755 "$dest_nvim" "$dest_gdu" "$dest_localsend" "$cli_dir/dotfiles"
+  run chmod 755 "$dest_nvim" "$dest_btop" "$dest_gdu" "$dest_localsend" "$cli_dir/dotfiles"
   if [[ "$INSTALL_FETCH" -eq 1 ]]; then
     copy_overwrite "$SCRIPTS_DIR/fastfetch-install-update.sh" "$dest_fetch"
     copy_overwrite "$SCRIPTS_DIR/lib/pfetch-remove.sh" "$INSTALL_SCRIPTS_DIR/lib/pfetch-remove.sh"
@@ -270,6 +272,19 @@ copy_nvim_plain() {
   df_migrate_original_backup "$dest"
   df_track_path "$dest"
   df_journal_once copy "$dest/init.lua" "$src/init.lua"
+}
+
+copy_btop_conf() {
+  local dest_dir="$TARGET_HOME/.config/btop"
+  local src="$SOURCE_DIR/.config/btop/btop.conf"
+
+  if [[ ! -f "$src" ]]; then
+    log "skip missing btop config: $src"
+    return 0
+  fi
+
+  ensure_real_dir "$dest_dir"
+  copy_file "$src" "$dest_dir/btop.conf"
 }
 
 copy_kitty_terminfo() {
@@ -368,6 +383,7 @@ install_configs() {
   copy_file "$SOURCE_DIR/.profile" "$TARGET_HOME/.profile"
   copy_file "$SERVER_DIR/tmux.conf" "$TARGET_HOME/.tmux.conf"
   copy_kitty_terminfo
+  copy_btop_conf
 
   copy_nvim_plain
   copy_install_scripts
@@ -437,6 +453,16 @@ install_software_server() {
     [[ "$DRY_RUN" -eq 0 ]] && df_component_touch neovim "$(df_component_detect_version neovim)"
   fi
 
+  if ! df_skip_software_component btop; then
+    log "installing btop via ~/.install-scripts/btop-install-update.sh"
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+      run bash "$INSTALL_SCRIPTS_DIR/btop-install-update.sh"
+    else
+      bash "$INSTALL_SCRIPTS_DIR/btop-install-update.sh"
+    fi
+    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch btop "$(df_component_detect_version btop)"
+  fi
+
   if ! df_skip_software_component gdu; then
     log "installing gdu via ~/.install-scripts/gdu-install-update.sh"
     if [[ "$DRY_RUN" -eq 1 ]]; then
@@ -492,6 +518,6 @@ You can delete the dotfiles clone: rm -rf ~/.dotfiles
 Optional: dotfiles install fetch | lazyvim | lazyvim-lite
 Day to day: dotfiles update; dotfiles sync lazyvim after pull (LazyVim hosts)
 
-Later neovim upgrades: ~/.install-scripts/neovim-install-update.sh
+Later upgrades: ~/.install-scripts/{neovim,btop,gdu}-install-update.sh
 EOF
 fi

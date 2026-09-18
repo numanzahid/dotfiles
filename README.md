@@ -25,7 +25,7 @@ Each script does a **full install** by default: configs, packages, CLI tools, fo
 
 **devbox/desktop** includes: bat, fd, zoxide, eza, lazygit, gh, neovim, btop, gdu, fzf, tldr, nerd fonts, TPM.
 
-**server** is slimmer: copied configs (including `.gitconfig`), apt packages, neovim, gdu (no fzf, zoxide, lazygit, gh, btop, tldr, TPM, fonts).
+**server** is slimmer: copied configs (including `.gitconfig` and `btop`), apt packages, neovim, btop, gdu (no fzf, zoxide, lazygit, gh, tldr, TPM, fonts).
 
 Installer options (all profiles):
 
