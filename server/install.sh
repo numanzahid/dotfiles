@@ -377,6 +377,7 @@ install_configs() {
   mkdir -p "$TARGET_HOME/.config/dotfiles"
   copy_file "$SOURCE_DIR/.config/dotfiles/prompt-optimized.sh" "$TARGET_HOME/.config/dotfiles/prompt.sh"
   copy_file "$SOURCE_DIR/.config/dotfiles/locale.sh" "$TARGET_HOME/.config/dotfiles/locale.sh"
+  copy_file "$SOURCE_DIR/.config/dotfiles/proton-pass-env.sh" "$TARGET_HOME/.config/dotfiles/proton-pass-env.sh"
   copy_file "$SERVER_DIR/shell_aliases_interactive.sh" "$TARGET_HOME/.shell_aliases_interactive.sh"
   copy_file "$SOURCE_DIR/.inputrc" "$TARGET_HOME/.inputrc"
   copy_file "$SOURCE_DIR/.gitconfig" "$TARGET_HOME/.gitconfig"

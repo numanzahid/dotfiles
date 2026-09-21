@@ -14,6 +14,11 @@ if [ -f "$HOME/.config/dotfiles/locale.sh" ]; then
   . "$HOME/.config/dotfiles/locale.sh"
 fi
 
+# Proton Pass CLI (optional; ~/.config/proton-pass/env from setup script).
+if [ -f "$HOME/.config/dotfiles/proton-pass-env.sh" ]; then
+  . "$HOME/.config/dotfiles/proton-pass-env.sh"
+fi
+
 # if running bash
 if [ -n "$BASH_VERSION" ]; then
     # include .bashrc if it exists

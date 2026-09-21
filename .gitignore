@@ -43,3 +43,6 @@ home/.fzf.bash
 # Install backups (live copies live under ~/.local/share/dotfiles/backups/)
 **/*.pre-dotfiles
 **/*.pre-dotfiles-*
+
+# Local-only analysis / scratch notes (never published to the public repo)
+/analysis/
