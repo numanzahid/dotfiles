@@ -81,6 +81,9 @@ source "$SCRIPT_DIR/lib/platform.sh"
 
 _df_entry=0
 df_install_cli_entry "$@" || _df_entry=$?
+DRY_RUN="${DF_INSTALL_DRY_RUN:-0}"
+export DRY_RUN
+
 case "$_df_entry" in
   1)
     # --uninstall handled below after parse_extra
@@ -139,7 +142,6 @@ syncthing_primary_ipv4() {
 
 syncthing_linux_asset() {
   local tag="$1"
-  local version="${tag#v}"
   local arch
   case "$(uname -m)" in
     x86_64 | amd64) arch="amd64" ;;
@@ -150,7 +152,8 @@ syncthing_linux_asset() {
       exit 1
       ;;
   esac
-  printf 'syncthing-linux-%s-%s.tar.gz' "$arch" "$version"
+  # Release files use the tag in the name, e.g. syncthing-linux-amd64-v2.1.5.tar.gz
+  printf 'syncthing-linux-%s-%s.tar.gz' "$arch" "$tag"
 }
 
 syncthing_gui_address_in_config() {
@@ -166,7 +169,7 @@ syncthing_set_gui_in_config() {
     return 0
   fi
   log "setting GUI listen address to ${GUI_ADDRESS} in config.xml"
-  if [[ "$DRY_RUN" -eq 1 ]]; then
+  if [[ "${DRY_RUN:-0}" -eq 1 ]]; then
     run sed -i "s|<address>127\\.0\\.0\\.1:8384</address>|<address>${GUI_ADDRESS}</address>|" "$CONFIG_XML"
     return 0
   fi
@@ -180,7 +183,7 @@ syncthing_ensure_config() {
     return 0
   fi
   log "generating Syncthing config in $SYNCTHING_HOME"
-  if [[ "$DRY_RUN" -eq 1 ]]; then
+  if [[ "${DRY_RUN:-0}" -eq 1 ]]; then
     run mkdir -p "$SYNCTHING_HOME"
     run "$BIN_PATH" generate --no-port-probing --home="$SYNCTHING_HOME"
     return 0
@@ -197,7 +200,7 @@ install_systemd_unit() {
   fi
   log "installing user systemd unit: $UNIT_DEST"
   run mkdir -p "$(dirname "$UNIT_DEST")"
-  if [[ "$DRY_RUN" -eq 1 ]]; then
+  if [[ "${DRY_RUN:-0}" -eq 1 ]]; then
     run cp "$UNIT_SRC" "$UNIT_DEST"
   else
     cp "$UNIT_SRC" "$UNIT_DEST"
@@ -319,7 +322,8 @@ uninstall_syncthing() {
 }
 
 install_syncthing_binary() {
-  local tag asset url tmpdir tarball extract_dir binary version
+  local tag asset url tarball extract_dir binary
+  local -a cleanup_dirs=()
 
   tag="$(gr_latest_tag "$REPO" || true)"
   [[ -n "$tag" && "$tag" != "null" ]] || {
@@ -329,7 +333,6 @@ install_syncthing_binary() {
   }
 
   asset="$(syncthing_linux_asset "$tag")"
-  version="${tag#v}"
   url="https://github.com/${REPO}/releases/download/${tag}/${asset}"
 
   if gr_bin_has_tag "$BIN_PATH" "$tag"; then
@@ -338,12 +341,12 @@ install_syncthing_binary() {
     return 0
   fi
 
-  tmpdir="$(mktemp -d)"
-  trap 'rm -rf "${tmpdir}"' EXIT
-  tarball="${tmpdir}/${asset}"
-  extract_dir="${tmpdir}/extract"
+  cleanup_dirs+=("$(mktemp -d)")
+  tarball="${cleanup_dirs[0]}/${asset}"
+  extract_dir="${cleanup_dirs[0]}/extract"
 
   if ! gr_download "$url" "$tarball"; then
+    rm -rf "${cleanup_dirs[0]}"
     gr_exit_if_keeping "$BIN_PATH" "GitHub download failed"
     echo "ERROR: download failed: $url" >&2
     exit 1
@@ -354,17 +357,19 @@ install_syncthing_binary() {
 
   binary="$(gr_find_binary "$extract_dir" syncthing || true)"
   if [[ -z "${binary:-}" || ! -f "$binary" ]]; then
+    rm -rf "${cleanup_dirs[0]}"
     echo "ERROR: syncthing binary not found in archive" >&2
     exit 1
   fi
   if ! gr_file_is_elf "$binary"; then
+    rm -rf "${cleanup_dirs[0]}"
     echo "ERROR: refusing to install non-ELF $binary as $BIN_PATH" >&2
     exit 1
   fi
 
   log "installing $BIN_PATH (user-writable, auto-upgrade capable)"
   run mkdir -p "$(dirname "$BIN_PATH")"
-  if [[ "$DRY_RUN" -eq 1 ]]; then
+  if [[ "${DRY_RUN:-0}" -eq 1 ]]; then
     run install -m 755 "$binary" "$BIN_PATH"
   else
     install -m 755 "$binary" "$BIN_PATH"
@@ -373,6 +378,7 @@ install_syncthing_binary() {
     fi
   fi
 
+  rm -rf "${cleanup_dirs[0]}"
   gr_print_version_line syncthing
 }
 
