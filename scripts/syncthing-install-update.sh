@@ -14,7 +14,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BIN_PATH="${HOME}/.local/bin/syncthing"
 UNIT_SRC="${SCRIPT_DIR}/data/systemd/user/syncthing.service"
 UNIT_DEST="${HOME}/.config/systemd/user/syncthing.service"
+SYSTEM_UNIT_TEMPLATE="${SCRIPT_DIR}/data/systemd/system/syncthing-user.service.template"
+SYSTEM_UNIT_DEST="/etc/systemd/system/syncthing-${USER}.service"
 SYNCTHING_HOME="${HOME}/.local/share/syncthing"
+AUTOSTART_MODE="" # user | system
 CONFIG_XML="${SYNCTHING_HOME}/config.xml"
 REPO="syncthing/syncthing"
 GUI_ADDRESS="0.0.0.0:8384"
@@ -29,20 +32,25 @@ Install or upgrade Syncthing from official GitHub releases into ~/.local/bin
 Also:
   - Generates config on first install (~/.local/share/syncthing)
   - Sets GUI to listen on 0.0.0.0:8384 (LAN and Tailscale)
-  - Installs a systemd user unit and enables lingering (boot without login)
+  - Autostart via systemd user unit (default), or --system-service on LXC/CTs
+    where user@UID.service does not work
 
 Not tied to devbox/server/desktop.
 
-Tested distros: Ubuntu, Debian, Fedora, Arch Linux (and Omarchy). Needs systemd
-with user services (logind). Does not use distro packages.
+Tested distros: Ubuntu, Debian, Fedora, Arch Linux (and Omarchy). Does not use
+distro packages.
 
-Needs: curl, jq, tar, systemctl, loginctl. One-time sudo for loginctl enable-linger.
+Needs: curl, jq, tar, systemctl. User units also need loginctl + working
+systemctl --user. --system-service needs sudo for /etc/systemd/system/.
 Package examples if tools are missing:
   Debian/Ubuntu: sudo apt install curl jq tar
   Fedora:        sudo dnf install curl jq tar
   Arch:          sudo pacman -S curl jq tar
 
 Options:
+  --system-service
+      Use a system unit (syncthing-USER.service) running as you. For headless
+      LXC/Proxmox CTs when user@UID.service fails. Binary stays in ~/.local/bin.
   --status     Show install/service/config summary (no changes)
   --uninstall  Stop service, remove unit and binary (keeps ~/.../syncthing data)
   --purge      With --uninstall, also remove ~/.local/share/syncthing
@@ -94,10 +102,12 @@ esac
 
 STATUS_ONLY=0
 PURGE_DATA=0
+USE_SYSTEM_SERVICE=0
 while [[ ${#DF_INSTALL_EXTRA_ARGS[@]} -gt 0 ]]; do
   case "${DF_INSTALL_EXTRA_ARGS[0]}" in
     --status) STATUS_ONLY=1 ;;
     --purge) PURGE_DATA=1 ;;
+    --system-service) USE_SYSTEM_SERVICE=1 ;;
     *)
       echo "Unknown option: ${DF_INSTALL_EXTRA_ARGS[0]}" >&2
       usage >&2
@@ -112,19 +122,45 @@ if [[ "$DF_INSTALL_WANTS_UNINSTALL" -eq 1 ]]; then
   exit 0
 fi
 
-gr_require_cmds curl jq tar systemctl loginctl
+gr_require_cmds curl jq tar systemctl
 
-ensure_user_systemd() {
+user_systemd_available() {
   if [[ -z "${XDG_RUNTIME_DIR:-}" ]] && [[ -d "/run/user/$(id -u)" ]]; then
     export XDG_RUNTIME_DIR="/run/user/$(id -u)"
   fi
-  if ! systemctl --user show-environment >/dev/null 2>&1; then
-    echo "ERROR: systemd user session is not available on this host." >&2
-    echo "  Common on SSH without a full login session." >&2
-    echo "  Try: ssh -t user@host './scripts/syncthing-install-update.sh'" >&2
-    echo "  Or:  export XDG_RUNTIME_DIR=/run/user/\$(id -u)" >&2
-    exit 1
+  systemctl --user show-environment >/dev/null 2>&1
+}
+
+fail_user_systemd() {
+  echo "ERROR: systemd user manager is not running (systemctl --user fails)." >&2
+  echo "  SSH is fine; this is common on LXC/CTs when user@$(id -u).service will not start." >&2
+  echo "  Diagnose (root): systemctl status user@$(id -u).service" >&2
+  echo "                   journalctl -xeu user@$(id -u).service" >&2
+  echo "  Use system autostart instead (binary still in ~/.local/bin):" >&2
+  echo "    ./scripts/syncthing-install-update.sh --system-service" >&2
+  exit 1
+}
+
+resolve_autostart_mode() {
+  if [[ "$USE_SYSTEM_SERVICE" -eq 1 ]]; then
+    AUTOSTART_MODE=system
+    return 0
   fi
+  if user_systemd_available; then
+    AUTOSTART_MODE=user
+    return 0
+  fi
+  fail_user_systemd
+}
+
+ensure_user_systemd() {
+  if [[ "$AUTOSTART_MODE" != user ]]; then
+    return 0
+  fi
+  if ! user_systemd_available; then
+    fail_user_systemd
+  fi
+  gr_require_cmds loginctl
 }
 
 syncthing_primary_ipv4() {
@@ -221,10 +257,77 @@ enable_linger() {
   run df_run_privileged loginctl enable-linger "$USER"
 }
 
-start_syncthing_service() {
+start_syncthing_user_service() {
   run systemctl --user daemon-reload
   run systemctl --user enable syncthing.service
   run systemctl --user restart syncthing.service
+}
+
+install_system_service_unit() {
+  local tmp group
+  if [[ ! -f "$SYSTEM_UNIT_TEMPLATE" ]]; then
+    echo "ERROR: missing $SYSTEM_UNIT_TEMPLATE" >&2
+    exit 1
+  fi
+  group="$(id -gn)"
+  log "installing system unit: $SYSTEM_UNIT_DEST (runs as $USER)"
+  df_ensure_sudo
+  tmp="$(mktemp)"
+  sed \
+    -e "s|@USER@|${USER}|g" \
+    -e "s|@GROUP@|${group}|g" \
+    -e "s|@HOME@|${HOME}|g" \
+    -e "s|@BIN@|${BIN_PATH}|g" \
+    "$SYSTEM_UNIT_TEMPLATE" >"$tmp"
+  if [[ "${DRY_RUN:-0}" -eq 1 ]]; then
+    run df_run_privileged install -m 644 "$tmp" "$SYSTEM_UNIT_DEST"
+  else
+    df_run_privileged install -m 644 "$tmp" "$SYSTEM_UNIT_DEST"
+  fi
+  rm -f "$tmp"
+}
+
+remove_system_service_unit() {
+  if [[ -f "$SYSTEM_UNIT_DEST" ]]; then
+    run df_run_privileged systemctl disable --now "syncthing-${USER}.service" 2>/dev/null || true
+    run df_run_privileged rm -f "$SYSTEM_UNIT_DEST"
+    run df_run_privileged systemctl daemon-reload
+  fi
+}
+
+remove_user_service_unit() {
+  if systemctl --user is-active syncthing.service >/dev/null 2>&1; then
+    run systemctl --user stop syncthing.service
+  fi
+  run systemctl --user disable syncthing.service 2>/dev/null || true
+  if [[ -f "$UNIT_DEST" ]]; then
+    run rm -f "$UNIT_DEST"
+    run systemctl --user daemon-reload 2>/dev/null || true
+  fi
+}
+
+start_syncthing_system_service() {
+  df_ensure_sudo
+  run df_run_privileged systemctl daemon-reload
+  run df_run_privileged systemctl enable "syncthing-${USER}.service"
+  run df_run_privileged systemctl restart "syncthing-${USER}.service"
+}
+
+start_syncthing_service() {
+  if [[ "$AUTOSTART_MODE" == system ]]; then
+    if user_systemd_available; then
+      remove_user_service_unit
+    elif [[ -f "$UNIT_DEST" ]]; then
+      run rm -f "$UNIT_DEST"
+    fi
+    install_system_service_unit
+    start_syncthing_system_service
+  else
+    remove_system_service_unit
+    install_systemd_unit
+    enable_linger
+    start_syncthing_user_service
+  fi
 }
 
 print_access_hints() {
@@ -247,10 +350,19 @@ EOF
   print_firewall_hint
   cat <<EOF
 
+EOF
+  if [[ "$AUTOSTART_MODE" == system ]]; then
+    cat <<EOF
+Service:  sudo systemctl status syncthing-${USER}
+Logs:     sudo journalctl -u syncthing-${USER} -e
+EOF
+  else
+    cat <<EOF
 Service:  systemctl --user status syncthing
 Logs:     journalctl --user-unit=syncthing -e
-Upgrade:  use Syncthing web UI (binary in ~/.local/bin is user-writable)
 EOF
+  fi
+  echo "Upgrade:  use Syncthing web UI (binary in ~/.local/bin is user-writable)"
 }
 
 print_firewall_hint() {
@@ -291,24 +403,39 @@ print_status() {
       echo "GUI:      check config.xml (unit uses --gui-address=http://${GUI_ADDRESS})"
     fi
   fi
-  echo "Unit:     $UNIT_DEST$( [[ -f "$UNIT_DEST" ]] || echo " (missing)")"
-  echo "Linger:   $(linger_enabled && echo yes || echo no)"
-  if systemctl --user is-active syncthing.service >/dev/null 2>&1; then
-    echo "Service:  active"
+  if [[ -f "$SYSTEM_UNIT_DEST" ]]; then
+    AUTOSTART_MODE=system
+    echo "Autostart: system ($SYSTEM_UNIT_DEST)"
+  elif [[ -f "$UNIT_DEST" ]]; then
+    AUTOSTART_MODE=user
+    echo "Autostart: user ($UNIT_DEST)"
+    echo "Linger:   $(linger_enabled && echo yes || echo no)"
   else
-    echo "Service:  $(systemctl --user is-active syncthing.service 2>/dev/null || echo inactive)"
+    echo "Autostart: (none)"
+  fi
+  if [[ -f "$SYSTEM_UNIT_DEST" ]]; then
+    if systemctl is-active "syncthing-${USER}.service" >/dev/null 2>&1; then
+      echo "Service:  active (system)"
+    else
+      echo "Service:  $(systemctl is-active "syncthing-${USER}.service" 2>/dev/null || echo inactive) (system)"
+    fi
+  elif user_systemd_available && systemctl --user is-active syncthing.service >/dev/null 2>&1; then
+    echo "Service:  active (user)"
+  else
+    echo "Service:  inactive"
   fi
   print_access_hints
 }
 
 uninstall_syncthing() {
-  if systemctl --user is-active syncthing.service >/dev/null 2>&1; then
-    run systemctl --user stop syncthing.service
+  if [[ -f "$SYSTEM_UNIT_DEST" ]]; then
+    df_ensure_sudo
+    remove_system_service_unit
   fi
-  run systemctl --user disable syncthing.service 2>/dev/null || true
-  if [[ -f "$UNIT_DEST" ]]; then
+  if user_systemd_available; then
+    remove_user_service_unit
+  elif [[ -f "$UNIT_DEST" ]]; then
     run rm -f "$UNIT_DEST"
-    run systemctl --user daemon-reload
   fi
   if [[ -x "$BIN_PATH" ]]; then
     run rm -f "$BIN_PATH"
@@ -384,17 +511,15 @@ install_syncthing_binary() {
 
 if [[ "$STATUS_ONLY" -eq 1 ]]; then
   df_prepend_local_bin
-  ensure_user_systemd
   print_status
   exit 0
 fi
 
 df_prepend_local_bin
+resolve_autostart_mode
 ensure_user_systemd
 install_syncthing_binary
 syncthing_ensure_config
-install_systemd_unit
-enable_linger
 start_syncthing_service
 
 log "done."
