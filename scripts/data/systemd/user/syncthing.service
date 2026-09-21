@@ -1,0 +1,18 @@
+[Unit]
+Description=Syncthing - Open Source Continuous File Synchronization
+Documentation=https://docs.syncthing.net/
+StartLimitIntervalSec=60
+StartLimitBurst=4
+
+[Service]
+Environment=STLOGFORMATTIMESTAMP=
+Environment=STLOGFORMATLEVELSTRING=false
+Environment=STLOGFORMATLEVELSYSLOG=true
+ExecStart=%h/.local/bin/syncthing serve --no-browser --no-restart --gui-address=http://0.0.0.0:8384
+Restart=on-failure
+RestartSec=1
+SuccessExitStatus=3 4
+RestartForceExitStatus=3 4
+
+[Install]
+WantedBy=default.target

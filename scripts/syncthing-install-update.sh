@@ -1,0 +1,395 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Install Syncthing for the current user (~/.local/bin) with systemd user autostart.
+# User-owned binary so in-app upgrades work without sudo.
+# GUI listens on all interfaces (LAN + Tailscale). Optional; not part of --all.
+#
+# Same install path on Ubuntu, Debian, Fedora, Arch/Omarchy, and other systemd
+# Linux: official GitHub tarball (not apt/dnf/pacman packages).
+#
+# https://docs.syncthing.net/
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BIN_PATH="${HOME}/.local/bin/syncthing"
+UNIT_SRC="${SCRIPT_DIR}/data/systemd/user/syncthing.service"
+UNIT_DEST="${HOME}/.config/systemd/user/syncthing.service"
+SYNCTHING_HOME="${HOME}/.local/share/syncthing"
+CONFIG_XML="${SYNCTHING_HOME}/config.xml"
+REPO="syncthing/syncthing"
+GUI_ADDRESS="0.0.0.0:8384"
+
+usage() {
+  cat <<'EOF'
+Usage: ./scripts/syncthing-install-update.sh [options]
+
+Install or upgrade Syncthing from official GitHub releases into ~/.local/bin
+(user-writable, so Syncthing can auto-upgrade without sudo).
+
+Also:
+  - Generates config on first install (~/.local/share/syncthing)
+  - Sets GUI to listen on 0.0.0.0:8384 (LAN and Tailscale)
+  - Installs a systemd user unit and enables lingering (boot without login)
+
+Not tied to devbox/server/desktop.
+
+Tested distros: Ubuntu, Debian, Fedora, Arch Linux (and Omarchy). Needs systemd
+with user services (logind). Does not use distro packages.
+
+Needs: curl, jq, tar, systemctl, loginctl. One-time sudo for loginctl enable-linger.
+Package examples if tools are missing:
+  Debian/Ubuntu: sudo apt install curl jq tar
+  Fedora:        sudo dnf install curl jq tar
+  Arch:          sudo pacman -S curl jq tar
+
+Options:
+  --status     Show install/service/config summary (no changes)
+  --uninstall  Stop service, remove unit and binary (keeps ~/.../syncthing data)
+  --purge      With --uninstall, also remove ~/.local/share/syncthing
+  --dry-run    Print actions only
+  --yes, -y    Skip confirmation prompts
+  -h, --help   Show this help
+
+After install: open http://<host-ip>:8384 and set a GUI username/password.
+EOF
+}
+
+log() {
+  printf '[syncthing] %s\n' "$*"
+}
+
+run() {
+  if [[ "${DRY_RUN:-0}" -eq 1 ]]; then
+    printf '+'
+    printf ' %q' "$@"
+    printf '\n'
+  else
+    "$@"
+  fi
+}
+
+# shellcheck source=lib/install-cli.sh
+source "$SCRIPT_DIR/lib/install-cli.sh"
+# shellcheck source=lib/software-uninstall.sh
+source "$SCRIPT_DIR/lib/software-uninstall.sh"
+# shellcheck source=lib/privilege.sh
+source "$SCRIPT_DIR/lib/privilege.sh"
+# shellcheck source=lib/github-release.sh
+source "$SCRIPT_DIR/lib/github-release.sh"
+# shellcheck source=lib/platform.sh
+source "$SCRIPT_DIR/lib/platform.sh"
+
+_df_entry=0
+df_install_cli_entry "$@" || _df_entry=$?
+case "$_df_entry" in
+  1)
+    # --uninstall handled below after parse_extra
+    ;;
+  2) usage; exit 0 ;;
+  3) usage >&2; exit 1 ;;
+esac
+
+STATUS_ONLY=0
+PURGE_DATA=0
+while [[ ${#DF_INSTALL_EXTRA_ARGS[@]} -gt 0 ]]; do
+  case "${DF_INSTALL_EXTRA_ARGS[0]}" in
+    --status) STATUS_ONLY=1 ;;
+    --purge) PURGE_DATA=1 ;;
+    *)
+      echo "Unknown option: ${DF_INSTALL_EXTRA_ARGS[0]}" >&2
+      usage >&2
+      exit 1
+      ;;
+  esac
+  DF_INSTALL_EXTRA_ARGS=("${DF_INSTALL_EXTRA_ARGS[@]:1}")
+done
+
+if [[ "$DF_INSTALL_WANTS_UNINSTALL" -eq 1 ]]; then
+  df_inst_run_uninstall syncthing uninstall_syncthing
+  exit 0
+fi
+
+gr_require_cmds curl jq tar systemctl loginctl
+
+ensure_user_systemd() {
+  if [[ -z "${XDG_RUNTIME_DIR:-}" ]] && [[ -d "/run/user/$(id -u)" ]]; then
+    export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+  fi
+  if ! systemctl --user show-environment >/dev/null 2>&1; then
+    echo "ERROR: systemd user session is not available on this host." >&2
+    echo "  Common on SSH without a full login session." >&2
+    echo "  Try: ssh -t user@host './scripts/syncthing-install-update.sh'" >&2
+    echo "  Or:  export XDG_RUNTIME_DIR=/run/user/\$(id -u)" >&2
+    exit 1
+  fi
+}
+
+syncthing_primary_ipv4() {
+  local ip
+  ip="$(hostname -I 2>/dev/null | awk '{print $1}')"
+  if [[ -n "$ip" ]]; then
+    printf '%s' "$ip"
+    return 0
+  fi
+  if command -v ip >/dev/null 2>&1; then
+    ip="$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for (i = 1; i <= NF; i++) if ($i == "src") { print $(i + 1); exit }}')"
+    [[ -n "$ip" ]] && printf '%s' "$ip"
+  fi
+}
+
+syncthing_linux_asset() {
+  local tag="$1"
+  local version="${tag#v}"
+  local arch
+  case "$(uname -m)" in
+    x86_64 | amd64) arch="amd64" ;;
+    aarch64 | arm64) arch="arm64" ;;
+    armv7l | armv6l) arch="arm" ;;
+    *)
+      echo "ERROR: unsupported architecture: $(uname -m)" >&2
+      exit 1
+      ;;
+  esac
+  printf 'syncthing-linux-%s-%s.tar.gz' "$arch" "$version"
+}
+
+syncthing_gui_address_in_config() {
+  [[ -f "$CONFIG_XML" ]] || return 1
+  grep -q "<address>${GUI_ADDRESS}</address>" "$CONFIG_XML" 2>/dev/null
+}
+
+syncthing_set_gui_in_config() {
+  if [[ ! -f "$CONFIG_XML" ]]; then
+    return 0
+  fi
+  if syncthing_gui_address_in_config; then
+    return 0
+  fi
+  log "setting GUI listen address to ${GUI_ADDRESS} in config.xml"
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    run sed -i "s|<address>127\\.0\\.0\\.1:8384</address>|<address>${GUI_ADDRESS}</address>|" "$CONFIG_XML"
+    return 0
+  fi
+  sed -i "s|<address>127\\.0\\.0\\.1:8384</address>|<address>${GUI_ADDRESS}</address>|" "$CONFIG_XML" ||
+    sed -i "s|<address>\\[::1\\]:8384</address>|<address>${GUI_ADDRESS}</address>|" "$CONFIG_XML" || true
+}
+
+syncthing_ensure_config() {
+  if [[ -f "$CONFIG_XML" ]]; then
+    syncthing_set_gui_in_config
+    return 0
+  fi
+  log "generating Syncthing config in $SYNCTHING_HOME"
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    run mkdir -p "$SYNCTHING_HOME"
+    run "$BIN_PATH" generate --no-port-probing --home="$SYNCTHING_HOME"
+    return 0
+  fi
+  mkdir -p "$SYNCTHING_HOME"
+  "$BIN_PATH" generate --no-port-probing --home="$SYNCTHING_HOME"
+  syncthing_set_gui_in_config
+}
+
+install_systemd_unit() {
+  if [[ ! -f "$UNIT_SRC" ]]; then
+    echo "ERROR: missing unit template: $UNIT_SRC" >&2
+    exit 1
+  fi
+  log "installing user systemd unit: $UNIT_DEST"
+  run mkdir -p "$(dirname "$UNIT_DEST")"
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    run cp "$UNIT_SRC" "$UNIT_DEST"
+  else
+    cp "$UNIT_SRC" "$UNIT_DEST"
+  fi
+}
+
+linger_enabled() {
+  loginctl show-user "$USER" -p Linger --value 2>/dev/null | grep -qi '^yes$'
+}
+
+enable_linger() {
+  if linger_enabled; then
+    log "systemd linger already enabled for $USER"
+    return 0
+  fi
+  log "enabling systemd linger (starts user services at boot without login)"
+  df_ensure_sudo
+  run df_run_privileged loginctl enable-linger "$USER"
+}
+
+start_syncthing_service() {
+  run systemctl --user daemon-reload
+  run systemctl --user enable syncthing.service
+  run systemctl --user restart syncthing.service
+}
+
+print_access_hints() {
+  local ts_ip lan_ip
+  cat <<EOF
+
+Syncthing GUI (set username/password on first visit):
+  http://127.0.0.1:8384
+EOF
+  lan_ip="$(syncthing_primary_ipv4)"
+  if [[ -n "$lan_ip" ]]; then
+    echo "  http://${lan_ip}:8384  (LAN)"
+  fi
+  if command -v tailscale >/dev/null 2>&1; then
+    ts_ip="$(tailscale ip -4 2>/dev/null | head -n1 || true)"
+    if [[ -n "$ts_ip" ]]; then
+      echo "  http://${ts_ip}:8384  (Tailscale)"
+    fi
+  fi
+  print_firewall_hint
+  cat <<EOF
+
+Service:  systemctl --user status syncthing
+Logs:     journalctl --user-unit=syncthing -e
+Upgrade:  use Syncthing web UI (binary in ~/.local/bin is user-writable)
+EOF
+}
+
+print_firewall_hint() {
+  if command -v firewall-cmd >/dev/null 2>&1 &&
+    systemctl is-active firewalld.service >/dev/null 2>&1; then
+    echo
+    echo "firewalld: allow GUI and sync if remote access fails:"
+    echo "  sudo firewall-cmd --permanent --add-port=8384/tcp"
+    echo "  sudo firewall-cmd --permanent --add-port=22000/tcp"
+    echo "  sudo firewall-cmd --reload"
+    return 0
+  fi
+  if command -v ufw >/dev/null 2>&1 &&
+    ufw status 2>/dev/null | grep -qi 'Status: active'; then
+    echo
+    echo "ufw: allow GUI and sync if remote access fails:"
+    echo "  sudo ufw allow 8384/tcp"
+    echo "  sudo ufw allow 22000/tcp"
+    return 0
+  fi
+  echo
+  echo "If a host firewall blocks access, allow TCP 8384 (GUI) and 22000 (sync)."
+  echo "  Fedora often uses firewalld; Debian/Ubuntu may use ufw; Arch may use nftables."
+}
+
+print_status() {
+  echo -n "Binary:   ${BIN_PATH}"
+  if [[ -x "$BIN_PATH" ]]; then
+    echo " ($(syncthing --version 2>&1 | head -n1))"
+  else
+    echo " (missing)"
+  fi
+  echo "Config:   $CONFIG_XML"
+  if [[ -f "$CONFIG_XML" ]]; then
+    if syncthing_gui_address_in_config; then
+      echo "GUI:      ${GUI_ADDRESS} (config.xml)"
+    else
+      echo "GUI:      check config.xml (unit uses --gui-address=http://${GUI_ADDRESS})"
+    fi
+  fi
+  echo "Unit:     $UNIT_DEST$( [[ -f "$UNIT_DEST" ]] || echo " (missing)")"
+  echo "Linger:   $(linger_enabled && echo yes || echo no)"
+  if systemctl --user is-active syncthing.service >/dev/null 2>&1; then
+    echo "Service:  active"
+  else
+    echo "Service:  $(systemctl --user is-active syncthing.service 2>/dev/null || echo inactive)"
+  fi
+  print_access_hints
+}
+
+uninstall_syncthing() {
+  if systemctl --user is-active syncthing.service >/dev/null 2>&1; then
+    run systemctl --user stop syncthing.service
+  fi
+  run systemctl --user disable syncthing.service 2>/dev/null || true
+  if [[ -f "$UNIT_DEST" ]]; then
+    run rm -f "$UNIT_DEST"
+    run systemctl --user daemon-reload
+  fi
+  if [[ -x "$BIN_PATH" ]]; then
+    run rm -f "$BIN_PATH"
+  fi
+  if [[ "$PURGE_DATA" -eq 1 ]]; then
+    run rm -rf "$SYNCTHING_HOME"
+    log "removed $SYNCTHING_HOME"
+  else
+    log "kept $SYNCTHING_HOME (use --purge with --uninstall to remove)"
+  fi
+}
+
+install_syncthing_binary() {
+  local tag asset url tmpdir tarball extract_dir binary version
+
+  tag="$(gr_latest_tag "$REPO" || true)"
+  [[ -n "$tag" && "$tag" != "null" ]] || {
+    gr_exit_if_keeping "$BIN_PATH" "could not resolve latest ${REPO} tag"
+    echo "ERROR: could not resolve latest Syncthing release tag" >&2
+    exit 1
+  }
+
+  asset="$(syncthing_linux_asset "$tag")"
+  version="${tag#v}"
+  url="https://github.com/${REPO}/releases/download/${tag}/${asset}"
+
+  if gr_bin_has_tag "$BIN_PATH" "$tag"; then
+    echo "Already current: $BIN_PATH ($tag)"
+    gr_print_version_line syncthing
+    return 0
+  fi
+
+  tmpdir="$(mktemp -d)"
+  trap 'rm -rf "${tmpdir}"' EXIT
+  tarball="${tmpdir}/${asset}"
+  extract_dir="${tmpdir}/extract"
+
+  if ! gr_download "$url" "$tarball"; then
+    gr_exit_if_keeping "$BIN_PATH" "GitHub download failed"
+    echo "ERROR: download failed: $url" >&2
+    exit 1
+  fi
+
+  mkdir -p "$extract_dir"
+  tar -xzf "$tarball" -C "$extract_dir"
+
+  binary="$(gr_find_binary "$extract_dir" syncthing || true)"
+  if [[ -z "${binary:-}" || ! -f "$binary" ]]; then
+    echo "ERROR: syncthing binary not found in archive" >&2
+    exit 1
+  fi
+  if ! gr_file_is_elf "$binary"; then
+    echo "ERROR: refusing to install non-ELF $binary as $BIN_PATH" >&2
+    exit 1
+  fi
+
+  log "installing $BIN_PATH (user-writable, auto-upgrade capable)"
+  run mkdir -p "$(dirname "$BIN_PATH")"
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    run install -m 755 "$binary" "$BIN_PATH"
+  else
+    install -m 755 "$binary" "$BIN_PATH"
+    if declare -F df_journal_once >/dev/null 2>&1; then
+      df_journal_once binary "$BIN_PATH"
+    fi
+  fi
+
+  gr_print_version_line syncthing
+}
+
+if [[ "$STATUS_ONLY" -eq 1 ]]; then
+  df_prepend_local_bin
+  ensure_user_systemd
+  print_status
+  exit 0
+fi
+
+df_prepend_local_bin
+ensure_user_systemd
+install_syncthing_binary
+syncthing_ensure_config
+install_systemd_unit
+enable_linger
+start_syncthing_service
+
+log "done."
+print_access_hints
