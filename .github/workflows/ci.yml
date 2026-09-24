@@ -44,6 +44,9 @@ jobs:
           - name: ubuntu (devbox.sh)
             image: ubuntu:24.04
             script: ./devbox.sh
+          - name: debian (devbox.sh)
+            image: debian:12
+            script: ./devbox.sh
           - name: fedora (devbox.sh)
             image: fedora:latest
             script: ./devbox.sh
