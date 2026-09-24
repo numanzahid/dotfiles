@@ -44,6 +44,12 @@ jobs:
           - name: ubuntu (devbox.sh)
             image: ubuntu:24.04
             script: ./devbox.sh
+          - name: fedora (devbox.sh)
+            image: fedora:latest
+            script: ./devbox.sh
+          - name: ubuntu (desktop.sh)
+            image: ubuntu:24.04
+            script: ./desktop.sh
           - name: fedora (desktop.sh)
             image: fedora:latest
             script: ./desktop.sh
@@ -72,13 +78,21 @@ jobs:
           chmod 0440 /etc/sudoers.d/ci-runner
           chown -R ci-runner:ci-runner "$GITHUB_WORKSPACE"
 
-      # --configs-only skips all package-manager/software install steps, so
-      # this exercises the symlink/copy/journal logic (the most likely place
-      # for a regression to silently break a fresh install) without the
-      # network- and time-cost of a full software matrix.
-      - name: "${{ matrix.script }} --configs-only --dry-run --yes"
-        run: su -l ci-runner -c "cd '$GITHUB_WORKSPACE' && ${{ matrix.script }} --configs-only --dry-run --yes"
+      # Full (not --configs-only) dry-run: exercises every run_github_step
+      # call in the software-install path too, not just the symlink/copy
+      # logic. This is deliberately a real exit-code check, not just piped
+      # output -- a prior bug here (a shell function whose last statement
+      # was a short-circuited "[[ $DRY_RUN -eq 0 ]] && ..." guard, so the
+      # function's own implicit return status was 1 under --dry-run) caused
+      # a silent `set -e` abort with no error message on every full dry-run
+      # of desktop.sh/devbox.sh/server.sh, and was only caught by running
+      # this exact check and looking at the exit code.
+      - name: "${{ matrix.script }} --dry-run --yes (full, exit code checked)"
+        run: su -l ci-runner -c "cd '$GITHUB_WORKSPACE' && ${{ matrix.script }} --dry-run --yes"
 
+      # --configs-only skips all package-manager/software install steps, so
+      # this exercises the symlink/copy/journal logic for real without the
+      # network- and time-cost of a full software install.
       - name: Real configs-only install, then dotfiles status
         run: |
           su -l ci-runner -c "cd '$GITHUB_WORKSPACE' && ${{ matrix.script }} --configs-only --yes"

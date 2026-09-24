@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Link dotfiles from this repo into $HOME.
+# Link dotfiles from this repo into $HOME. Fedora or Debian/Ubuntu.
 set -euo pipefail
 
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -22,8 +22,10 @@ usage() {
   cat <<'EOF'
 Usage: ./devbox.sh [options]
 
-Full Debian/Ubuntu workstation install: link configs, packages, CLI tools,
-fonts, tmux TPM, and AI agent rules.
+Full workstation install on Debian/Ubuntu or Fedora: link configs,
+packages, CLI tools, fonts, tmux TPM, and AI agent rules. Detects the
+distro; bat/fd/eza/gh/fzf/neovim/btop come from dnf on Fedora, GitHub
+releases everywhere else.
 
 Options:
   --configs-only   Link configs and AI rules only (no software)
@@ -45,7 +47,8 @@ Optional extras:
   ./scripts/kitty-install-update.sh
   ./scripts/localsend-install-update.sh
 
-Fedora: use ./desktop.sh instead.
+desktop.sh is equivalent (same distro detection, different default prompt,
+plus starship); use whichever name you prefer.
 EOF
 }
 
@@ -70,78 +73,8 @@ run_github_step() {
   return 0
 }
 
-df_skip_software_component() {
-  local component="$1"
-  if [[ "${DOTFILES_RESPECT_COMPONENT_AGE:-0}" -eq 1 ]] &&
-    df_component_is_fresh "$component" "$DOTFILES_UPDATE_SKIP_DAYS"; then
-    log "skip $component ($(df_component_age_label "$component"))"
-    return 0
-  fi
-  return 1
-}
-
 install_software_devbox() {
-  if ! df_skip_software_component deps; then
-    run_github_step "install-deps.sh" bash "$DOTFILES_DIR/install-deps.sh"
-    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch deps ""
-  fi
-
-  if ! df_skip_software_component tools; then
-    run_github_step "install-tools.sh" bash "$DOTFILES_DIR/install-tools.sh"
-    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch tools ""
-  fi
-
-  if ! df_skip_software_component lazygit; then
-    log "installing lazygit via scripts/lazygit-install-update.sh"
-    run_github_step "lazygit" bash "$SCRIPTS_DIR/lazygit-install-update.sh"
-    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch lazygit "$(df_component_detect_version lazygit)"
-  fi
-
-  if ! df_skip_software_component gh; then
-    log "installing gh via scripts/gh-install-update.sh"
-    run_github_step "gh" bash "$SCRIPTS_DIR/gh-install-update.sh"
-    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch gh "$(df_component_detect_version gh)"
-  fi
-
-  if ! df_skip_software_component fzf; then
-    run_github_step "fzf" bash "$SCRIPTS_DIR/fzf-install-update.sh"
-    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch fzf "$(df_component_detect_version fzf)"
-  fi
-
-  if ! df_skip_software_component tldr; then
-    log "installing tldr via scripts/tealdeer-install-update.sh"
-    run_github_step "tldr" bash "$SCRIPTS_DIR/tealdeer-install-update.sh"
-    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch tldr "$(df_component_detect_version tldr)"
-  fi
-
-  if ! df_skip_software_component tpm; then
-    run_github_step "tpm" bash "$SCRIPTS_DIR/tpm-install-update.sh"
-    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch tpm ""
-  fi
-
-  if ! df_skip_software_component neovim; then
-    log "installing neovim via scripts/neovim-install-update.sh"
-    run_github_step "neovim" bash "$SCRIPTS_DIR/neovim-install-update.sh"
-    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch neovim "$(df_component_detect_version neovim)"
-  fi
-
-  if ! df_skip_software_component btop; then
-    log "installing btop via scripts/btop-install-update.sh"
-    run_github_step "btop" bash "$SCRIPTS_DIR/btop-install-update.sh"
-    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch btop "$(df_component_detect_version btop)"
-  fi
-
-  if ! df_skip_software_component gdu; then
-    log "installing gdu via scripts/gdu-install-update.sh"
-    run_github_step "gdu" bash "$SCRIPTS_DIR/gdu-install-update.sh"
-    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch gdu "$(df_component_detect_version gdu)"
-  fi
-
-  if ! df_skip_software_component fonts; then
-    log "Nerd fonts: Cascadia Code + JetBrains Mono (user fonts + fc-cache)"
-    run_github_step "cascadia-nerd-font" bash "$SCRIPTS_DIR/cascadia-nerd-font-install-update.sh"
-    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch fonts ""
-  fi
+  install_software_workstation
 }
 
 # shellcheck source=scripts/lib/link.sh
@@ -203,6 +136,8 @@ link_prompt_default() {
 install_dotfiles() {
   log "source: $SOURCE_DIR"
   log "target: $TARGET_HOME"
+
+  remove_old_fedora_dropin
 
   link_path "$SOURCE_DIR/.bashrc" "$TARGET_HOME/.bashrc"
   link_path "$SOURCE_DIR/.shell_aliases_interactive.sh" "$TARGET_HOME/.shell_aliases_interactive.sh"
@@ -272,8 +207,9 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
-if [[ "$(df_host_os_id)" == "fedora" ]]; then
-  echo "On Fedora use ./desktop.sh (this installer is Debian/Ubuntu)." >&2
+if [[ "$(df_os_family)" == unknown ]]; then
+  echo "This installer supports Debian/Ubuntu and Fedora (got $(df_host_os_id))." >&2
+  echo "On a server/VPS/CT, ./server.sh may fit better." >&2
   exit 1
 fi
 

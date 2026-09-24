@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Link shared configs on Fedora. Keep the clone.
-# Official dnf repos or GitHub only.
+# Link shared configs on a Fedora or Debian/Ubuntu desktop/dev machine.
+# Keep the clone. Distro packages (dnf/apt) or GitHub only.
 set -euo pipefail
 
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -25,8 +25,10 @@ usage() {
   cat <<'EOF'
 Usage: ./desktop.sh [options]
 
-Full Fedora workstation install: link configs, packages, CLI tools,
-fonts, tmux TPM, starship prompt, and AI agent rules.
+Full workstation install on Fedora or Debian/Ubuntu: link configs,
+packages, CLI tools, fonts, tmux TPM, starship prompt, and AI agent
+rules. Detects the distro; bat/fd/eza/gh/fzf/neovim/btop come from dnf
+on Fedora, GitHub releases everywhere else.
 
 Options:
   --configs-only   Link configs and AI rules only (no software)
@@ -46,12 +48,13 @@ Optional extras:
   dotfiles sync lazyvim | lazyvim-lite
   ./scripts/localsend-install-update.sh
 
-Debian/Ubuntu: use ./devbox.sh instead.
+devbox.sh is equivalent (same distro detection, different default prompt);
+use whichever name you prefer.
 EOF
 }
 
 log() {
-  printf '[fedora] %s\n' "$*"
+  printf '[desktop] %s\n' "$*"
 }
 
 # shellcheck source=scripts/lib/link.sh
@@ -128,48 +131,6 @@ link_prompt_default() {
   df_journal_once link "$dest" "$src"
 }
 
-remove_old_fedora_dropin() {
-  local dest="$TARGET_HOME/.bashrc.d/dotfiles.sh"
-  if [[ -L "$dest" ]]; then
-    log "remove old ~/.bashrc.d/dotfiles.sh (now in linked ~/.bashrc)"
-    run rm -f "$dest"
-  fi
-}
-
-remove_local_bin() {
-  local name="$1"
-  local dest="/usr/local/bin/${name}"
-  if [[ ! -e "$dest" && ! -L "$dest" ]]; then
-    return 0
-  fi
-  log "remove GitHub leftover ${dest} (using Fedora package)"
-  if [[ "$DRY_RUN" -eq 1 ]]; then
-    printf '+ rm -f %q\n' "$dest"
-    return 0
-  fi
-  df_run_privileged rm -f "$dest"
-}
-
-dnf_install() {
-  local pkg missing=()
-  for pkg in "$@"; do
-    if ! df_pkg_is_installed "$pkg"; then
-      missing+=("$pkg")
-    fi
-  done
-  log "dnf install $*"
-  if [[ "$DRY_RUN" -eq 1 ]]; then
-    printf '+ dnf install -y'
-    printf ' %q' "$@"
-    printf '\n'
-    return 0
-  fi
-  df_run_privileged dnf install -y "$@"
-  if ((${#missing[@]} > 0)); then
-    df_journal_new_packages "${missing[@]}"
-  fi
-}
-
 install_dotfiles() {
   log "source: $SOURCE_DIR"
   log "target: $TARGET_HOME"
@@ -218,88 +179,8 @@ install_dotfiles() {
   df_profile_save desktop
 }
 
-install_tools() {
-  local rc=0
-  dnf_install bat fd-find eza || rc=1
-  remove_local_bin bat
-  remove_local_bin fd
-  remove_local_bin eza
-  log "zoxide from GitHub (Fedora package is 0.9; upstream is 0.10)"
-  if [[ "$DRY_RUN" -eq 1 ]]; then
-    log "would install zoxide from GitHub"
-  else
-    bash "$SCRIPTS_DIR/zoxide-install-update.sh" || rc=1
-  fi
-  return "$rc"
-}
-
-df_skip_software_component() {
-  local component="$1"
-  if [[ "${DOTFILES_RESPECT_COMPONENT_AGE:-0}" -eq 1 ]] &&
-    df_component_is_fresh "$component" "$DOTFILES_UPDATE_SKIP_DAYS"; then
-    log "skip $component ($(df_component_age_label "$component"))"
-    return 0
-  fi
-  return 1
-}
-
 install_software_desktop() {
-  if ! df_skip_software_component deps; then
-    run_github_step "install-fedora-deps.sh" bash "$DOTFILES_DIR/install-fedora-deps.sh"
-    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch deps ""
-  fi
-
-  if ! df_skip_software_component tools; then
-    run_github_step "tools" install_tools
-    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch tools ""
-  fi
-
-  if ! df_skip_software_component lazygit; then
-    log "lazygit from GitHub (not in Fedora repos)"
-    run_github_step "lazygit" bash "$SCRIPTS_DIR/lazygit-install-update.sh"
-    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch lazygit "$(df_component_detect_version lazygit)"
-  fi
-
-  if ! df_skip_software_component gh; then
-    run_github_step "gh" dnf_install gh
-    remove_local_bin gh
-    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch gh "$(df_component_detect_version gh)"
-  fi
-
-  if ! df_skip_software_component fzf; then
-    run_github_step "fzf" dnf_install fzf
-    remove_local_bin fzf
-    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch fzf "$(df_component_detect_version fzf)"
-  fi
-
-  if ! df_skip_software_component tldr; then
-    log "tldr from GitHub (tealdeer)"
-    run_github_step "tldr" bash "$SCRIPTS_DIR/tealdeer-install-update.sh"
-    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch tldr "$(df_component_detect_version tldr)"
-  fi
-
-  if ! df_skip_software_component tpm; then
-    run_github_step "tpm" bash "$SCRIPTS_DIR/tpm-install-update.sh"
-    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch tpm ""
-  fi
-
-  if ! df_skip_software_component neovim; then
-    run_github_step "neovim" dnf_install neovim
-    remove_local_bin nvim
-    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch neovim "$(df_component_detect_version neovim)"
-  fi
-
-  if ! df_skip_software_component btop; then
-    run_github_step "btop" dnf_install btop
-    remove_local_bin btop
-    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch btop "$(df_component_detect_version btop)"
-  fi
-
-  if ! df_skip_software_component gdu; then
-    log "gdu from GitHub"
-    run_github_step "gdu" bash "$SCRIPTS_DIR/gdu-install-update.sh"
-    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch gdu "$(df_component_detect_version gdu)"
-  fi
+  install_software_workstation
 
   if ! df_skip_software_component starship; then
     log "starship from GitHub"
@@ -307,11 +188,8 @@ install_software_desktop() {
     [[ "$DRY_RUN" -eq 0 ]] && df_component_touch starship "$(df_component_detect_version starship)"
   fi
 
-  if ! df_skip_software_component fonts; then
-    log "Nerd fonts: Cascadia Code + JetBrains Mono (user fonts + fc-cache)"
-    run_github_step "cascadia-nerd-font" bash "$SCRIPTS_DIR/cascadia-nerd-font-install-update.sh"
-    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch fonts ""
-  fi
+  # See the matching comment in installer-common.sh's install_software_workstation.
+  return 0
 }
 
 while [[ $# -gt 0 ]]; do
@@ -339,9 +217,9 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
-if [[ "$(df_host_os_id)" != "fedora" ]]; then
-  echo "On Debian/Ubuntu use ./devbox.sh (or ./server.sh)." >&2
-  echo "This installer is Fedora-only." >&2
+if [[ "$(df_os_family)" == unknown ]]; then
+  echo "This installer supports Fedora and Debian/Ubuntu (got $(df_host_os_id))." >&2
+  echo "On a server/VPS/CT, ./server.sh may fit better." >&2
   exit 1
 fi
 

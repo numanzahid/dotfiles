@@ -20,6 +20,12 @@ df_reexec_from_hidden_clone() {
 
   [[ "$base" == ".dotfiles" ]] && return 0
   [[ "$base" == "dotfiles" ]] || return 0
+  # Only rename $HOME/dotfiles -> $HOME/.dotfiles, the one documented case.
+  # Without this, any checkout that happens to live in a directory literally
+  # named "dotfiles" elsewhere on the filesystem (e.g. CI: GitHub Actions
+  # checks this repo out to .../dotfiles/dotfiles) gets "hidden" too, which
+  # is both wrong and, in CI, actively breaks the runner's own bookkeeping.
+  [[ "$parent" == "${HOME:-__unset__}" ]] || return 0
 
   for arg in "$@"; do
     case "$arg" in

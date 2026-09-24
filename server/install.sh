@@ -476,6 +476,13 @@ install_software_server() {
     fi
     [[ "$DRY_RUN" -eq 0 ]] && df_component_touch gdu "$(df_component_detect_version gdu)"
   fi
+
+  # Deliberate: without this, the function's own return status is whatever
+  # the last "[[ "$DRY_RUN" -eq 0 ]] && df_component_touch ..." evaluated to
+  # -- false (1) under --dry-run, since the guard short-circuits. Called as
+  # a bare statement, so under set -e that nonzero "return" silently aborts
+  # the whole script with no error message.
+  return 0
 }
 
 while [[ $# -gt 0 ]]; do
