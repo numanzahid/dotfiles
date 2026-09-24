@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # One-line hostname:path prompt (devbox / server). No starship.
 # Linked as ~/.config/dotfiles/prompt.sh by ./devbox.sh (and copy-install).
 # Path truncation via PROMPT_COMMAND (faster than $(...) in PS1).

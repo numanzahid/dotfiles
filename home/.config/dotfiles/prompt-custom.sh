@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # One-line hostname:path prompt (devbox / server). No starship.
 # INACTIVE: kept for rollback; devbox/server use prompt-optimized.sh instead.
 # Switch back: ln -sfn ~/.dotfiles/home/.config/dotfiles/prompt-custom.sh ~/.config/dotfiles/prompt.sh

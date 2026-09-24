@@ -10,6 +10,8 @@ source "$SCRIPT_DIR/lib/nvm.sh"
 source "$SCRIPT_DIR/lib/github-release.sh"
 # shellcheck source=lib/journal.sh
 source "$SCRIPT_DIR/lib/journal.sh"
+# shellcheck source=lib/software-uninstall.sh
+source "$SCRIPT_DIR/lib/software-uninstall.sh"
 
 # Major Node lines offered in the interactive menu (nvm installs latest x.y.z in the line).
 NVM_NODE_RECOMMENDED_MAJOR="${NVM_NODE_RECOMMENDED_MAJOR:-22}"
@@ -20,6 +22,7 @@ NODE_VERSION="${NODE_VERSION:-}"
 INSTALL_NODE="${INSTALL_NODE:-1}"
 NON_INTERACTIVE=0
 DRY_RUN=0
+WANTS_UNINSTALL=0
 
 usage() {
   cat <<EOF
@@ -38,7 +41,10 @@ Environment:
 
 Options:
   --nvm-only          Install/update nvm only (no node install)
-  --yes, -y           Use recommended major without prompting
+  --uninstall         Remove \$HOME/.nvm entirely (ALL installed Node
+                      versions and global npm packages go with it)
+  --yes, -y           Use recommended major without prompting; also skips
+                      the --uninstall confirmation
   --non-interactive   Same as NVM_NON_INTERACTIVE=1
   --dry-run           Print actions only
   -h, --help          Show this help
@@ -191,15 +197,44 @@ install_nvm() {
     fi
   fi
 
-  log "git clone failed; using upstream install.sh (TLS to GitHub, no checksum)"
+  log "git clone failed (blocked git protocol?); falling back to raw install.sh over HTTPS"
   url="https://raw.githubusercontent.com/nvm-sh/nvm/${tag}/install.sh"
   tmp="$(mktemp)"
   gr_curl -fsSL -o "$tmp" "$url"
+  verify_nvm_install_sh "$tmp" "$tag"
   bash "$tmp"
   rm -f "$tmp"
   if [[ -d "$NVM_DIR/.git" || -f "$NVM_DIR/nvm.sh" ]]; then
     df_journal_once git-clone "$NVM_DIR"
   fi
+}
+
+# Cross-checks the raw.githubusercontent.com fallback download against
+# GitHub's separate Contents API for the same immutable tag ref, so a single
+# compromised/MITM'd CDN edge can't silently serve a tampered install.sh
+# without also matching GitHub's independently-reported git blob hash.
+verify_nvm_install_sh() {
+  local file="$1"
+  local tag="$2"
+  local api_sha local_sha
+
+  if ! command -v jq >/dev/null 2>&1; then
+    log "WARN: jq unavailable; cannot cross-check install.sh against GitHub API, running unverified"
+    return 0
+  fi
+
+  api_sha="$(gr_curl -fsSL "https://api.github.com/repos/nvm-sh/nvm/contents/install.sh?ref=${tag}" 2>/dev/null | jq -r '.sha // empty')"
+  if [[ -z "$api_sha" ]]; then
+    log "WARN: could not fetch install.sh reference hash from GitHub API; running unverified"
+    return 0
+  fi
+
+  local_sha="$(git hash-object "$file")"
+  if [[ "$local_sha" != "$api_sha" ]]; then
+    rm -f "$file"
+    die "install.sh does not match GitHub's reference for ${tag} (got ${local_sha}, expected ${api_sha}) -- aborting, refusing to run"
+  fi
+  log "install.sh verified against GitHub API (blob ${local_sha}, tag ${tag})"
 }
 
 install_node_major() {
@@ -250,6 +285,10 @@ parse_args() {
         INSTALL_NODE=0
         shift
         ;;
+      --uninstall)
+        WANTS_UNINSTALL=1
+        shift
+        ;;
       --dry-run)
         DRY_RUN=1
         shift
@@ -282,8 +321,22 @@ parse_args() {
   fi
 }
 
+uninstall_nvm() {
+  df_inst_remove_path "$(nvm_dir)"
+}
+
 main() {
   parse_args "$@"
+
+  if [[ "$WANTS_UNINSTALL" -eq 1 ]]; then
+    DF_INSTALL_DRY_RUN="$DRY_RUN"
+    export DF_INSTALL_DRY_RUN
+    if truthy "${NVM_YES:-}" || truthy "${DF_YES:-}"; then
+      export DF_INSTALL_YES=1
+    fi
+    df_inst_run_uninstall nvm uninstall_nvm
+    exit 0
+  fi
 
   command -v curl >/dev/null 2>&1 || die "curl is required"
   command -v git >/dev/null 2>&1 || die "git is required"

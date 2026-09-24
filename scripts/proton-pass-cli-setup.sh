@@ -12,7 +12,8 @@ DOTFILES_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 PASS_CONFIG_DIR="${HOME}/.config/proton-pass"
 PASS_PAT_FILE="${PASS_CONFIG_DIR}/key.pat"
 PASS_ENV_FILE="${PASS_CONFIG_DIR}/env"
-PASS_INSTALL_URL="https://proton.me/download/pass-cli/install.sh"
+PASS_BIN_PATH="${HOME}/.local/bin/pass-cli"
+PASS_MANIFEST_URL="https://proton.me/download/pass-cli/versions.json"
 
 MARK_BEGIN="# >>> proton-pass-cli-setup >>>"
 MARK_END="# <<< proton-pass-cli-setup <<<"
@@ -25,7 +26,9 @@ usage() {
 Usage: ./scripts/proton-pass-cli-setup.sh [options]
 
 Manual setup for Proton Pass CLI on devbox or headless servers:
-  - Install pass-cli from Proton's official install script
+  - Install pass-cli into ~/.local/bin from Proton's official release
+    manifest, verifying the binary's published SHA256 ourselves (does not
+    pipe Proton's install.sh into bash)
   - Create ~/.config/proton-pass/key.pat (empty; you paste the PAT later)
   - Ask where to store the local DB encryption key (kernel keyring vs filesystem)
   - Write ~/.config/proton-pass/env when filesystem is chosen (loaded via
@@ -86,8 +89,8 @@ done
 
 require_cmds() {
   local c
-  for c in curl jq; do
-    command -v "$c" >/dev/null 2>&1 || die "missing command: $c (install curl and jq first)"
+  for c in curl jq sha256sum; do
+    command -v "$c" >/dev/null 2>&1 || die "missing command: $c (install curl, jq, and coreutils first)"
   done
 }
 
@@ -224,6 +227,58 @@ apply_pass_cli_env() {
   fi
 }
 
+# Proton's own install.sh (curl | bash) fetches this same manifest and
+# verifies the binary hash before running it -- so we do exactly that
+# ourselves, directly, instead of piping their live orchestrator script into
+# bash. The manifest and per-platform SHA256 are Proton's official source;
+# we just skip trusting an unpinned shell script to relay them faithfully.
+pass_cli_manifest_arch() {
+  case "$(uname -m)" in
+    x86_64 | amd64) echo "x86_64" ;;
+    aarch64 | arm64) echo "aarch64" ;;
+    *)
+      die "unsupported architecture for pass-cli: $(uname -m)"
+      ;;
+  esac
+}
+
+pass_cli_fetch_and_verify() {
+  local dest="$1"
+  local manifest arch version url hash tmp computed
+
+  arch="$(pass_cli_manifest_arch)"
+  log "fetching manifest: $PASS_MANIFEST_URL"
+  manifest="$(curl -fsSL "$PASS_MANIFEST_URL")" || die "failed to download manifest from $PASS_MANIFEST_URL"
+
+  [[ "$(printf '%s' "$manifest" | jq -r '.formatVersion')" == "1" ]] ||
+    die "unsupported pass-cli manifest formatVersion (Proton changed their manifest; check manually)"
+
+  version="$(printf '%s' "$manifest" | jq -r '.passCliVersions.version')"
+  url="$(printf '%s' "$manifest" | jq -r ".passCliVersions.urls.linux.\"$arch\".url")"
+  hash="$(printf '%s' "$manifest" | jq -r ".passCliVersions.urls.linux.\"$arch\".hash")"
+  [[ -n "$version" && "$version" != "null" && -n "$url" && "$url" != "null" && -n "$hash" && "$hash" != "null" ]] ||
+    die "no pass-cli binary listed for linux/$arch in manifest"
+
+  log "latest pass-cli version: $version"
+  log "downloading: $url"
+  tmp="$(mktemp)"
+  if ! curl -fsSL -o "$tmp" "$url"; then
+    rm -f "$tmp"
+    die "failed to download pass-cli binary from $url"
+  fi
+
+  computed="$(sha256sum "$tmp" | awk '{print $1}')"
+  if [[ "${computed,,}" != "${hash,,}" ]]; then
+    rm -f "$tmp"
+    die "SHA256 mismatch for pass-cli ${version} (expected ${hash}, got ${computed}) -- aborting, refusing to install"
+  fi
+  log "SHA256 verified: pass-cli ${version}"
+
+  chmod 755 "$tmp"
+  mkdir -p "$(dirname "$dest")"
+  mv -f "$tmp" "$dest"
+}
+
 pass_cli_try_update() {
   if ! command -v pass-cli >/dev/null 2>&1; then
     return 0
@@ -232,11 +287,11 @@ pass_cli_try_update() {
   apply_pass_cli_env
   log "checking for pass-cli updates..."
   if [[ "$DRY_RUN" -eq 1 ]]; then
-    run pass-cli update -y
+    run pass_cli_fetch_and_verify "$PASS_BIN_PATH"
     return 0
   fi
 
-  pass-cli update -y || log "pass-cli update skipped (see instructions below if KeyRevoked)"
+  pass_cli_fetch_and_verify "$PASS_BIN_PATH" || log "pass-cli update skipped (see instructions below if KeyRevoked)"
 }
 
 install_pass_cli() {
@@ -247,17 +302,15 @@ install_pass_cli() {
     return 0
   fi
 
-  log "installing pass-cli from $PASS_INSTALL_URL"
+  log "installing pass-cli (manifest + checksummed binary, no remote script executed)"
   if [[ "$DRY_RUN" -eq 1 ]]; then
-    run bash -c "curl -fsSL '$PASS_INSTALL_URL' | bash"
+    run pass_cli_fetch_and_verify "$PASS_BIN_PATH"
     return 0
   fi
 
-  bash -c "curl -fsSL '$PASS_INSTALL_URL' | bash"
-
-  command -v pass-cli >/dev/null 2>&1 || die "pass-cli not found in PATH after install"
+  pass_cli_fetch_and_verify "$PASS_BIN_PATH"
+  command -v pass-cli >/dev/null 2>&1 || die "pass-cli not found in PATH after install (is ~/.local/bin on PATH?)"
   log "installed: $(pass-cli --version 2>/dev/null | head -n1 || pass-cli --version)"
-  pass_cli_try_update
 }
 
 print_next_steps() {

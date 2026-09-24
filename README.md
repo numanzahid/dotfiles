@@ -4,6 +4,8 @@ Bash, tmux, nvim, and CLI tools. One `main` branch. Clone to `~/.dotfiles`, run 
 
 The clone lives at `~/.dotfiles` (hidden). If you clone to `~/dotfiles`, the installer renames it on first run and continues from there.
 
+Requires GNU coreutils/sed/date (Fedora and Debian/Ubuntu both ship these by default); not tested on musl (Alpine) or BSD userlands.
+
 ## Installers (first time)
 
 | Script | Profile |
@@ -25,7 +27,7 @@ Each script does a **full install** by default: configs, packages, CLI tools, fo
 
 **devbox/desktop** includes: bat, fd, zoxide, eza, lazygit, gh, neovim, btop, gdu, fzf, tldr, nerd fonts, TPM.
 
-**server** is slimmer: copied configs (including `.gitconfig` and `btop`), apt packages, neovim, btop, gdu (no fzf, zoxide, lazygit, gh, tldr, TPM, fonts).
+**server** is slimmer: copied configs (including `.gitconfig` and `btop`), base OS packages (apt or dnf), neovim, btop, gdu (no fzf, zoxide, lazygit, gh, tldr, TPM, fonts).
 
 Installer options (all profiles):
 
@@ -34,6 +36,8 @@ Installer options (all profiles):
 ./devbox.sh --software-only   # software only
 ./devbox.sh --dry-run         # preview
 ```
+
+The installer also seeds `~/.ssh/config` and `~/.ssh/authorized_keys` from `home/.ssh/*.example` the first time (only if they don't already exist) — edit those real files afterward with your actual hosts/keys; the `.example` templates stay generic and tracked.
 
 Single-tool upgrades: `./scripts/<tool>-install-update.sh`
 

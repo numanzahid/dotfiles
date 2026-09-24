@@ -11,7 +11,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 usage() {
   cat <<'EOF'
-Usage: ./scripts/kitty-install-update.sh
+Usage: ./scripts/kitty-install-update.sh [options]
 
 Install or upgrade Kitty from the official GitHub Linux tarball
 (kovidgoyal/kitty). Not part of --all. No COPR, not dnf/apt.
@@ -22,16 +22,21 @@ Then runs kitty-terminfo-install-update.sh.
 Needs curl, jq, tar, xz. Config is linked by ./devbox.sh, not this script.
 
 Options:
+  --uninstall  Remove ~/.local/kitty.app, the kitty/kitten symlinks, and the
+               kitty .desktop entry (does not revert gsettings/x-terminal-
+               emulator default -- that's handled by ./uninstall.sh's journal)
+  --dry-run    Show actions only
+  --yes, -y    Skip confirmation (with --uninstall)
   -h, --help   Show this help
 
 Re-run anytime to upgrade.
 EOF
 }
 
-# shellcheck source=lib/cli-args.sh
-source "$SCRIPT_DIR/lib/cli-args.sh"
-df_no_args_or_help "$@"
-
+# shellcheck source=lib/install-cli.sh
+source "$SCRIPT_DIR/lib/install-cli.sh"
+# shellcheck source=lib/software-uninstall.sh
+source "$SCRIPT_DIR/lib/software-uninstall.sh"
 # shellcheck source=lib/platform.sh
 source "$SCRIPT_DIR/lib/platform.sh"
 # shellcheck source=lib/privilege.sh
@@ -41,14 +46,31 @@ source "$SCRIPT_DIR/lib/github-release.sh"
 # shellcheck source=lib/gui-terminal.sh
 source "$SCRIPT_DIR/lib/gui-terminal.sh"
 
-df_prepend_local_bin
-
-REPO="kovidgoyal/kitty"
 APP="${HOME}/.local/kitty.app"
 BIN="${HOME}/.local/bin/kitty"
 KITTEN="${HOME}/.local/bin/kitten"
 DESKTOP="kitty.desktop"
 STAMP="${XDG_DATA_HOME:-$HOME/.local/share}/dotfiles/kitty.version"
+
+uninstall_kitty() {
+  df_inst_remove_path "$APP"
+  df_inst_remove_path "$BIN"
+  df_inst_remove_path "$KITTEN"
+  df_inst_remove_path "${XDG_DATA_HOME:-$HOME/.local/share}/applications/${DESKTOP}"
+  df_inst_remove_path "$STAMP"
+}
+
+_df_entry=0
+df_install_cli_entry "$@" || _df_entry=$?
+case "$_df_entry" in
+  1) df_inst_run_uninstall kitty uninstall_kitty; exit 0 ;;
+  2) usage; exit 0 ;;
+  3) usage >&2; exit 1 ;;
+esac
+
+df_prepend_local_bin
+
+REPO="kovidgoyal/kitty"
 
 linux_kitty_arch() {
   case "$(uname -m)" in

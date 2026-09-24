@@ -1,3 +1,4 @@
+# shellcheck shell=sh
 # UTF-8 locale for SSH/tmux on minimal Debian CTs (often start as C/POSIX).
 # LANG is the default. Do not set LC_ALL: it overrides every LC_* and
 # leaks into `pct enter` / LXC attach on the host.

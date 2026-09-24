@@ -29,6 +29,8 @@ Options:
   --configs-only   Link configs and AI rules only (no software)
   --software-only  Install or upgrade software only (no config links)
   --dry-run        Print actions without changing anything
+  --yes, -y        Assume yes to prompts (DF_YES=1); needed for root/no-TTY
+                    provisioning (containers, cloud-init, Ansible)
   -h, --help       Show this help
 
 Environment (used by dotfiles update):
@@ -51,16 +53,6 @@ log() {
   printf '[dotfiles] %s\n' "$*"
 }
 
-run() {
-  if [[ "$DRY_RUN" -eq 1 ]]; then
-    printf '+'
-    printf ' %q' "$@"
-    printf '\n'
-  else
-    "$@"
-  fi
-}
-
 GITHUB_STEP_FAILED=0
 
 run_github_step() {
@@ -76,14 +68,6 @@ run_github_step() {
   log "WARN: $label failed (often GitHub); continuing"
   GITHUB_STEP_FAILED=1
   return 0
-}
-
-git_github() {
-  git -c http.version=HTTP/1.1 "$@"
-}
-
-needs_privileged_install() {
-  [[ "$RUN_SOFTWARE" -eq 1 ]]
 }
 
 df_skip_software_component() {
@@ -160,81 +144,14 @@ install_software_devbox() {
   fi
 }
 
-ensure_sudo_for_install() {
-  # shellcheck source=scripts/lib/privilege.sh
-  source "$SCRIPTS_DIR/lib/privilege.sh"
-
-  if df_need_cmd sudo; then
-    return 0
-  fi
-
-  if [[ "$DRY_RUN" -eq 1 ]]; then
-    if df_is_root; then
-      log "sudo missing; would prompt to install"
-    else
-      log "sudo missing; install would fail for non-root user"
-    fi
-    return 0
-  fi
-
-  df_ensure_sudo
-}
-
 # shellcheck source=scripts/lib/link.sh
 source "$SCRIPTS_DIR/lib/link.sh"
 # shellcheck source=scripts/lib/ai-rules.sh
 source "$SCRIPTS_DIR/lib/ai-rules.sh"
 # shellcheck source=scripts/lib/component-state.sh
 source "$SCRIPTS_DIR/lib/component-state.sh"
-
-link_path() {
-  df_link_path "$@"
-}
-
-link_plain_nvim() {
-  local src="$SOURCE_DIR/.config/nvim-plain"
-  local dest="$TARGET_HOME/.config/nvim"
-  local lazyvim_src="$SOURCE_DIR/.config/nvim"
-
-  if [[ -e "$dest" || -L "$dest" ]] && df_paths_same "$dest" "$lazyvim_src"; then
-    log "nvim: LazyVim config left untouched (managed by lazyvim scripts)"
-    return 0
-  fi
-
-  link_path "$src" "$dest"
-  log "nvim: plain editor config"
-}
-
-copy_if_missing() {
-  local src="$1"
-  local dest="$2"
-
-  if [[ -e "$dest" ]]; then
-    log "exists, not overwriting: $dest"
-    df_journal_once skip "$dest"
-    return 0
-  fi
-
-  mkdir -p "$(dirname "$dest")"
-  log "copy template: $dest"
-  run cp "$src" "$dest"
-  df_journal_once copy "$dest" "$src"
-}
-
-link_btop_conf() {
-  local dest_dir="$TARGET_HOME/.config/btop"
-  local src="$SOURCE_DIR/.config/btop/btop.conf"
-  local dest="$dest_dir/btop.conf"
-
-  # Older installs linked the whole ~/.config/btop directory.
-  if [[ -L "$dest_dir" ]]; then
-    log "replace btop config dir symlink with a directory"
-    run rm -f "$dest_dir"
-  fi
-
-  mkdir -p "$dest_dir"
-  link_path "$src" "$dest"
-}
+# shellcheck source=scripts/lib/installer-common.sh
+source "$SCRIPTS_DIR/lib/installer-common.sh"
 
 link_prompt_default() {
   local dest="$TARGET_HOME/.config/dotfiles/prompt.sh"
@@ -278,22 +195,6 @@ link_prompt_default() {
   fi
 
   log "default prompt: optimized -> $dest"
-  run ln -sfn "$src" "$dest"
-  df_track_path "$dest"
-  df_journal_once link "$dest" "$src"
-}
-
-install_dotfiles_cli() {
-  local src="$DOTFILES_DIR/scripts/dotfiles"
-  local dest="$TARGET_HOME/.local/bin/dotfiles"
-
-  mkdir -p "$TARGET_HOME/.local/bin"
-  run chmod +x "$src"
-  if [[ -e "$dest" && ! -L "$dest" ]]; then
-    log "dotfiles CLI left untouched: $dest"
-    return 0
-  fi
-  log "dotfiles CLI: $dest"
   run ln -sfn "$src" "$dest"
   df_track_path "$dest"
   df_journal_once link "$dest" "$src"
@@ -346,50 +247,6 @@ install_dotfiles() {
   df_profile_save devbox
 }
 
-install_tpm() {
-  local tpm_dir="$TARGET_HOME/.tmux/plugins/tpm"
-  if [[ -d "$tpm_dir/.git" ]]; then
-    log "tpm already installed: $tpm_dir"
-    df_journal_once git-clone "$tpm_dir"
-    return 0
-  fi
-
-  log "installing tmux plugin manager..."
-  run mkdir -p "$TARGET_HOME/.tmux/plugins"
-  run git_github clone -4 https://github.com/tmux-plugins/tpm "$tpm_dir"
-  df_journal_once git-clone "$tpm_dir"
-}
-
-install_fzf() {
-  local fzf_dir="$TARGET_HOME/.fzf"
-
-  if [[ -d "$fzf_dir/.git" ]]; then
-    log "updating fzf in $fzf_dir"
-    if [[ "$DRY_RUN" -eq 1 ]]; then
-      run git_github -C "$fzf_dir" pull -4 --ff-only
-    else
-      git_github -C "$fzf_dir" pull -4 --ff-only
-    fi
-  else
-    log "installing fzf..."
-    run git_github clone -4 --depth 1 https://github.com/junegunn/fzf.git "$fzf_dir"
-  fi
-
-  if [[ "$DRY_RUN" -eq 0 ]]; then
-    # fzf writes ~/.fzf.bash. If that path is still a symlink into this
-    # repo, the installer would dirty home/.fzf.bash (machine-specific PATH).
-    if [[ -L "$TARGET_HOME/.fzf.bash" ]]; then
-      log "replace fzf bash stub symlink with a real file"
-      run rm -f "$TARGET_HOME/.fzf.bash"
-    fi
-    "$fzf_dir/install" --all --no-update-rc
-    df_journal_once git-clone "$fzf_dir"
-    if [[ -f "$TARGET_HOME/.fzf.bash" ]]; then
-      df_journal_once copy "$TARGET_HOME/.fzf.bash"
-    fi
-  fi
-}
-
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --configs-only)
@@ -401,6 +258,7 @@ while [[ $# -gt 0 ]]; do
       RUN_SOFTWARE=1
       ;;
     --dry-run) DRY_RUN=1 ;;
+    --yes | -y) export DF_YES=1 ;;
     -h | --help)
       usage
       exit 0

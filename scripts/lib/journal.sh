@@ -136,7 +136,11 @@ df_journal_remove_path() {
   file="$(df_journal_file)"
   [[ -f "$file" ]] || return 0
   tmp="$(mktemp)"
-  awk -F '\t' -v p="$path" '($3 != p) { print }' "$file" >"$tmp"
+  if ! awk -F '\t' -v p="$path" '($3 != p) { print }' "$file" >"$tmp"; then
+    rm -f "$tmp"
+    echo "WARN: journal rewrite failed; leaving $file unchanged" >&2
+    return 1
+  fi
   mv -f "$tmp" "$file"
 }
 
@@ -153,7 +157,11 @@ df_journal_remove_kind_path() {
   file="$(df_journal_file)"
   [[ -f "$file" ]] || return 0
   tmp="$(mktemp)"
-  awk -F '\t' -v k="$kind" -v p="$path" '($2 != k || $3 != p) { print }' "$file" >"$tmp"
+  if ! awk -F '\t' -v k="$kind" -v p="$path" '($2 != k || $3 != p) { print }' "$file" >"$tmp"; then
+    rm -f "$tmp"
+    echo "WARN: journal rewrite failed; leaving $file unchanged" >&2
+    return 1
+  fi
   mv -f "$tmp" "$file"
 }
 

@@ -44,7 +44,20 @@ df_track_path() {
 df_same_file() {
   local left="$1"
   local right="$2"
-  [[ -f "$left" && -f "$right" ]] && cmp -s "$left" "$right"
+  [[ -f "$left" && -f "$right" ]] || return 1
+  if command -v cmp >/dev/null 2>&1; then
+    cmp -s "$left" "$right"
+    return $?
+  fi
+  # cmp (diffutils) isn't guaranteed on a minimal install (e.g. a fresh
+  # Fedora container/CT before install-fedora-deps.sh has run). Fall back to
+  # a content hash rather than a raw "cmp: command not found" on every link,
+  # and rather than a wrong-but-silent "always different" via a failed exec.
+  if command -v sha256sum >/dev/null 2>&1; then
+    [[ "$(sha256sum <"$left")" == "$(sha256sum <"$right")" ]]
+    return $?
+  fi
+  return 1
 }
 
 # True when dest is already a copy of src (file, or nvim dir via init.lua).

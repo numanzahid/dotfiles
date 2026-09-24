@@ -74,6 +74,9 @@ df_ensure_sudo() {
       echo "sudo installed."
     else
       echo "Continuing as root without sudo."
+      echo "WARN: files installed into \$HOME in this run will be root-owned." >&2
+      echo "  If this container/image is later used by a non-root user sharing" >&2
+      echo "  this \$HOME, they may not be able to write to those paths." >&2
       export DF_ROOT_WITHOUT_SUDO=1
     fi
     return 0

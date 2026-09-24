@@ -17,6 +17,8 @@
 **/known_hosts
 **/known_hosts.old
 **/authorized_keys
+**/.ssh/config
+**/.gitconfig.local
 
 # Keep tracked templates
 !**/*.example

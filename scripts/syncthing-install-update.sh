@@ -3,7 +3,8 @@ set -euo pipefail
 
 # Install Syncthing for the current user (~/.local/bin) with systemd user autostart.
 # User-owned binary so in-app upgrades work without sudo.
-# GUI listens on all interfaces (LAN + Tailscale). Optional; not part of --all.
+# GUI defaults to loopback-only; --expose-lan opts into 0.0.0.0 (LAN/Tailscale).
+# Optional; not part of --all.
 #
 # Same install path on Ubuntu, Debian, Fedora, Arch/Omarchy, and other systemd
 # Linux: official GitHub tarball (not apt/dnf/pacman packages).
@@ -20,7 +21,11 @@ SYNCTHING_HOME="${HOME}/.local/share/syncthing"
 AUTOSTART_MODE="" # user | system
 CONFIG_XML="${SYNCTHING_HOME}/config.xml"
 REPO="syncthing/syncthing"
-GUI_ADDRESS="0.0.0.0:8384"
+GUI_PORT="8384"
+GUI_LOCAL_ADDRESS="127.0.0.1:${GUI_PORT}"
+GUI_LAN_ADDRESS="0.0.0.0:${GUI_PORT}"
+EXPOSE_MODE="" # "" (decide below) | local | lan
+GUI_ADDRESS=""
 
 usage() {
   cat <<'EOF'
@@ -31,7 +36,12 @@ Install or upgrade Syncthing from official GitHub releases into ~/.local/bin
 
 Also:
   - Generates config on first install (~/.local/share/syncthing)
-  - Sets GUI to listen on 0.0.0.0:8384 (LAN and Tailscale)
+  - GUI defaults to loopback-only (127.0.0.1:8384). Pass --expose-lan to bind
+    0.0.0.0 (reachable over LAN/Tailscale) instead, or --local-only to be
+    explicit. With neither flag: interactive first install prompts; a
+    non-interactive first install defaults to loopback-only. Re-running on an
+    already-configured install leaves the GUI address alone unless you pass
+    one of these flags.
   - Autostart via systemd user unit (default), or --system-service on LXC/CTs
     where user@UID.service does not work
 
@@ -48,6 +58,8 @@ Package examples if tools are missing:
   Arch:          sudo pacman -S curl jq tar
 
 Options:
+  --local-only Bind GUI to 127.0.0.1 only (default)
+  --expose-lan Bind GUI to 0.0.0.0 (LAN and Tailscale reachable)
   --system-service
       Use a system unit (syncthing-USER.service) running as you. For headless
       LXC/Proxmox CTs when user@UID.service fails. Binary stays in ~/.local/bin.
@@ -88,6 +100,7 @@ source "$SCRIPT_DIR/lib/github-release.sh"
 source "$SCRIPT_DIR/lib/platform.sh"
 
 _df_entry=0
+DF_INSTALL_ALLOW_EXTRA=1
 df_install_cli_entry "$@" || _df_entry=$?
 DRY_RUN="${DF_INSTALL_DRY_RUN:-0}"
 export DRY_RUN
@@ -108,6 +121,8 @@ while [[ ${#DF_INSTALL_EXTRA_ARGS[@]} -gt 0 ]]; do
     --status) STATUS_ONLY=1 ;;
     --purge) PURGE_DATA=1 ;;
     --system-service) USE_SYSTEM_SERVICE=1 ;;
+    --local-only) EXPOSE_MODE=local ;;
+    --expose-lan) EXPOSE_MODE=lan ;;
     *)
       echo "Unknown option: ${DF_INSTALL_EXTRA_ARGS[0]}" >&2
       usage >&2
@@ -178,11 +193,12 @@ syncthing_primary_ipv4() {
 
 syncthing_linux_asset() {
   local tag="$1"
-  local arch
-  case "$(uname -m)" in
-    x86_64 | amd64) arch="amd64" ;;
-    aarch64 | arm64) arch="arm64" ;;
-    armv7l | armv6l) arch="arm" ;;
+  local arch raw
+  raw="$(gr_arch_raw)" || exit 1
+  case "$raw" in
+    amd64) arch="amd64" ;;
+    arm64) arch="arm64" ;;
+    armv7 | armv6) arch="arm" ;;
     *)
       echo "ERROR: unsupported architecture: $(uname -m)" >&2
       exit 1
@@ -192,12 +208,74 @@ syncthing_linux_asset() {
   printf 'syncthing-linux-%s-%s.tar.gz' "$arch" "$tag"
 }
 
-syncthing_gui_address_in_config() {
+# Current bound GUI address as it actually is in config.xml right now
+# (independent of what this run may plan to set it to). Must scope to the
+# <gui> block specifically: config.xml also has a sync-listen <address>
+# (typically the literal string "dynamic") and a relay-pool <address>, both
+# of which appear before the GUI's own <address> tag.
+syncthing_configured_gui_address() {
   [[ -f "$CONFIG_XML" ]] || return 1
-  grep -q "<address>${GUI_ADDRESS}</address>" "$CONFIG_XML" 2>/dev/null
+  awk '/<gui /{f=1} f && /<address>/{print; exit} /<\/gui>/{f=0}' "$CONFIG_XML" 2>/dev/null |
+    grep -oP '(?<=<address>)[^<]+'
+}
+
+syncthing_gui_exposed_lan() {
+  local addr
+  addr="$(syncthing_configured_gui_address || true)"
+  [[ "$addr" == 0.0.0.0:* || "$addr" == \[::\]:* ]]
+}
+
+# Decide the GUI bind address for this run. An explicit --local-only/
+# --expose-lan flag always wins. With neither flag: on an already-configured
+# install we leave the address alone (so we never silently revert a change
+# made by hand through the Syncthing UI on a routine `dotfiles update`); on a
+# brand-new install we ask interactively, or default to loopback-only when
+# there's no terminal to ask.
+resolve_gui_address() {
+  case "$EXPOSE_MODE" in
+    local)
+      GUI_ADDRESS="$GUI_LOCAL_ADDRESS"
+      return 0
+      ;;
+    lan)
+      GUI_ADDRESS="$GUI_LAN_ADDRESS"
+      return 0
+      ;;
+  esac
+
+  if [[ -f "$CONFIG_XML" ]]; then
+    GUI_ADDRESS=""
+    return 0
+  fi
+
+  if [[ -t 0 ]]; then
+    cat <<EOF
+
+Syncthing GUI network exposure:
+  1) Local only     127.0.0.1:${GUI_PORT} (default; reach it via SSH port-forward
+                     or Tailscale Serve)
+  2) LAN/Tailscale  0.0.0.0:${GUI_PORT} (reachable from your network; set a GUI
+                     password immediately after install)
+EOF
+    local choice=""
+    read -r -p "Select [1-2] (default 1): " choice
+    case "${choice:-1}" in
+      2) GUI_ADDRESS="$GUI_LAN_ADDRESS" ;;
+      *) GUI_ADDRESS="$GUI_LOCAL_ADDRESS" ;;
+    esac
+  else
+    log "no --local-only/--expose-lan given and no terminal to prompt; defaulting to loopback-only (${GUI_LOCAL_ADDRESS})"
+    GUI_ADDRESS="$GUI_LOCAL_ADDRESS"
+  fi
+}
+
+syncthing_gui_address_in_config() {
+  [[ -n "$GUI_ADDRESS" ]] || return 1
+  [[ "$(syncthing_configured_gui_address || true)" == "$GUI_ADDRESS" ]]
 }
 
 syncthing_set_gui_in_config() {
+  [[ -n "$GUI_ADDRESS" ]] || return 0
   if [[ ! -f "$CONFIG_XML" ]]; then
     return 0
   fi
@@ -206,14 +284,17 @@ syncthing_set_gui_in_config() {
   fi
   log "setting GUI listen address to ${GUI_ADDRESS} in config.xml"
   if [[ "${DRY_RUN:-0}" -eq 1 ]]; then
-    run sed -i "s|<address>127\\.0\\.0\\.1:8384</address>|<address>${GUI_ADDRESS}</address>|" "$CONFIG_XML"
+    echo "+ sed -i (gui block only) address -> ${GUI_ADDRESS} in $CONFIG_XML"
     return 0
   fi
-  sed -i "s|<address>127\\.0\\.0\\.1:8384</address>|<address>${GUI_ADDRESS}</address>|" "$CONFIG_XML" ||
-    sed -i "s|<address>\\[::1\\]:8384</address>|<address>${GUI_ADDRESS}</address>|" "$CONFIG_XML" || true
+  # Scoped to the <gui>...</gui> range only -- config.xml also has a
+  # sync-listen <address> ("dynamic") and a relay-pool <address> that must
+  # not be touched.
+  sed -i "/<gui /,/<\\/gui>/ s|<address>[^<]*</address>|<address>${GUI_ADDRESS}</address>|" "$CONFIG_XML"
 }
 
 syncthing_ensure_config() {
+  resolve_gui_address
   if [[ -f "$CONFIG_XML" ]]; then
     syncthing_set_gui_in_config
     return 0
@@ -335,19 +416,23 @@ print_access_hints() {
   cat <<EOF
 
 Syncthing GUI (set username/password on first visit):
-  http://127.0.0.1:8384
+  http://127.0.0.1:${GUI_PORT}
 EOF
-  lan_ip="$(syncthing_primary_ipv4)"
-  if [[ -n "$lan_ip" ]]; then
-    echo "  http://${lan_ip}:8384  (LAN)"
-  fi
-  if command -v tailscale >/dev/null 2>&1; then
-    ts_ip="$(tailscale ip -4 2>/dev/null | head -n1 || true)"
-    if [[ -n "$ts_ip" ]]; then
-      echo "  http://${ts_ip}:8384  (Tailscale)"
+  if syncthing_gui_exposed_lan; then
+    lan_ip="$(syncthing_primary_ipv4)"
+    if [[ -n "$lan_ip" ]]; then
+      echo "  http://${lan_ip}:${GUI_PORT}  (LAN)"
     fi
+    if command -v tailscale >/dev/null 2>&1; then
+      ts_ip="$(tailscale ip -4 2>/dev/null | head -n1 || true)"
+      if [[ -n "$ts_ip" ]]; then
+        echo "  http://${ts_ip}:${GUI_PORT}  (Tailscale)"
+      fi
+    fi
+    print_firewall_hint
+  else
+    echo "  (loopback-only; re-run with --expose-lan to bind LAN/Tailscale too)"
   fi
-  print_firewall_hint
   cat <<EOF
 
 EOF
@@ -397,10 +482,16 @@ print_status() {
   fi
   echo "Config:   $CONFIG_XML"
   if [[ -f "$CONFIG_XML" ]]; then
-    if syncthing_gui_address_in_config; then
-      echo "GUI:      ${GUI_ADDRESS} (config.xml)"
+    local configured
+    configured="$(syncthing_configured_gui_address || true)"
+    if [[ -n "$configured" ]]; then
+      if syncthing_gui_exposed_lan; then
+        echo "GUI:      ${configured} (LAN/Tailscale exposed; --local-only to restrict)"
+      else
+        echo "GUI:      ${configured} (loopback-only; --expose-lan to open to LAN)"
+      fi
     else
-      echo "GUI:      check config.xml (unit uses --gui-address=http://${GUI_ADDRESS})"
+      echo "GUI:      check config.xml"
     fi
   fi
   if [[ -f "$SYSTEM_UNIT_DEST" ]]; then

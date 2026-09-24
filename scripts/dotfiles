@@ -166,6 +166,9 @@ dotfiles_repo_sync() {
   fi
 
   if [[ "$force" -eq 1 ]]; then
+    if dotfiles_repo_is_dirty; then
+      dotfiles_show_repo_dirty
+    fi
     log "discarding tracked repo changes (--force)"
     if [[ "$DRY_RUN" -eq 1 ]]; then
       log "would run: git reset --hard HEAD"

@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # ~/.shell_aliases_interactive.sh
 # Interactive-only shell customizations.
 # This file is sourced from ~/.bashrc only for real interactive terminals.
@@ -77,7 +78,7 @@ fkill() {
 # ftldr is kept as an explicit alias for the same behavior.
 tldr() {
   if ! type -P tldr >/dev/null 2>&1; then
-    echo "tldr not found. Run: dotfiles install devbox --tldr" >&2
+    echo "tldr not found. Run: ~/.dotfiles/scripts/tealdeer-install-update.sh" >&2
     return 1
   fi
   if ! command -v fzf >/dev/null 2>&1; then

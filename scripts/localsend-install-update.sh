@@ -66,11 +66,13 @@ source "$SCRIPT_DIR/lib/github-release.sh"
 gr_require_cmds curl jq tar
 
 localsend_linux_arch() {
-  case "$(uname -m)" in
-    x86_64 | amd64) echo "linux-x86-64" ;;
-    aarch64 | arm64) echo "linux-arm-64" ;;
+  local raw
+  raw="$(gr_arch_raw)" || exit 1
+  case "$raw" in
+    amd64) echo "linux-x86-64" ;;
+    arm64) echo "linux-arm-64" ;;
     *)
-      echo "ERROR: unsupported architecture: $(uname -m) (need x86_64 or arm64)" >&2
+      echo "ERROR: localsend has no release for this architecture: $(uname -m) (need x86_64 or arm64)" >&2
       exit 1
       ;;
   esac

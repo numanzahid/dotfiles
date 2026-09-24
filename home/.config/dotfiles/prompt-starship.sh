@@ -1,3 +1,4 @@
+# shellcheck shell=sh
 # Starship prompt. Linked as ~/.config/dotfiles/prompt.sh by ./desktop.sh.
 # Install binary with ./scripts/starship-install-update.sh.
 

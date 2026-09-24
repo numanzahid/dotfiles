@@ -41,7 +41,7 @@ EOF
 df_sw_list() {
   printf '%s\n' \
     lazygit gh fzf tldr tpm neovim btop gdu localsend syncthing starship fonts fetch \
-    tools deps bat fd zoxide eza
+    tools deps bat fd zoxide eza kitty nvm
 }
 
 df_sw_script_for() {
@@ -57,6 +57,8 @@ df_sw_script_for() {
     gdu) printf '%s/gdu-install-update.sh\n' "$SCRIPTS_DIR" ;;
     localsend) printf '%s/localsend-install-update.sh\n' "$SCRIPTS_DIR" ;;
     syncthing) printf '%s/syncthing-install-update.sh\n' "$SCRIPTS_DIR" ;;
+    kitty) printf '%s/kitty-install-update.sh\n' "$SCRIPTS_DIR" ;;
+    nvm) printf '%s/nvm-install-update.sh\n' "$SCRIPTS_DIR" ;;
     starship) printf '%s/starship-install-update.sh\n' "$SCRIPTS_DIR" ;;
     fonts) printf '%s/cascadia-nerd-font-install-update.sh\n' "$SCRIPTS_DIR" ;;
     fetch) printf '%s/install-fetch.sh\n' "$DOTFILES_DIR" ;;

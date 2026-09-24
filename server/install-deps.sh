@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Apt packages for server (no GitHub CLI tools).
+# Base OS packages for server (no GitHub CLI tools). Apt or dnf.
 set -euo pipefail
 
 SERVER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -9,14 +9,15 @@ usage() {
   cat <<'EOF'
 Usage: ./server/install-deps.sh
 
-Apt packages for light hosts / CTs. Invoked by
+Base OS packages for light hosts / CTs (apt or dnf). Invoked by
 ./server.sh --deps / --all.
 
 Installs: bash bash-completion ca-certificates curl git gzip htop jq
-less locales tar tmux wget. Enables en_US.UTF-8. Needs sudo.
+less tar tmux wget, plus the locale package for your distro. Enables
+en_US.UTF-8. Needs sudo.
 
-Slimmer than ./install-deps.sh (no ripgrep, trash-cli, unzip, fontconfig).
-Apt-based systems only.
+Slimmer than ./install-deps.sh / ./install-fedora-deps.sh (no ripgrep,
+trash-cli, unzip, fontconfig).
 
 Options:
   -h, --help   Show this help
@@ -32,8 +33,12 @@ source "$DOTFILES_DIR/scripts/lib/privilege.sh"
 # shellcheck source=../scripts/lib/journal.sh
 source "$DOTFILES_DIR/scripts/lib/journal.sh"
 
-if ! command -v apt-get >/dev/null 2>&1; then
-  echo "server/install-deps.sh supports apt-based systems only." >&2
+if command -v apt-get >/dev/null 2>&1; then
+  PKG_MANAGER=apt
+elif command -v dnf >/dev/null 2>&1; then
+  PKG_MANAGER=dnf
+else
+  echo "server/install-deps.sh supports apt-based and dnf-based systems only." >&2
   exit 1
 fi
 
@@ -49,14 +54,25 @@ PACKAGES=(
   htop
   jq
   less
-  locales
   tar
   tmux
   wget
 )
+case "$PKG_MANAGER" in
+  apt) PACKAGES+=(locales) ;;
+  dnf) PACKAGES+=(glibc-langpack-en) ;;
+esac
 
-echo "Updating package lists..."
-df_run_privileged apt-get update
+case "$PKG_MANAGER" in
+  apt)
+    echo "Updating package lists..."
+    df_run_privileged apt-get update
+    ;;
+  dnf)
+    echo "Refreshing dnf metadata..."
+    df_run_privileged dnf makecache
+    ;;
+esac
 
 missing=()
 while IFS= read -r pkg; do
@@ -64,12 +80,15 @@ while IFS= read -r pkg; do
 done < <(df_collect_missing_packages "${PACKAGES[@]}")
 
 echo "Installing packages..."
-df_run_privileged apt-get install -y "${PACKAGES[@]}"
+case "$PKG_MANAGER" in
+  apt) df_run_privileged apt-get install -y "${PACKAGES[@]}" ;;
+  dnf) df_run_privileged dnf install -y "${PACKAGES[@]}" ;;
+esac
 if ((${#missing[@]} > 0)); then
   df_journal_new_packages "${missing[@]}"
 fi
 
-setup_utf8_locale() {
+setup_utf8_locale_apt() {
   if [[ ! -f /etc/locale.gen ]]; then
     return 0
   fi
@@ -83,6 +102,26 @@ setup_utf8_locale() {
   df_run_privileged locale-gen en_US.UTF-8
   df_run_privileged update-locale LANG=en_US.UTF-8 LC_ALL=
   df_journal_once locale en_US.UTF-8
+}
+
+setup_utf8_locale_dnf() {
+  # glibc-langpack-en (installed above) provides the compiled en_US.UTF-8
+  # locale; localectl (systemd) just needs to be told to use it.
+  command -v localectl >/dev/null 2>&1 || return 0
+  if locale -a 2>/dev/null | grep -qiE '^en_US\.(utf8|UTF-8)$'; then
+    df_run_privileged localectl set-locale LANG=en_US.UTF-8
+    df_journal_once locale en_US.UTF-8
+  else
+    echo "WARN: en_US.UTF-8 not available after installing glibc-langpack-en" >&2
+    return 1
+  fi
+}
+
+setup_utf8_locale() {
+  case "$PKG_MANAGER" in
+    apt) setup_utf8_locale_apt ;;
+    dnf) setup_utf8_locale_dnf ;;
+  esac
 
   if locale -a 2>/dev/null | grep -qE 'en_US\.(utf8|UTF-8)'; then
     export LANG=en_US.UTF-8
@@ -108,6 +147,6 @@ else
 fi
 
 echo "server deps done."
-echo "apt: ${PACKAGES[*]}"
+echo "$PKG_MANAGER: ${PACKAGES[*]}"
 echo "Optional Proton Pass CLI (PAT/SSH): ./scripts/proton-pass-cli-setup.sh"
 echo "Optional Syncthing: ./scripts/syncthing-install-update.sh"

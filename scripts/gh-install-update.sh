@@ -113,11 +113,12 @@ latest_tag() {
 }
 
 deb_arch() {
-  case "$(uname -m)" in
-    x86_64 | amd64) echo "amd64" ;;
-    aarch64 | arm64) echo "arm64" ;;
+  local raw
+  raw="$(gr_arch_raw)" || exit 1
+  case "$raw" in
+    amd64 | arm64) printf '%s' "$raw" ;;
     *)
-      echo "ERROR: unsupported architecture: $(uname -m)" >&2
+      echo "ERROR: gh has no release for this architecture: $(uname -m)" >&2
       exit 1
       ;;
   esac

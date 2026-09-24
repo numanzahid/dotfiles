@@ -39,7 +39,7 @@ gr_sudo() {
 GR_CURL_HAS_RETRY_CONNREFUSED=""
 gr_curl() {
   local -a retry_flags extra modes
-  local mode attempt rc
+  local mode attempt rc a
 
   retry_flags=(
     --connect-timeout 15
@@ -64,6 +64,20 @@ gr_curl() {
     *) modes=("ipv4" "http11" "default") ;;
   esac
 
+  # Authenticate api.github.com calls when a token is available, so repeated
+  # installs across machines behind the same IP don't hit the 60 req/hour
+  # unauthenticated rate limit. Never sent to non-GitHub hosts.
+  local -a auth_flags=()
+  local gh_token="${GITHUB_TOKEN:-${GH_TOKEN:-}}"
+  if [[ -n "$gh_token" ]]; then
+    for a in "$@"; do
+      if [[ "$a" == *api.github.com* ]]; then
+        auth_flags=(-H "Authorization: Bearer ${gh_token}")
+        break
+      fi
+    done
+  fi
+
   rc=1
   for mode in "${modes[@]}"; do
     extra=()
@@ -72,7 +86,7 @@ gr_curl() {
       http11) extra=(--http1.1) ;;
     esac
     for attempt in 1 2; do
-      curl "${retry_flags[@]}" "${extra[@]}" "$@" && return 0
+      curl "${retry_flags[@]}" "${extra[@]}" "${auth_flags[@]}" "$@" && return 0
       rc=$?
       case "$rc" in
         7 | 28 | 35 | 52 | 55 | 56) ;;
@@ -241,6 +255,14 @@ gr_latest_tag() {
   gr_curl -fsSL "https://api.github.com/repos/${repo}/releases/latest" | jq -r .tag_name
 }
 
+# Latest git tag for repos that tag releases but never publish a GitHub
+# Release object (gr_latest_tag hits /releases/latest and finds nothing).
+# GitHub's /tags API returns tags newest-first by tagging order.
+gr_latest_git_tag() {
+  local repo="$1"
+  gr_curl -fsSL "https://api.github.com/repos/${repo}/tags" | jq -r '.[0].name // empty'
+}
+
 gr_download() {
   local url="$1"
   local dest="$2"
@@ -297,12 +319,17 @@ gr_install_binary() {
   fi
 }
 
-gr_arch_gnu() {
+# Single source of truth for `uname -m` -> canonical arch classification.
+# Per-project scripts map this to their own release-asset naming (which
+# genuinely differs project to project) instead of re-parsing uname -m.
+# Values: amd64 arm64 armv7 armv6 386
+gr_arch_raw() {
   case "$(uname -m)" in
-    x86_64 | amd64) echo "x86_64-unknown-linux-gnu" ;;
-    aarch64 | arm64) echo "aarch64-unknown-linux-gnu" ;;
-    armv7l | armv6l) echo "arm-unknown-linux-gnueabihf" ;;
-    i686 | i386) echo "i686-unknown-linux-gnu" ;;
+    x86_64 | amd64) echo "amd64" ;;
+    aarch64 | arm64) echo "arm64" ;;
+    armv7l) echo "armv7" ;;
+    armv6l) echo "armv6" ;;
+    i686 | i386) echo "386" ;;
     *)
       echo "ERROR: unsupported architecture: $(uname -m)" >&2
       exit 1
@@ -310,16 +337,25 @@ gr_arch_gnu() {
   esac
 }
 
+gr_arch_gnu() {
+  local raw
+  raw="$(gr_arch_raw)" || exit 1
+  case "$raw" in
+    amd64) echo "x86_64-unknown-linux-gnu" ;;
+    arm64) echo "aarch64-unknown-linux-gnu" ;;
+    armv7 | armv6) echo "arm-unknown-linux-gnueabihf" ;;
+    386) echo "i686-unknown-linux-gnu" ;;
+  esac
+}
+
 gr_arch_musl() {
-  case "$(uname -m)" in
-    x86_64 | amd64) echo "x86_64-unknown-linux-musl" ;;
-    aarch64 | arm64) echo "aarch64-unknown-linux-musl" ;;
-    armv7l | armv6l) echo "armv7-unknown-linux-musleabihf" ;;
-    i686 | i386) echo "i686-unknown-linux-musl" ;;
-    *)
-      echo "ERROR: unsupported architecture: $(uname -m)" >&2
-      exit 1
-      ;;
+  local raw
+  raw="$(gr_arch_raw)" || exit 1
+  case "$raw" in
+    amd64) echo "x86_64-unknown-linux-musl" ;;
+    arm64) echo "aarch64-unknown-linux-musl" ;;
+    armv7 | armv6) echo "armv7-unknown-linux-musleabihf" ;;
+    386) echo "i686-unknown-linux-musl" ;;
   esac
 }
 

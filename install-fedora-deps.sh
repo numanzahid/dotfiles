@@ -72,7 +72,9 @@ PACKAGES=(
   bash-completion
   ca-certificates
   curl
+  diffutils
   git
+  glibc-langpack-en
   gzip
   jq
   less
@@ -97,6 +99,38 @@ echo "Installing Fedora packages..."
 df_run_privileged dnf install -y "${PACKAGES[@]}"
 if ((${#missing[@]} > 0)); then
   df_journal_new_packages "${missing[@]}"
+fi
+
+setup_utf8_locale_fedora() {
+  # glibc-langpack-en (installed above) provides the compiled en_US.UTF-8
+  # locale; localectl (systemd) just needs to be told to use it.
+  command -v localectl >/dev/null 2>&1 || return 0
+  if locale -a 2>/dev/null | grep -qiE '^en_US\.(utf8|UTF-8)$'; then
+    df_run_privileged localectl set-locale LANG=en_US.UTF-8
+    df_journal_once locale en_US.UTF-8
+    export LANG=en_US.UTF-8
+    unset LC_ALL || true
+  else
+    echo "WARN: en_US.UTF-8 not available after installing glibc-langpack-en; skipping locale setup" >&2
+    return 1
+  fi
+  if [[ -n "${TMUX:-}" ]] && command -v tmux >/dev/null 2>&1; then
+    tmux set-environment -g LANG en_US.UTF-8 2>/dev/null || true
+    tmux set-environment -gu LC_ALL 2>/dev/null || true
+  fi
+}
+
+echo "Configuring UTF-8 locale..."
+set +e
+setup_utf8_locale_fedora
+locale_rc=$?
+set -e
+if [[ "$locale_rc" -ne 0 ]]; then
+  echo "WARN: UTF-8 locale setup failed; continuing (set LANG manually if needed)" >&2
+else
+  echo "UTF-8 locale set. This SSH session still has the old pty encoding."
+  echo "  Close the SSH client and ssh in again (exec bash / tmux kill is not enough)."
+  echo "A reboot is not required."
 fi
 
 echo "Done. Tool binaries: ./desktop.sh --tools --neovim --btop --fzf --gh --lazygit --starship"

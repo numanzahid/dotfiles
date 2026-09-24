@@ -246,6 +246,8 @@ df_inst_untrack_managed_path() {
 }
 
 df_inst_remove_fzf() {
+  df_inst_remove_path "$TARGET_HOME/.local/bin/fzf"
+  # Legacy layout from the old git-clone installer, if still present.
   df_inst_remove_journaled_git_clone "$TARGET_HOME/.fzf"
   df_inst_remove_path "$TARGET_HOME/.fzf.bash"
   df_inst_remove_package fzf

@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # ~/.shell_aliases_interactive.sh
 # Interactive-only shell customizations for server.
 # No fzf, zoxide, or eza. Fastfetch banner uses the same boxed config.

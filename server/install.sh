@@ -29,17 +29,20 @@ Usage: ./server.sh [options]
 Copy shell/tmux/nvim configs into $HOME as real files, then you can
 remove the dotfiles folder.
 
-Full install (default): copy configs, apt packages, and Neovim.
+Full install (default): copy configs, OS packages (apt or dnf), and Neovim.
 
 Does not install: fzf, zoxide, lazygit, gh, tldr,
 TPM/tmux plugins, or nerd fonts.
 
-Installs: apt deps, neovim, btop, gdu. Copies .gitconfig and btop config.
+Installs: base packages (apt or dnf), neovim, btop, gdu. Copies .gitconfig
+and btop config.
 
 Options:
-  --configs-only   Copy configs only (no apt packages or Neovim)
-  --software-only  Apt packages and Neovim only (no config copy)
+  --configs-only   Copy configs only (no OS packages or Neovim)
+  --software-only  OS packages and Neovim only (no config copy)
   --dry-run        Print actions without changing anything
+  --yes, -y        Assume yes to prompts (DF_YES=1); needed for root/no-TTY
+                    provisioning (containers, cloud-init, Ansible)
   -h, --help       Show this help
 
 Environment (used by dotfiles update):
@@ -486,6 +489,7 @@ while [[ $# -gt 0 ]]; do
       RUN_SOFTWARE=1
       ;;
     --dry-run) DRY_RUN=1 ;;
+    --yes | -y) export DF_YES=1 ;;
     -h | --help)
       usage
       exit 0

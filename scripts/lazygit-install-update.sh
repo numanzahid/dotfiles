@@ -77,15 +77,13 @@ latest_tag() {
 }
 
 arch_suffix() {
-  case "$(uname -m)" in
-    x86_64 | amd64) echo "linux_x86_64" ;;
-    aarch64 | arm64) echo "linux_arm64" ;;
-    armv6l | armv7l) echo "linux_armv6" ;;
-    i686 | i386) echo "linux_32-bit" ;;
-    *)
-      echo "ERROR: unsupported architecture: $(uname -m)" >&2
-      exit 1
-      ;;
+  local raw
+  raw="$(gr_arch_raw)" || exit 1
+  case "$raw" in
+    amd64) echo "linux_x86_64" ;;
+    arm64) echo "linux_arm64" ;;
+    armv7 | armv6) echo "linux_armv6" ;;
+    386) echo "linux_32-bit" ;;
   esac
 }
 

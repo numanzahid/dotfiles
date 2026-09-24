@@ -41,6 +41,11 @@ df_install_cli_require_no_extra_args() {
 }
 
 # Returns: 0=install, 1=uninstall handled (caller should exit 0), 2=help, 3=bad args
+#
+# Set DF_INSTALL_ALLOW_EXTRA=1 before calling when the script defines its own
+# options (collected in DF_INSTALL_EXTRA_ARGS for the caller to parse itself,
+# e.g. via its own while/case loop) -- otherwise any such option is rejected
+# here before the caller ever sees it.
 df_install_cli_entry() {
   local _rc=0
 
@@ -51,7 +56,7 @@ df_install_cli_entry() {
   if [[ "$DF_INSTALL_WANTS_UNINSTALL" -eq 1 ]]; then
     return 1
   fi
-  if ! df_install_cli_require_no_extra_args; then
+  if [[ "${DF_INSTALL_ALLOW_EXTRA:-0}" -ne 1 ]] && ! df_install_cli_require_no_extra_args; then
     return 3
   fi
   return 0
