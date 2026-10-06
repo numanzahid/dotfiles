@@ -316,46 +316,55 @@ install_pass_cli() {
 print_next_steps() {
   cat <<EOF
 
-Setup finished (login and agent are still manual).
+pass-cli is installed. This script only installs the binary and the PAT
+file layout -- login and the SSH agent daemon are set up separately.
 
 1) Paste your machine PAT into (file only, no trailing newline required):
      $PASS_PAT_FILE
-   chmod 600 "$PASS_PAT_FILE"
    Use a separate PAT per machine; keys vault, viewer role is enough.
 
-2) Before login:
+2) Recommended next step -- one command that logs in, (re)starts the SSH
+   agent daemon, and shows the loaded keys, instead of the manual sequence
+   below:
+     ~/syncthing/ssh/register-proton-pass-login.sh   (one-time, registers it)
+     pass-login
+   That script also forces filesystem key storage automatically, which is
+   what you want for this kind of headless/PAT setup -- see note below.
 EOF
-  if [[ "$KEY_PROVIDER" == fs ]]; then
+  if [[ ! -e "${HOME}/syncthing/ssh/register-proton-pass-login.sh" ]]; then
     cat <<EOF
-   Filesystem key storage is enabled. Load it in this shell:
-     source "$PASS_ENV_FILE"
-   Or: source ~/.profile  (loads ~/.config/dotfiles/proton-pass-env.sh)
+
+   (That path doesn't exist on this machine -- it lives in a Syncthing-
+   synced folder, separate from this dotfiles repo. If you don't have it
+   here, do the manual steps below instead.)
 EOF
   fi
   cat <<EOF
 
-   If login ever failed with keyring / KeyRevoked errors, reset local session:
-     pass-cli logout --force
+Manual alternative, if you're not using pass-login:
 
-   Log in (does not run automatically):
+   If login ever fails with a keyring / KeyRevoked error, switch to
+   filesystem key storage (recommended for any headless/PAT/tmux-heavy-SSH
+   machine -- the kernel keyring gets revoked when the login session that
+   created it ends, even though your tmux/SSH connection itself survives):
+     $0 --filesystem
+     source "$PASS_ENV_FILE"
+
+   Force logout, then log in:
+     pass-cli logout --force
      PROTON_PASS_PERSONAL_ACCESS_TOKEN="\$(<"$PASS_PAT_FILE")" pass-cli login
-   Verify:
      pass-cli info
      pass-cli vault list
 
-3) Start the SSH agent daemon (example vault name "keys"):
-     pass-cli ssh-agent daemon start --vault-name "keys"
+   Start the SSH agent daemon (no --vault-name needed; it loads keys from
+   every vault the PAT can see):
+     pass-cli ssh-agent daemon start
      pass-cli ssh-agent daemon status
 
-4) SSH_AUTH_SOCK
-   Dotfiles set it when the socket exists (~/.ssh/proton-pass-agent.sock),
-   via ~/.config/dotfiles/proton-pass-env.sh (sourced from ~/.profile).
-   Open a new login shell or: source ~/.profile
-
-   Check keys: ssh-add -l
-
-Optional logout before switching PAT:
-  pass-cli logout --force
+   SSH_AUTH_SOCK (~/.ssh/proton-pass-agent.sock) is exported automatically
+   in new shells via ~/.config/dotfiles/proton-pass-env.sh. In this shell:
+     export SSH_AUTH_SOCK=\$HOME/.ssh/proton-pass-agent.sock
+     ssh-add -l
 
 Docs: https://protonpass.github.io/pass-cli/
 
