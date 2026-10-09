@@ -355,6 +355,27 @@ install_configs() {
   log "source: $SOURCE_DIR"
   log "target: $TARGET_HOME"
 
+  # Legacy fetch-selector scheme (fetch.conf / fetch-<tool>.conf symlinks),
+  # fully replaced by fastfetch-banner.sh. See the matching comment in
+  # scripts/lib/installer-common.sh's remove_legacy_fetch_selector.
+  local _f
+  for _f in \
+    "$TARGET_HOME/.config/tmux/fetch.conf" \
+    "$TARGET_HOME/.config/tmux/fetch-none.conf" \
+    "$TARGET_HOME/.config/tmux/fetch-fastfetch.conf" \
+    "$TARGET_HOME/.config/tmux/fetch-pfetch.conf" \
+    "$TARGET_HOME/.config/pfetch"; do
+    [[ -e "$_f" || -L "$_f" ]] || continue
+    log "remove legacy fetch-selector leftover: $_f"
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+      printf '+ rm -rf %q\n' "$_f"
+    elif command -v trash-put >/dev/null 2>&1; then
+      run trash-put "$_f"
+    else
+      run rm -rf "$_f"
+    fi
+  done
+
   # Previous copy-install left real files and the updater. Those dests are
   # ours even if the user edited them; do not treat edits as the original.
   if [[ -f "$INSTALL_SCRIPTS_DIR/neovim-install-update.sh" || -f "$TARGET_HOME/neovim-install-update.sh" ]]; then

@@ -123,6 +123,39 @@ install_dotfiles_cli() {
   df_journal_once link "$dest" "$src"
 }
 
+# Legacy fetch-selector scheme (fetch.conf / fetch-<tool>.conf symlinks in
+# ~/.config/tmux, chosen by install-fetch.sh in the past) and leftover
+# ~/.config/pfetch -- both fully replaced today by fastfetch-banner.sh +
+# tmux-logo.txt (home/.tmux.conf calls fastfetch-banner.sh directly; nothing
+# current references fetch.conf at all). The only other cleanup for these
+# (scripts/lib/pfetch-remove.sh) is opt-in -- it only runs if someone
+# explicitly re-runs install-fetch.sh/fastfetch-install-update.sh, so a
+# machine that set fetch up once and never touched it again keeps these
+# broken symlinks forever. This runs unconditionally on every config
+# install/update instead, same as remove_old_fedora_dropin. User-home-level
+# only, no sudo (system-level legacy pfetch is pfetch-remove.sh's job).
+remove_legacy_fetch_selector() {
+  local f
+  for f in \
+    "$TARGET_HOME/.config/tmux/fetch.conf" \
+    "$TARGET_HOME/.config/tmux/fetch-none.conf" \
+    "$TARGET_HOME/.config/tmux/fetch-fastfetch.conf" \
+    "$TARGET_HOME/.config/tmux/fetch-pfetch.conf" \
+    "$TARGET_HOME/.config/pfetch"; do
+    [[ -e "$f" || -L "$f" ]] || continue
+    log "remove legacy fetch-selector leftover: $f"
+    if [[ "$DRY_RUN" -eq 1 ]]; then
+      printf '+ rm -rf %q\n' "$f"
+      continue
+    fi
+    if command -v trash-put >/dev/null 2>&1; then
+      run trash-put "$f"
+    else
+      run rm -rf "$f"
+    fi
+  done
+}
+
 remove_old_fedora_dropin() {
   local dest="$TARGET_HOME/.bashrc.d/dotfiles.sh"
   if [[ -L "$dest" ]]; then

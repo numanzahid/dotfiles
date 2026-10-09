@@ -136,6 +136,7 @@ install_dotfiles() {
   log "target: $TARGET_HOME"
 
   remove_old_fedora_dropin
+  remove_legacy_fetch_selector
 
   link_path "$SOURCE_DIR/.bashrc" "$TARGET_HOME/.bashrc"
   link_path "$SOURCE_DIR/.shell_aliases_interactive.sh" "$TARGET_HOME/.shell_aliases_interactive.sh"

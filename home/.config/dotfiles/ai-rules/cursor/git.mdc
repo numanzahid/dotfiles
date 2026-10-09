@@ -9,3 +9,4 @@ alwaysApply: true
 - Avoid a commit body when the subject is enough.
 - If a body is needed, keep it as short as possible.
 - Do not add Co-Authored-By, "collaboration with", or other AI attribution to commits or PR descriptions.
+- Keep commits small and scoped; one logical change per commit when practical.

@@ -19,6 +19,7 @@
 **/authorized_keys
 **/.ssh/config
 **/.gitconfig.local
+home/.config/opencode/
 
 # Keep tracked templates
 !**/*.example
