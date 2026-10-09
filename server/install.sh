@@ -139,6 +139,84 @@ copy_file() {
   df_journal_once copy "$dest" "$src"
 }
 
+# .bashrc is the one file third-party installers (conda, sdkman, rustup,
+# docker, ...) commonly auto-append PATH/env lines to by writing straight to
+# ~/.bashrc. copy_file's plain overwrite would silently wipe those appends on
+# every re-run/update. Deploy it as a real file with markers instead: only
+# the content between the markers is ours and gets refreshed every run;
+# anything appended outside the markers survives untouched. See the matching
+# comment in scripts/lib/installer-common.sh's link_bashrc_managed -- same
+# function, duplicated here because server/install.sh does not source
+# installer-common.sh. Tail preservation only triggers once markers already
+# exist in $dest (2nd run onward); on the 1st run there's no reliable way to
+# tell tracked content apart from third-party content without markers
+# already in place, so nothing is carried forward -- same backup as
+# copy_file always did.
+DF_BASHRC_MANAGED_START='# >>> dotfiles managed: do not edit between these markers (edit ~/.dotfiles/home/.bashrc instead) >>>'
+DF_BASHRC_MANAGED_END='# <<< dotfiles managed <<<'
+
+copy_bashrc_managed() {
+  local src="$1"
+  local dest="$2"
+  local parent tmp tail_tmp has_markers=0
+
+  if [[ ! -e "$src" ]]; then
+    log "skip missing source: $src"
+    return 0
+  fi
+
+  parent="$(dirname "$dest")"
+  if [[ -L "$parent" ]]; then
+    ensure_real_dir "$parent"
+  else
+    mkdir -p "$parent"
+  fi
+
+  tail_tmp="$(mktemp)"
+  : >"$tail_tmp"
+
+  if [[ -f "$dest" ]] && grep -Fq "$DF_BASHRC_MANAGED_START" "$dest" 2>/dev/null; then
+    has_markers=1
+    awk -v s="$DF_BASHRC_MANAGED_START" -v e="$DF_BASHRC_MANAGED_END" '
+      $0 == s { skip = 1; next }
+      $0 == e { skip = 0; next }
+      !skip { print }
+    ' "$dest" >"$tail_tmp"
+  fi
+
+  if [[ "$has_markers" -eq 1 ]]; then
+    run rm -f "$dest"
+  elif [[ -L "$dest" ]]; then
+    log "replace symlink with file: $dest"
+    run rm -f "$dest"
+  elif dest_is_clone_file "$dest"; then
+    log "ERROR: dest is a real file inside the clone: $dest"
+    rm -f "$tail_tmp"
+    return 1
+  else
+    df_stash_original_if_needed "$src" "$dest"
+  fi
+
+  tmp="$(mktemp)"
+  {
+    printf '%s\n' "$DF_BASHRC_MANAGED_START"
+    cat "$src"
+    printf '%s\n' "$DF_BASHRC_MANAGED_END"
+  } >"$tmp"
+
+  if [[ -s "$tail_tmp" ]]; then
+    cat "$tail_tmp" >>"$tmp"
+  fi
+  rm -f "$tail_tmp"
+
+  run cp -f "$tmp" "$dest"
+  rm -f "$tmp"
+  log "wrote managed file (third-party appends preserved): $dest"
+  df_migrate_original_backup "$dest"
+  df_track_path "$dest"
+  df_journal_once copy "$dest" "$src"
+}
+
 copy_if_missing() {
   local src="$1"
   local dest="$2"
@@ -397,7 +475,7 @@ install_configs() {
     done
   fi
 
-  copy_file "$SOURCE_DIR/.bashrc" "$TARGET_HOME/.bashrc"
+  copy_bashrc_managed "$SOURCE_DIR/.bashrc" "$TARGET_HOME/.bashrc"
   mkdir -p "$TARGET_HOME/.config/dotfiles"
   copy_file "$SOURCE_DIR/.config/dotfiles/prompt-optimized.sh" "$TARGET_HOME/.config/dotfiles/prompt.sh"
   copy_file "$SOURCE_DIR/.config/dotfiles/locale.sh" "$TARGET_HOME/.config/dotfiles/locale.sh"

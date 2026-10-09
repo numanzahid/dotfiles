@@ -138,7 +138,7 @@ install_dotfiles() {
   remove_old_fedora_dropin
   remove_legacy_fetch_selector
 
-  link_path "$SOURCE_DIR/.bashrc" "$TARGET_HOME/.bashrc"
+  link_bashrc_managed "$SOURCE_DIR/.bashrc" "$TARGET_HOME/.bashrc"
   link_path "$SOURCE_DIR/.shell_aliases_interactive.sh" "$TARGET_HOME/.shell_aliases_interactive.sh"
   link_path "$SOURCE_DIR/.inputrc" "$TARGET_HOME/.inputrc"
   link_path "$SOURCE_DIR/.gitconfig" "$TARGET_HOME/.gitconfig"

@@ -164,6 +164,83 @@ remove_old_fedora_dropin() {
   fi
 }
 
+# .bashrc is the one tracked file third-party installers (conda, sdkman,
+# rustup, docker, ...) commonly auto-append PATH/env lines to by writing
+# straight to ~/.bashrc. Plain symlink/overwrite means those writes land
+# inside this repo's tracked source (symlink case) or get silently wiped on
+# the next install/update (overwrite case). Deploy it as a real file instead:
+# only the content between the markers is ours and gets refreshed every
+# install/update; anything a third-party installer appended outside the
+# markers survives untouched. Same idea as the old legacy-block-patch pattern
+# in ai-rules.sh (df_ai_rule_strip_block), just kept instead of stripped.
+#
+# Tail preservation only triggers once the markers already exist in $dest --
+# i.e. from the 2nd run onward on a given machine. On the 1st run (a plain
+# symlink, or a never-managed stock skeleton file), there is no reliable way
+# to tell tracked content apart from third-party content without markers
+# already in place, so nothing is carried forward -- same backup as
+# link_path always did. If a third-party tool already wrote into ~/.bashrc
+# through the old symlink (so into the tracked repo file itself), rescue
+# those lines into ~/.bashrc.d/ by hand before updating on that machine.
+DF_BASHRC_MANAGED_START='# >>> dotfiles managed: do not edit between these markers (edit ~/.dotfiles/home/.bashrc instead) >>>'
+DF_BASHRC_MANAGED_END='# <<< dotfiles managed <<<'
+
+link_bashrc_managed() {
+  local src="$1"
+  local dest="$2"
+  local tmp tail_tmp has_markers=0
+
+  if [[ ! -f "$src" ]]; then
+    log "skip missing source: $src"
+    return 0
+  fi
+
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    printf '+ write managed file (preserving third-party appends): %q\n' "$dest"
+    return 0
+  fi
+
+  mkdir -p "$(dirname "$dest")"
+
+  tail_tmp="$(mktemp)"
+  : >"$tail_tmp"
+
+  if [[ -f "$dest" ]] && grep -Fq "$DF_BASHRC_MANAGED_START" "$dest" 2>/dev/null; then
+    has_markers=1
+    awk -v s="$DF_BASHRC_MANAGED_START" -v e="$DF_BASHRC_MANAGED_END" '
+      $0 == s { skip = 1; next }
+      $0 == e { skip = 0; next }
+      !skip { print }
+    ' "$dest" >"$tail_tmp"
+  fi
+
+  if [[ "$has_markers" -eq 0 && -e "$dest" && ! -L "$dest" ]]; then
+    df_stash_original_if_needed "$src" "$dest"
+  fi
+  if [[ -e "$dest" || -L "$dest" ]]; then
+    log "rewrite managed file: $dest"
+    run rm -f "$dest"
+  fi
+
+  tmp="$(mktemp)"
+  {
+    printf '%s\n' "$DF_BASHRC_MANAGED_START"
+    cat "$src"
+    printf '%s\n' "$DF_BASHRC_MANAGED_END"
+  } >"$tmp"
+
+  if [[ -s "$tail_tmp" ]]; then
+    cat "$tail_tmp" >>"$tmp"
+  fi
+  rm -f "$tail_tmp"
+
+  run cp -f "$tmp" "$dest"
+  rm -f "$tmp"
+  df_track_path "$dest"
+  df_journal_once copy "$dest" "$src"
+  log "wrote managed file (third-party appends preserved): $dest"
+}
+
 dnf_install() {
   local pkg missing=()
   for pkg in "$@"; do
