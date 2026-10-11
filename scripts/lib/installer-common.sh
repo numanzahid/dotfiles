@@ -404,6 +404,11 @@ install_fonts_desktop() {
     run_github_step "cascadia-nerd-font" bash "$SCRIPTS_DIR/cascadia-nerd-font-install-update.sh"
     [[ "$DRY_RUN" -eq 0 ]] && df_component_touch fonts ""
   fi
+
+  # Deliberate: see the matching comment at the end of
+  # install_software_workstation -- same short-circuit-under-dry-run trap,
+  # now that this guard is a function's own last statement again.
+  return 0
 }
 
 # Fedora's dnf bat/fd/eza plus GitHub zoxide (dnf's zoxide lags upstream).
