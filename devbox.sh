@@ -23,7 +23,7 @@ usage() {
 Usage: ./devbox.sh [options]
 
 Full workstation install on Debian/Ubuntu or Fedora: link configs,
-packages, CLI tools, fonts, tmux TPM, and AI agent rules. Detects the
+packages, CLI tools, tmux TPM, and AI agent rules. Detects the
 distro; bat/fd/eza/gh/fzf/neovim/btop come from dnf on Fedora, GitHub
 releases everywhere else.
 
@@ -46,9 +46,10 @@ Optional extras:
   ./scripts/alacritty-install-update.sh
   ./scripts/kitty-install-update.sh
   ./scripts/localsend-install-update.sh
+  ./scripts/cascadia-nerd-font-install-update.sh
 
 desktop.sh is equivalent (same distro detection, different default prompt,
-plus starship); use whichever name you prefer.
+plus starship and Nerd fonts by default); use whichever name you prefer.
 EOF
 }
 

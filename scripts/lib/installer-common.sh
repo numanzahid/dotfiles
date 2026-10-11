@@ -384,12 +384,6 @@ install_software_workstation() {
     [[ "$DRY_RUN" -eq 0 ]] && df_component_touch gdu "$(df_component_detect_version gdu)"
   fi
 
-  if ! df_skip_software_component fonts; then
-    log "Nerd fonts: Cascadia Code + JetBrains Mono (user fonts + fc-cache)"
-    run_github_step "cascadia-nerd-font" bash "$SCRIPTS_DIR/cascadia-nerd-font-install-update.sh"
-    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch fonts ""
-  fi
-
   # Deliberate: without this, the function's own return status is whatever
   # the last "[[ "$DRY_RUN" -eq 0 ]] && df_component_touch ..." evaluated to
   # -- false (1) under --dry-run, since the guard short-circuits. Callers
@@ -398,6 +392,18 @@ install_software_workstation() {
   # running a full (non---configs-only) --dry-run and actually checking the
   # exit code, which nothing had done before.
   return 0
+}
+
+# Desktop-only by default: a workstation with a terminal that renders Nerd
+# Font glyphs is the case fonts are for. devbox.sh skips this (headless/VM
+# use is the common case there); run scripts/cascadia-nerd-font-install-update.sh
+# by hand on a devbox that wants them too.
+install_fonts_desktop() {
+  if ! df_skip_software_component fonts; then
+    log "Nerd fonts: Cascadia Code + JetBrains Mono (user fonts + fc-cache)"
+    run_github_step "cascadia-nerd-font" bash "$SCRIPTS_DIR/cascadia-nerd-font-install-update.sh"
+    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch fonts ""
+  fi
 }
 
 # Fedora's dnf bat/fd/eza plus GitHub zoxide (dnf's zoxide lags upstream).

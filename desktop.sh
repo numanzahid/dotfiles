@@ -182,6 +182,7 @@ install_dotfiles() {
 
 install_software_desktop() {
   install_software_workstation
+  install_fonts_desktop
 
   if ! df_skip_software_component starship; then
     log "starship from GitHub"

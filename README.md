@@ -23,9 +23,9 @@ cd ~/.dotfiles
 ./server.sh      # light host / CT full install
 ```
 
-Each script does a **full install** by default: configs, packages, CLI tools, fonts, tmux TPM, and AI agent rules (devbox/desktop). No `--all` flag.
+Each script does a **full install** by default: configs, packages, CLI tools, tmux TPM, and AI agent rules (devbox/desktop). No `--all` flag.
 
-**devbox/desktop** includes: bat, fd, zoxide, eza, lazygit, gh, neovim, btop, gdu, fzf, tldr, nerd fonts, TPM.
+**devbox/desktop** includes: bat, fd, zoxide, eza, lazygit, gh, neovim, btop, gdu, fzf, tldr, TPM. **desktop** also installs nerd fonts by default (headless/VM use is the common case for devbox, so it doesn't); run `./scripts/cascadia-nerd-font-install-update.sh` by hand on a devbox that wants them too.
 
 **server** is slimmer: copied configs (including `.gitconfig` and `btop`), base OS packages (apt or dnf), neovim, btop, gdu (no fzf, zoxide, lazygit, gh, tldr, TPM, fonts).
 
