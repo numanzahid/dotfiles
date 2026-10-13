@@ -284,10 +284,13 @@ df_ai_rules_cursor_disable_attribution() {
   local dest
   dest="$(df_ai_rules_cursor_cli_config)"
 
-  [[ -f "$dest" ]] || return 0
-  command -v jq >/dev/null 2>&1 || return 0
+  if [[ ! -f "$dest" ]] || ! command -v jq >/dev/null 2>&1; then
+    log "skip Cursor CLI attribution (no $dest yet)"
+    return 0
+  fi
 
   if jq -e '.attribution.attributeCommitsToAgent == false and .attribution.attributePRsToAgent == false' "$dest" >/dev/null 2>&1; then
+    log "Cursor CLI attribution already disabled: $dest"
     return 0
   fi
 

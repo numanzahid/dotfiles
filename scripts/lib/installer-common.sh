@@ -218,7 +218,6 @@ link_bashrc_managed() {
     df_stash_original_if_needed "$src" "$dest"
   fi
   if [[ -e "$dest" || -L "$dest" ]]; then
-    log "rewrite managed file: $dest"
     run rm -f "$dest"
   fi
 

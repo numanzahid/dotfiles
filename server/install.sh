@@ -187,7 +187,6 @@ copy_bashrc_managed() {
   if [[ "$has_markers" -eq 1 ]]; then
     run rm -f "$dest"
   elif [[ -L "$dest" ]]; then
-    log "replace symlink with file: $dest"
     run rm -f "$dest"
   elif dest_is_clone_file "$dest"; then
     log "ERROR: dest is a real file inside the clone: $dest"
