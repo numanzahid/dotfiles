@@ -267,9 +267,51 @@ df_ai_rules_install_claude() {
   done < <(df_ai_rules_collect_mdc_sources)
 }
 
+df_ai_rules_cursor_cli_config() {
+  local home="${TARGET_HOME:-$HOME}"
+  printf '%s/.cursor/cli-config.json' "$home"
+}
+
+# git.mdc tells agents not to add Co-Authored-By, but Cursor's CLI/background
+# agents stamp "Co-authored-by: Cursor <cursoragent@cursor.com>" onto commits
+# itself, after the model's own commit tool call returns -- a client-side
+# setting, not something a rule can reach. Patch just the two attribution
+# keys in place; everything else in this file (auth, model prefs, UI state)
+# is live machine state we never want to own or template, so no symlink/copy
+# of the whole file, and nothing here if the file doesn't exist yet (do not
+# fabricate a config Cursor hasn't created).
+df_ai_rules_cursor_disable_attribution() {
+  local dest
+  dest="$(df_ai_rules_cursor_cli_config)"
+
+  [[ -f "$dest" ]] || return 0
+  command -v jq >/dev/null 2>&1 || return 0
+
+  if jq -e '.attribution.attributeCommitsToAgent == false and .attribution.attributePRsToAgent == false' "$dest" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  if [[ "${DRY_RUN:-0}" -eq 1 ]]; then
+    log "would disable Cursor CLI commit/PR attribution: $dest"
+    return 0
+  fi
+
+  local tmp
+  tmp="$(mktemp)"
+  if jq '.attribution.attributeCommitsToAgent = false | .attribution.attributePRsToAgent = false' "$dest" >"$tmp" 2>/dev/null \
+    && [[ -s "$tmp" ]]; then
+    cat "$tmp" >"$dest"
+    log "disabled Cursor CLI commit/PR attribution: $dest"
+  else
+    log "skip Cursor CLI attribution patch: $dest (invalid JSON?)"
+  fi
+  rm -f "$tmp"
+}
+
 df_ai_rules_install_cursor() {
   df_ai_rules_migrate_legacy
   df_ai_rules_ensure_cursor_links
+  df_ai_rules_cursor_disable_attribution
 }
 
 df_ai_rules_install_all() {
