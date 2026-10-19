@@ -140,7 +140,6 @@ echo "Tldr:      ./devbox.sh --tldr  (tealdeer from GitHub)"
 echo "Fastfetch: ./install-fetch.sh"
 echo "Neovim:    ./scripts/neovim-install-update.sh  (or re-run ./devbox.sh)"
 echo "Btop:      ./scripts/btop-install-update.sh    (or re-run ./devbox.sh)"
-echo "Proton Pass CLI (optional PAT/SSH): ./scripts/proton-pass-cli-setup.sh"
 echo "Syncthing (optional, user install):  ./scripts/syncthing-install-update.sh"
 echo "Nvm/Node:  ./scripts/nvm-install-update.sh"
 

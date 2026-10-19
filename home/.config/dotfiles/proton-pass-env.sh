@@ -1,9 +1,10 @@
 # shellcheck shell=sh
 # Proton Pass CLI machine settings and SSH agent socket.
-# PAT login is manual; see: ./scripts/proton-pass-cli-setup.sh
+# Install and PAT/login setup live outside this repo, in the Syncthing-synced
+# ~/syncthing/ssh/ folder (install-pass-cli.sh, register-proton-pass-login.sh).
 #
-# Optional: ~/.config/proton-pass/env (written by the setup script for
-# PROTON_PASS_KEY_PROVIDER=fs on headless hosts).
+# Optional: ~/.config/proton-pass/env (written by register-proton-pass-login.sh
+# for PROTON_PASS_KEY_PROVIDER=fs on headless hosts).
 #
 # Sourced from both ~/.profile (login shells, including non-bash) and
 # ~/.bashrc (interactive non-login shells, e.g. a new terminal pane) --

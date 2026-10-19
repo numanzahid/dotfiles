@@ -148,5 +148,4 @@ fi
 
 echo "server deps done."
 echo "$PKG_MANAGER: ${PACKAGES[*]}"
-echo "Optional Proton Pass CLI (PAT/SSH): ./scripts/proton-pass-cli-setup.sh"
 echo "Optional Syncthing: ./scripts/syncthing-install-update.sh"
