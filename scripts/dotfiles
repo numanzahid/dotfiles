@@ -55,7 +55,7 @@ Commands:
       software (full install, ignores the 30-day skip).
       Re-runs automatically if the pull updates scripts/dotfiles.
 
-  status
+  status (alias: info)
       Profile, nvim, fetch, installed tools, versions, and last-updated times.
 
   install <what>
@@ -413,7 +413,7 @@ main() {
 
   case "$cmd" in
     update) dotfiles_cmd_update ;;
-    status) dotfiles_cmd_status ;;
+    status | info) dotfiles_cmd_status ;;
     uninstall) dotfiles_cmd_uninstall "$@" ;;
     install) dotfiles_cmd_install "$@" ;;
     sync) dotfiles_cmd_sync "$@" ;;
@@ -422,7 +422,7 @@ main() {
       exit 0
       ;;
     *)
-      die "unknown command: $cmd (try: update, status, install, sync, uninstall)"
+      die "unknown command: $cmd (try: update, status, info, install, sync, uninstall)"
       ;;
   esac
 }

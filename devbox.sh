@@ -145,7 +145,7 @@ install_dotfiles() {
   link_path "$SOURCE_DIR/.shell_aliases_interactive.sh" "$TARGET_HOME/.shell_aliases_interactive.sh"
   link_path "$SOURCE_DIR/.inputrc" "$TARGET_HOME/.inputrc"
   link_path "$SOURCE_DIR/.profile" "$TARGET_HOME/.profile"
-  link_path "$SOURCE_DIR/.gitconfig" "$TARGET_HOME/.gitconfig"
+  copy_if_missing "$SOURCE_DIR/.gitconfig" "$TARGET_HOME/.gitconfig"
   link_path "$SOURCE_DIR/.tmux.conf" "$TARGET_HOME/.tmux.conf"
   link_prompt_default
   link_path "$SOURCE_DIR/.config/dotfiles/locale.sh" "$TARGET_HOME/.config/dotfiles/locale.sh"
