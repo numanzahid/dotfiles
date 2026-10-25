@@ -31,7 +31,7 @@ Other useful scripts:
 
 | Command | What it does |
 |---------|----------------|
-| `./install-ai-rules.sh` | Refresh Cursor, Codex, and Claude rules |
+| `dotfiles update` | Also refreshes Cursor, Codex, and Claude rules and settings (devbox/desktop) |
 | `scripts/nvim-profile.sh status` | Show current nvim profile |
 | `scripts/<tool>-install-update.sh` | Upgrade one tool directly |
 

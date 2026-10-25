@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Install dotfiles AI agent rules.
-# Cursor .mdc files are the master source. Claude gets one .md per rule.
-# Codex gets one AGENTS.md (API limitation). Used by install-ai-rules.sh.
+# Cursor .mdc files are the master source (linked, or copied on a server). Claude gets one .md per rule.
+# Codex gets one AGENTS.md (API limitation). Used by ai-rules-install.sh.
 # Requires: SOURCE_DIR, log, run, and link.sh helpers.
 
 # shellcheck source=ai-config.sh
@@ -67,6 +67,59 @@ df_ai_rules_mdc_body() {
   ' "$1"
 }
 
+# Print one frontmatter field of a .mdc file (surrounding quotes removed).
+# Usage: df_ai_rules_mdc_field FILE KEY
+df_ai_rules_mdc_field() {
+  K="$2" awk '
+    BEGIN { key = ENVIRON["K"]; in_front = 0; seen = 0 }
+    /^---[[:space:]]*$/ {
+      if (!seen) { seen = 1; in_front = 1; next }
+      if (in_front) exit
+    }
+    in_front && $0 ~ ("^" key ":") {
+      v = $0
+      sub("^" key ":[ \t]*", "", v)
+      sub(/[ \t]+$/, "", v)
+      if (v ~ /^".*"$/ || v ~ /^'"'"'.*'"'"'$/) v = substr(v, 2, length(v) - 2)
+      print v
+      exit
+    }
+  ' "$1"
+}
+
+# Cursor `globs` value (`{a,b/{c,d}.sh,e}` or `a,b`) -> one pattern per line,
+# split on top-level commas only. Claude Code `paths` expands braces itself.
+df_ai_rules_globs_to_paths() {
+  G="$1" awk '
+    BEGIN {
+      g = ENVIRON["G"]
+      n = length(g)
+      if (substr(g, 1, 1) == "{") {
+        depth = 0
+        for (i = 1; i <= n; i++) {
+          c = substr(g, i, 1)
+          if (c == "{") depth++
+          else if (c == "}") { depth--; if (depth == 0) break }
+        }
+        if (i == n) g = substr(g, 2, n - 2)
+      }
+      n = length(g); depth = 0; cur = ""
+      for (i = 1; i <= n; i++) {
+        c = substr(g, i, 1)
+        if (c == "{") depth++
+        if (c == "}") depth--
+        if (c == "," && depth == 0) { emit(cur); cur = ""; continue }
+        cur = cur c
+      }
+      emit(cur)
+    }
+    function emit(p) {
+      gsub(/^[ \t]+|[ \t]+$/, "", p)
+      if (p != "") print p
+    }
+  ' </dev/null
+}
+
 df_ai_rules_is_dotfiles_managed_link() {
   local path="$1"
   local target root
@@ -124,7 +177,7 @@ df_ai_rules_link_cursor_file() {
   fi
 
   mkdir -p "$(dirname "$dest")"
-  df_link_path "$src" "$dest"
+  df_ai_place "$src" "$dest"
 }
 
 df_ai_rules_ensure_cursor_links() {
@@ -491,6 +544,11 @@ df_ai_rules_migrate_legacy() {
   for src in "${repo_files[@]}"; do
     repo_names["$(basename "$src")"]=1
   done
+
+  # Copy mode (server) keeps real files on purpose.
+  if df_ai_copy_mode; then
+    return 0
+  fi
 
   for f in "${repo_files[@]}"; do
     base="$(basename "$f")"

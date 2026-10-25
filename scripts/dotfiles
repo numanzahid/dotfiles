@@ -58,10 +58,16 @@ Commands:
   status (alias: info)
       Profile, nvim, fetch, installed tools, versions, and last-updated times.
 
-  install <what>
+  install <what> [options]
       lazyvim       Full LazyVim profile
       lazyvim-lite  Editor-only LazyVim
       fetch         Fastfetch banner (interactive art picker)
+      ai-config     AI agent rules plus Claude/Codex settings. devbox and
+                    desktop already get this from update; use it on a server
+                    (copies files instead of linking). Options: --dry-run
+      ai-sudo       Opt-in: agent sudo through a tmux password popup, agent
+                    sandboxes and approval prompts off. Also applies ai-config.
+                    Options: --keep-approvals, --uninstall, --dry-run
 
   sync <what> [--dry-run]
       lazyvim       Headless Lazy! sync (apply lazy-lock.json)
@@ -70,6 +76,7 @@ Commands:
   uninstall [target] [--dry-run] [--yes]
       Default: interactive undo of devbox/desktop/server install.
       lazyvim: remove LazyVim/lite data; switch nvim back to nvim-plain.
+      ai-sudo: remove the agent sudo setup and settings it added.
       <software>: remove one dotfiles-managed tool (see --list).
 
 First-time setup (before dotfiles is on PATH):
@@ -322,6 +329,9 @@ Usage: dotfiles uninstall [target] [options]
   dotfiles uninstall lazyvim [--dry-run] [--yes]
       Remove LazyVim/lite plugin data; switch nvim to nvim-plain.
 
+  dotfiles uninstall ai-sudo [--dry-run]
+      Remove agent sudo (tmux popup helper, sudo wrapper, sandbox/approval keys).
+
   dotfiles uninstall <software> [--dry-run] [--yes]
       Remove one dotfiles-managed tool and journaled files it created.
 
@@ -336,9 +346,13 @@ EOF
 
 dotfiles_cmd_install() {
   local what="${1:-}"
+  local -a extra=()
+
+  shift || true
+  extra=("$@")
 
   require_dotfiles_dir
-  [[ -n "$what" ]] || die "install requires: lazyvim, lazyvim-lite, or fetch"
+  [[ -n "$what" ]] || die "install requires: lazyvim, lazyvim-lite, fetch, ai-config, or ai-sudo"
 
   case "$what" in
     lazyvim)
@@ -353,8 +367,17 @@ dotfiles_cmd_install() {
       run_installer bash "$DOTFILES_DIR/install-fetch.sh"
       [[ "$DRY_RUN" -eq 1 ]] || df_component_touch fetch ""
       ;;
+    ai-config)
+      # Runs for real even with --dry-run: the script has its own dry-run.
+      [[ "$DRY_RUN" -eq 1 ]] && extra+=(--dry-run)
+      bash "$DOTFILES_DIR/scripts/ai-rules-install.sh" "${extra[@]}"
+      ;;
+    ai-sudo)
+      [[ "$DRY_RUN" -eq 1 ]] && extra+=(--dry-run)
+      bash "$DOTFILES_DIR/scripts/ai-agent-sudo-install.sh" "${extra[@]}"
+      ;;
     *)
-      die "unknown install target: $what (try: lazyvim, lazyvim-lite, fetch)"
+      die "unknown install target: $what (try: lazyvim, lazyvim-lite, fetch, ai-config, ai-sudo)"
       ;;
   esac
 }

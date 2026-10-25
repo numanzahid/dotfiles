@@ -370,6 +370,31 @@ fi
 
 set -euo pipefail
 
+df_ff_usage() {
+  cat <<'USAGE'
+Usage: fastfetch-banner.sh [options]
+
+Print the dotfiles fastfetch banner (config.jsonc, chosen logo art, padding).
+Used by tmux and the shell. Prints nothing if fastfetch is not installed.
+Sourcing this file instead only loads the df_ff_* helpers.
+
+Art: ~/.config/fastfetch/artN.txt (choice in ~/.local/share/dotfiles/fastfetch-art),
+or the untracked ~/.config/custom-fetch-art.txt. Pick one with ./install-fetch.sh.
+
+Options:
+  --ensure-local  Seed custom-fetch-art.txt and custom-fetch-padding.jsonc from
+                  the .example templates if missing, then exit
+  -h, --help      Show this help
+USAGE
+}
+
+case "${1:-}" in
+  -h | --help)
+    df_ff_usage
+    exit 0
+    ;;
+esac
+
 if [[ "${1:-}" == "--ensure-local" ]]; then
   df_ff_art_ensure_custom
   df_ff_padding_ensure

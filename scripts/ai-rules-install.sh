@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-# Install dotfiles AI agent rules (cursor, codex, claude).
-# Also run automatically by ./devbox.sh and ./desktop.sh.
+# Install dotfiles AI agent rules (cursor, codex, claude) and the dotfiles-owned
+# Claude/Codex settings keys (see scripts/ai-config-install.sh).
+# Also run automatically by ./devbox.sh and ./desktop.sh (not by ./server.sh).
+# Sudo askpass + unrestricted agents: scripts/ai-agent-sudo-install.sh (opt-in).
 set -euo pipefail
 
-DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SOURCE_DIR="$DOTFILES_DIR/home"
 SCRIPTS_DIR="$DOTFILES_DIR/scripts"
 TARGET_HOME="${HOME:?}"
@@ -18,7 +20,7 @@ source "$SCRIPTS_DIR/lib/ai-rules.sh"
 
 usage() {
   cat <<'EOF'
-Usage: ./install-ai-rules.sh [options]
+Usage: ./scripts/ai-rules-install.sh [options]
 
 Install dotfiles AI agent rules for Cursor, Codex, and Claude Code, plus the
 dotfiles-owned keys of the Claude/Codex config (see ./scripts/ai-config-install.sh).
@@ -27,7 +29,7 @@ Master source:
   home/.config/dotfiles/ai-rules/cursor/*.mdc
 
 Destination:
-  ~/.cursor/rules/*.mdc   symlinks to repo; add custom *.mdc here
+  ~/.cursor/rules/*.mdc   symlinks to repo (copies on a server); add custom *.mdc here
   ~/.codex/AGENTS.md      merged from all .mdc (Codex needs one file)
   ~/.claude/rules/*.md    one file per rule (frontmatter stripped)
 
@@ -35,9 +37,13 @@ Destination:
 
 Sudo askpass and unrestricted sandboxes: ./scripts/ai-agent-sudo-install.sh (separate).
 
-Also runs during ./devbox.sh and ./desktop.sh.
+Runs automatically during ./devbox.sh, ./desktop.sh and dotfiles update.
+./server.sh does not run it; on a server use `dotfiles install ai-config`
+(this script, with copies instead of links).
 
 Options:
+  --copy      Copy files instead of linking (default on a server profile)
+  --link      Link files into the clone (default elsewhere)
   --dry-run   Print actions without changing anything
   -h, --help  Show this help
 EOF
@@ -64,6 +70,8 @@ while [[ $# -gt 0 ]]; do
       exit 0
       ;;
     --dry-run) DRY_RUN=1 ;;
+    --copy) export DF_AI_COPY_MODE=1 ;;
+    --link) export DF_AI_COPY_MODE=0 ;;
     *)
       echo "Unknown option: $1" >&2
       usage >&2

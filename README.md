@@ -72,9 +72,8 @@ dotfiles install lazyvim
 dotfiles install lazyvim-lite
 dotfiles sync lazyvim
 dotfiles sync lazyvim-lite
-./install-ai-rules.sh
-./scripts/ai-config-install.sh
-./scripts/ai-agent-sudo-install.sh
+dotfiles install ai-sudo          # agent sudo + unrestricted agents (opt-in)
+dotfiles install ai-config        # servers only; devbox/desktop get it from update
 ./scripts/nvm-install-update.sh
 ./scripts/alacritty-install-update.sh
 ./scripts/kitty-install-update.sh
@@ -82,26 +81,34 @@ dotfiles sync lazyvim-lite
 
 ### Claude Code and Codex config
 
-`install-ai-rules.sh` (also run by `devbox.sh` / `desktop.sh`) installs the rules and
+The AI rules and settings are part of the main install: `devbox.sh`, `desktop.sh` and
+`dotfiles update` run `scripts/ai-rules-install.sh`, which installs the rules and
 **merges** a few keys into the config files instead of owning them. Both tools rewrite
 their config at runtime (trust entries, UI counters), so nothing is symlinked whole.
+`server.sh` does not run it (servers rarely run agents); on a server use
+`dotfiles install ai-config`, which copies files instead of linking so the clone can be deleted.
 
 | Source (`home/.config/dotfiles/ai-config/`) | Target | How |
 |---|---|---|
 | `claude/settings.base.json` | `~/.claude/settings.json` | `jq` recursive merge; repo keys win, other keys kept |
 | `codex/config.base.toml` | `~/.codex/config.toml` | line-edit per key, re-parsed with `python3` tomllib before writing |
-| `home/.claude/statusline-command.sh`, `skills/*`, `agents/*`, `commands/*` | `~/.claude/...` | symlink per item (never the parent dir) |
-| `home/.codex/prompts/*`, `skills/*` | `~/.codex/...` | symlink per item |
+| `home/.claude/statusline-command.sh`, `skills/*`, `agents/*`, `commands/*` | `~/.claude/...` | symlink per item (copy on server; never the parent dir) |
+| `home/.codex/prompts/*`, `skills/*` | `~/.codex/...` | symlink per item (copy on server) |
 
 Add a key to a base file and re-run to roll it out. Auth, history, sessions and `[projects.*]`
 trust entries are never touched. A copy of each file from before the first merge is kept
 under `~/.local/share/dotfiles/backups/ai-config/`.
 
-`./scripts/ai-agent-sudo-install.sh` is a separate, opt-in script for machines where agents should run
-unrestricted: it sets up `SUDO_ASKPASS` (tmux password popup, `scripts/agent-sudo/`), turns
+`dotfiles install ai-sudo` (`./scripts/ai-agent-sudo-install.sh`) is a separate, opt-in setup for machines
+where agents should run unrestricted. It also applies the base settings first, so it works alone: it sets up `SUDO_ASKPASS` (tmux password popup, `scripts/ai-agent-sudo/`), turns
 off the Claude and Codex sandboxes and approval prompts (`bypassPermissions` / `approval_policy = "never"`),
-and adds the sudo rule. `--keep-approvals` keeps the prompts, `--uninstall` reverts it,
-`--dry-run` previews.
+and adds the sudo rule. `--keep-approvals` keeps the prompts, `--uninstall` (or
+`dotfiles uninstall ai-sudo`) reverts it, `--dry-run` previews. Run it once per machine; later
+`dotfiles update` runs keep the result.
+
+Rules for working on this repo itself live in `.cursor/rules/*.mdc` (masters) and
+`.claude/rules/*.md` (generated, committed). After editing an `.mdc`, run
+`./scripts/ai-repo-rules-sync.sh`; CI runs it with `--check`.
 
 See [`SHORTCUTS.md`](SHORTCUTS.md) for shell aliases, fzf, and tmux keys.
 

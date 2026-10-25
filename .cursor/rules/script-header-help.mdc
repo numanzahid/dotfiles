@@ -1,0 +1,54 @@
+---
+description: Every dotfiles script needs a header comment and a working --help
+globs: "{**/*.sh,scripts/dotfiles}"
+alwaysApply: false
+---
+
+# Script header and --help
+
+## Header comment (every `.sh`)
+
+Right after the shebang (and `set -euo pipefail` if present), a short comment block:
+
+- What the script does, in one or two lines
+- Who runs it or when (user command, `devbox.sh`/`desktop.sh` step, sourced by X, opt-in)
+- Anything that surprises: touches `/etc`, rewrites tool config, needs tmux/jq/sudo
+
+```bash
+#!/usr/bin/env bash
+# Install or upgrade bat from GitHub releases.
+# Invoked by devbox.sh and install-tools.sh; Fedora uses dnf instead.
+set -euo pipefail
+```
+
+## Executable scripts: `usage()` and `-h, --help`
+
+Anything a user can run (top-level `*.sh`, `scripts/*.sh`, `lazyvim*/`, `server/`, `scripts/dotfiles`):
+
+- `usage()` prints `Usage: ./path/as/typed.sh [options]`, a short description, what it
+  changes, requirements, and an `Options:` list that includes `-h, --help`.
+- Parse `-h|--help` before anything with side effects (sudo, network, writes). Print usage
+  to stdout and `exit 0`.
+- Unknown option: `Unknown option: X` plus usage on stderr, `exit 1`.
+- Installers get `--uninstall`, `--dry-run`, `--yes` from `scripts/lib/install-cli.sh`;
+  no-option scripts use `df_no_args_or_help` from `scripts/lib/cli-args.sh`.
+- Wrappers (`server.sh`, `setup-tmux-fetch.sh`) `exec` the real script with `"$@"` so
+  `--help` flows through; their header says "Compatibility wrapper".
+- When options change, update everything listed in the `tldr-dotfiles` rule (CLI help, tldr page, README), not only `usage()`.
+- Do not intercept `--help` in a script that must forward every argument to another
+  program (`scripts/ai-agent-sudo/sudo` passes everything to the real `sudo`).
+
+## Libraries and sourced files
+
+- `scripts/lib/*.sh`, `lazyvim*/lib/*.sh`: header only (no `--help`). State what the caller
+  must define, e.g. `# Requires: log, run, DRY_RUN`.
+- `home/**` shell files that are sourced (prompts, aliases, profile): header only.
+
+## Verify without installing
+
+Run only `--help`, with stubs on `PATH` for `sudo`/`apt`/`dnf`/`curl`/`git` and a throwaway
+`HOME`. It must print `Usage` and exit 0 with nothing blocked.
+
+```bash
+env -i HOME=/tmp/scratch PATH=/tmp/stubs:/usr/bin:/bin bash ./scripts/foo-install-update.sh --help </dev/null
+```

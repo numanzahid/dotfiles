@@ -1,0 +1,65 @@
+---
+paths:
+  - "**/*install*.sh"
+  - "**/devbox.sh"
+  - "**/desktop.sh"
+  - "**/server/**"
+  - "scripts/lib/{link,github-release,gui-terminal,ai-rules,ai-config}.sh"
+  - "install-*.sh"
+---
+<!-- Generated from .cursor/rules/install-journal.mdc by scripts/ai-repo-rules-sync.sh. Edit the .mdc, then re-run. -->
+
+# Install journal
+
+Every install side effect must be recorded in `~/.local/share/dotfiles/install-journal.tsv`.
+
+Format: `timestamp<TAB>kind<TAB>path<TAB>extra`
+
+## Use shared helpers (journal automatically)
+
+| Action | Helper |
+|--------|--------|
+| Symlink home config | `df_link_path` in `scripts/lib/link.sh` |
+| GitHub release binary | `gr_install_from_targz` or `gr_install_binary` in `scripts/lib/github-release.sh` |
+| apt/dnf packages that were missing | `df_journal_new_packages` after install |
+| Server/home copy with backup | `copy_file` in `server/install.sh` or `df_stash_original_if_needed` + journal |
+| Key merge into a tool-owned config (Claude `settings.json`, Codex `config.toml`) | `df_json_merge` / `df_toml_set` in `scripts/lib/ai-config.sh` (journals `patch`) |
+
+## Manual journal kinds
+
+| Kind | When |
+|------|------|
+| `copy` | Real file/dir we created under `$HOME` |
+| `link` | Symlink we created (if not using `df_link_path`) |
+| `binary` | Binary or install tree under `$HOME` (if not using `gr_install_binary`) |
+| `git-clone` | `git clone` into `$HOME` (fzf, tpm, nvm) |
+| `gsettings-key` | GNOME keybinding id (`dotfiles-terminal`, `default-terminal`) |
+| `system-dropin` | Config file we created under `/etc` |
+| `skip` | Path existed; we did not touch it |
+| `patch` | Keys merged into a file the tool owns (path = the file, or a marker such as `agent-sudo`). Uninstall does not revert it from the journal walk; `df_strip_ai_rules` calls `df_ai_config_unmerge_all` / `df_agent_sudo_unmerge` to remove the keys |
+
+## Rules
+
+- Source `scripts/lib/journal.sh` (or a lib that sources it) in new install scripts.
+- Call `df_journal_once kind path [extra]` after each side effect. It skips duplicates and no-ops on `--dry-run`.
+- Each `*-install-update.sh` (and `install-deps.sh`, `install-tools.sh`, `install-fetch.sh`) supports `--uninstall` to remove what that installer created. `dotfiles uninstall <name>` delegates to the matching script.
+- Do not use `declare -F df_journal_once` to skip journaling; source the journal lib instead.
+- If uninstall should revert it, it must be journaled. See `scripts/lib/journal.sh` for kind behavior.
+- Never symlink or template a config file the tool rewrites at runtime; merge only the keys we own (see the `ai-config-managed` rule).
+- After adding a new journal kind, add an uninstall handler in `uninstall.sh` and document it in `README.md`.
+
+## Examples
+
+```bash
+# Git clone
+df_journal_once git-clone "$HOME/.fzf"
+
+# Home file we wrote
+df_journal_once copy "$dest" "$src"
+
+# Optional GNOME shortcut (see gui-terminal.sh)
+df_journal_once gsettings-key "dotfiles-terminal"
+
+# /etc drop-in we created
+df_journal_once system-dropin "/etc/systemd/resolved.conf.d/dotfiles-mdns.conf"
+```

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Let Claude Code and Codex run sudo through a tmux password popup, and drop
-# their sandboxes. Separate from install-ai-rules.sh / devbox.sh / desktop.sh:
-# run it only on machines where you want agents unrestricted.
+# their sandboxes and approval prompts. Opt-in per machine: devbox.sh, desktop.sh
+# and dotfiles update never run it. Also applies the base Claude/Codex settings.
+# Run as ./scripts/ai-agent-sudo-install.sh or `dotfiles install ai-sudo`.
 set -euo pipefail
 
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -26,10 +27,14 @@ Usage: ./scripts/ai-agent-sudo-install.sh [options]
 Agent sudo setup for Claude Code and Codex, with agent restrictions removed.
 
 What it does:
-  ~/.local/bin/tmux-askpass   symlink; asks for the sudo password in a tmux
-                              popup so agent shells never see it
-  ~/.local/bin/sudo           symlink; wrapper that adds -A when SUDO_ASKPASS
-                              is set (agent shells only; normal shells unchanged)
+  base settings               first applies the dotfiles Claude/Codex settings
+                              (same as ./scripts/ai-config-install.sh)
+  ~/.local/bin/tmux-askpass   link (copy on a server); asks for the sudo
+                              password in a tmux popup so agent shells never
+                              see it
+  ~/.local/bin/sudo           link (copy on a server); wrapper that adds -A when
+                              SUDO_ASKPASS is set (agent shells only; normal
+                              shells unchanged)
   Claude settings.json        env.SUDO_ASKPASS, sandbox.enabled=false,
                               permissions.defaultMode=bypassPermissions,
                               skipDangerousModePermissionPrompt=true
@@ -41,12 +46,17 @@ What it does:
 
 Only those keys are touched; the rest of each config file is left alone.
 The sudo password is never read, stored, or passed through this script.
+Needs: tmux (agents must run inside it), jq, python3 >= 3.11, ~/.local/bin
+before /usr/bin on PATH. Restart running Claude Code / Codex sessions after.
 
 Options:
   --keep-approvals  Keep approval prompts: skip bypassPermissions (Claude) and
                     approval_policy="never" (Codex); the sandbox is still
                     removed. Also reverts an earlier unrestricted run.
-  --uninstall       Remove what this script added (keys, symlinks, sudo rule)
+  --uninstall       Remove what this script added (keys, links, sudo rule)
+  --copy            Copy files instead of linking (default on a server profile)
+  --link            Link files into the clone (default elsewhere)
+  --yes, -y         Accepted for `dotfiles uninstall ai-sudo`; there are no prompts
   --dry-run         Print actions without changing anything
   -h, --help        Show this help
 EOF
@@ -75,6 +85,9 @@ while [[ $# -gt 0 ]]; do
     --dry-run) DRY_RUN=1 ;;
     --uninstall) UNINSTALL=1 ;;
     --keep-approvals) NO_APPROVALS=0 ;;
+    --copy) export DF_AI_COPY_MODE=1 ;;
+    --link) export DF_AI_COPY_MODE=0 ;;
+    --yes | -y) ;;
     *)
       echo "Unknown option: $1" >&2
       usage >&2
@@ -112,15 +125,17 @@ install_agent_sudo() {
   rule_dest="$(df_ai_rules_cursor_dest_dir)/sudo.mdc"
 
   preflight
+  df_ai_config_install_all
+
   mkdir -p "$bin"
   run chmod +x "$src/tmux-askpass" "$src/sudo"
-  df_link_path "$src/tmux-askpass" "$bin/tmux-askpass"
-  df_link_path "$src/sudo" "$bin/sudo"
+  df_ai_place "$src/tmux-askpass" "$bin/tmux-askpass"
+  df_ai_place "$src/sudo" "$bin/sudo"
 
   df_agent_sudo_merge "$NO_APPROVALS"
 
   mkdir -p "$(dirname "$rule_dest")"
-  df_link_path "$rule_src" "$rule_dest"
+  df_ai_place "$rule_src" "$rule_dest"
   refresh_generated_rules
 
   df_journal_once patch agent-sudo "ai-agent-sudo-install.sh"
@@ -130,15 +145,19 @@ install_agent_sudo() {
   log "done. Restart running Claude Code / Codex sessions to pick up the new settings."
 }
 
-# Remove a symlink only when it points into this clone.
+# Remove a symlink that points into this clone, or a copy we installed (tracked).
 unlink_ours() {
   local dest="$1"
   if [[ -L "$dest" ]] && [[ "$(readlink -f "$dest")" == "$DOTFILES_DIR/"* ]]; then
     log "remove link: $dest"
-    run rm -f "$dest"
-    if [[ "$DRY_RUN" -eq 0 ]]; then
-      df_journal_remove_path "$dest"
-    fi
+  elif [[ -f "$dest" && ! -L "$dest" ]] && df_path_is_tracked "$dest"; then
+    log "remove copy: $dest"
+  else
+    return 0
+  fi
+  run rm -f "$dest"
+  if [[ "$DRY_RUN" -eq 0 ]]; then
+    df_journal_remove_path "$dest"
   fi
 }
 
@@ -163,7 +182,7 @@ uninstall_agent_sudo() {
     df_journal_remove_path "$claude_rule"
   fi
   refresh_generated_rules
-  log "removed. Originals (if any) are under $(df_backups_dir); repo copies stay in scripts/agent-sudo/."
+  log "removed. Originals (if any) are under $(df_backups_dir); repo copies stay in scripts/ai-agent-sudo/."
 }
 
 if [[ "$UNINSTALL" -eq 1 ]]; then

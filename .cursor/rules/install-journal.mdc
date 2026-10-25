@@ -1,6 +1,6 @@
 ---
 description: Record install actions in the dotfiles journal for uninstall
-globs: "{**/*install*.sh,**/devbox.sh,**/desktop.sh,**/server/**,scripts/lib/{link,github-release,gui-terminal,ai-rules}.sh,install-*.sh}"
+globs: "{**/*install*.sh,**/devbox.sh,**/desktop.sh,**/server/**,scripts/lib/{link,github-release,gui-terminal,ai-rules,ai-config}.sh,install-*.sh}"
 alwaysApply: false
 ---
 
@@ -18,6 +18,7 @@ Format: `timestamp<TAB>kind<TAB>path<TAB>extra`
 | GitHub release binary | `gr_install_from_targz` or `gr_install_binary` in `scripts/lib/github-release.sh` |
 | apt/dnf packages that were missing | `df_journal_new_packages` after install |
 | Server/home copy with backup | `copy_file` in `server/install.sh` or `df_stash_original_if_needed` + journal |
+| Key merge into a tool-owned config (Claude `settings.json`, Codex `config.toml`) | `df_json_merge` / `df_toml_set` in `scripts/lib/ai-config.sh` (journals `patch`) |
 
 ## Manual journal kinds
 
@@ -30,6 +31,7 @@ Format: `timestamp<TAB>kind<TAB>path<TAB>extra`
 | `gsettings-key` | GNOME keybinding id (`dotfiles-terminal`, `default-terminal`) |
 | `system-dropin` | Config file we created under `/etc` |
 | `skip` | Path existed; we did not touch it |
+| `patch` | Keys merged into a file the tool owns (path = the file, or a marker such as `agent-sudo`). Uninstall does not revert it from the journal walk; `df_strip_ai_rules` calls `df_ai_config_unmerge_all` / `df_agent_sudo_unmerge` to remove the keys |
 
 ## Rules
 
@@ -38,6 +40,7 @@ Format: `timestamp<TAB>kind<TAB>path<TAB>extra`
 - Each `*-install-update.sh` (and `install-deps.sh`, `install-tools.sh`, `install-fetch.sh`) supports `--uninstall` to remove what that installer created. `dotfiles uninstall <name>` delegates to the matching script.
 - Do not use `declare -F df_journal_once` to skip journaling; source the journal lib instead.
 - If uninstall should revert it, it must be journaled. See `scripts/lib/journal.sh` for kind behavior.
+- Never symlink or template a config file the tool rewrites at runtime; merge only the keys we own (see the `ai-config-managed` rule).
 - After adding a new journal kind, add an uninstall handler in `uninstall.sh` and document it in `README.md`.
 
 ## Examples

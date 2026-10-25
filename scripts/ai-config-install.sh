@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Install dotfiles-owned Claude Code and Codex settings (keys only, not whole files).
-# Also run automatically by install-ai-rules.sh, ./devbox.sh and ./desktop.sh.
+# Also run automatically by ai-rules-install.sh, ./devbox.sh and ./desktop.sh.
 set -euo pipefail
 
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -28,16 +28,19 @@ Source (home/.config/dotfiles/ai-config/):
   claude/settings.base.json   merged into ~/.claude/settings.json (jq)
   codex/config.base.toml      merged into ~/.codex/config.toml
 
-Linked one item at a time (parent dirs are never replaced):
+Linked one item at a time, copied on a server (parent dirs are never replaced):
   home/.claude/statusline-command.sh -> ~/.claude/statusline-command.sh
   home/.claude/{skills,agents,commands}/*  -> ~/.claude/<kind>/*
   home/.codex/{prompts,skills}/*           -> ~/.codex/<kind>/*
 
-Sudo askpass and unrestricted sandboxes are a separate script:
-  ./scripts/ai-agent-sudo-install.sh
+Settings only; ./scripts/ai-rules-install.sh does these plus the rules, and runs
+in devbox.sh, desktop.sh and dotfiles update. Sudo askpass and unrestricted
+sandboxes are a separate opt-in script: ./scripts/ai-agent-sudo-install.sh
 
 Options:
   --uninstall  Remove the merged keys again (links are reverted by uninstall.sh)
+  --copy       Copy files instead of linking (default on a server profile)
+  --link       Link files into the clone (default elsewhere)
   --dry-run    Print actions without changing anything
   -h, --help   Show this help
 EOF
@@ -64,6 +67,8 @@ while [[ $# -gt 0 ]]; do
       exit 0
       ;;
     --dry-run) DRY_RUN=1 ;;
+    --copy) export DF_AI_COPY_MODE=1 ;;
+    --link) export DF_AI_COPY_MODE=0 ;;
     --uninstall) UNINSTALL=1 ;;
     *)
       echo "Unknown option: $1" >&2

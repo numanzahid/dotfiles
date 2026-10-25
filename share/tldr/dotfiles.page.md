@@ -30,6 +30,22 @@
 
 `dotfiles install fetch`
 
+- Install AI agent rules and Claude/Codex settings (server; update does it on devbox/desktop):
+
+`dotfiles install ai-config`
+
+- Let agents use sudo via a tmux password popup, sandbox and approvals off (opt-in per machine):
+
+`dotfiles install ai-sudo`
+
+- Same, but keep approval prompts:
+
+`dotfiles install ai-sudo --keep-approvals`
+
+- Remove agent sudo setup:
+
+`dotfiles uninstall ai-sudo`
+
 - Sync LazyVim plugins to lazy-lock.json (after git pull):
 
 `dotfiles sync lazyvim`

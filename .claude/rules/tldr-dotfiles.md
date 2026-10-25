@@ -1,0 +1,51 @@
+---
+paths:
+  - "scripts/dotfiles"
+  - "scripts/uninstall-software.sh"
+  - "scripts/ai-*.sh"
+  - "share/tldr/**"
+  - "SHORTCUTS.md"
+  - "README.md"
+---
+<!-- Generated from .cursor/rules/tldr-dotfiles.mdc by scripts/ai-repo-rules-sync.sh. Edit the .mdc, then re-run. -->
+
+# Help, tldr and README stay in sync
+
+User-facing behavior is documented in four places. Update all that apply in the same change.
+
+| Change | Update |
+|---|---|
+| Add, rename, remove or change a flag of any script | that script's `usage()` / `--help` (see `script-header-help`) |
+| Add, rename, remove a `dotfiles` subcommand, target or flag | `usage()` and the `dotfiles_cmd_*_help` text in `scripts/dotfiles`, then the tldr page |
+| Change what `dotfiles install/update/uninstall` does by default | `scripts/dotfiles` help, tldr page, README |
+| Add an uninstallable tool | `df_sw_list` / `df_sw_script_for` in `scripts/uninstall-software.sh` (it feeds `dotfiles uninstall --list`), README |
+| Move first-time setup entry points (`devbox.sh`, `desktop.sh`, `server.sh`) | `scripts/dotfiles` help, tldr page, README |
+| Add or move a script users run directly | README ("Optional extras" or the relevant section) |
+
+Examples already wired this way: `dotfiles install ai-config` (server; devbox and desktop get it
+from `update`) and `dotfiles install ai-sudo` / `dotfiles uninstall ai-sudo` (opt-in agent sudo).
+
+## tldr page
+
+Custom page for tealdeer: `share/tldr/dotfiles.page.md`
+Installed to: `~/.local/share/tealdeer/pages/dotfiles.page.md` (symlink on install)
+
+Do not duplicate every script flag; keep the page short like upstream tldr (common tasks only).
+
+### Format
+
+- Title: `# dotfiles`
+- One-line description after `>`
+- Sections use `-` bullets; commands in backticks on their own line
+- ASCII only; no emojis
+
+## Verify
+
+```bash
+dotfiles --help                         # CLI help shows the new target/flag
+./scripts/<script>.sh --help            # script help (stubbed PATH, see script-header-help)
+tldr dotfiles
+./scripts/tealdeer-install-update.sh    # re-link page on existing hosts
+```
+
+If `tldr dotfiles` fails, check `tldr --show-paths` and that the symlink exists under Custom pages dir.

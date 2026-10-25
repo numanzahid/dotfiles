@@ -16,7 +16,7 @@ BIN_PATH="${HOME}/.local/bin/syncthing"
 UNIT_SRC="${SCRIPT_DIR}/data/systemd/user/syncthing.service"
 UNIT_DEST="${HOME}/.config/systemd/user/syncthing.service"
 SYSTEM_UNIT_TEMPLATE="${SCRIPT_DIR}/data/systemd/system/syncthing-user.service.template"
-SYSTEM_UNIT_DEST="/etc/systemd/system/syncthing-${USER}.service"
+SYSTEM_UNIT_DEST="/etc/systemd/system/syncthing-${USER:-$(id -un)}.service"
 SYNCTHING_HOME="${HOME}/.local/share/syncthing"
 AUTOSTART_MODE="" # user | system
 CONFIG_XML="${SYNCTHING_HOME}/config.xml"
@@ -355,7 +355,7 @@ install_system_service_unit() {
   df_ensure_sudo
   tmp="$(mktemp)"
   sed \
-    -e "s|@USER@|${USER}|g" \
+    -e "s|@USER@|${USER:-$(id -un)}|g" \
     -e "s|@GROUP@|${group}|g" \
     -e "s|@HOME@|${HOME}|g" \
     -e "s|@BIN@|${BIN_PATH}|g" \
@@ -370,7 +370,7 @@ install_system_service_unit() {
 
 remove_system_service_unit() {
   if [[ -f "$SYSTEM_UNIT_DEST" ]]; then
-    run df_run_privileged systemctl disable --now "syncthing-${USER}.service" 2>/dev/null || true
+    run df_run_privileged systemctl disable --now "syncthing-${USER:-$(id -un)}.service" 2>/dev/null || true
     run df_run_privileged rm -f "$SYSTEM_UNIT_DEST"
     run df_run_privileged systemctl daemon-reload
   fi
@@ -390,8 +390,8 @@ remove_user_service_unit() {
 start_syncthing_system_service() {
   df_ensure_sudo
   run df_run_privileged systemctl daemon-reload
-  run df_run_privileged systemctl enable "syncthing-${USER}.service"
-  run df_run_privileged systemctl restart "syncthing-${USER}.service"
+  run df_run_privileged systemctl enable "syncthing-${USER:-$(id -un)}.service"
+  run df_run_privileged systemctl restart "syncthing-${USER:-$(id -un)}.service"
 }
 
 start_syncthing_service() {
@@ -438,8 +438,8 @@ EOF
 EOF
   if [[ "$AUTOSTART_MODE" == system ]]; then
     cat <<EOF
-Service:  sudo systemctl status syncthing-${USER}
-Logs:     sudo journalctl -u syncthing-${USER} -e
+Service:  sudo systemctl status syncthing-${USER:-$(id -un)}
+Logs:     sudo journalctl -u syncthing-${USER:-$(id -un)} -e
 EOF
   else
     cat <<EOF
@@ -505,10 +505,10 @@ print_status() {
     echo "Autostart: (none)"
   fi
   if [[ -f "$SYSTEM_UNIT_DEST" ]]; then
-    if systemctl is-active "syncthing-${USER}.service" >/dev/null 2>&1; then
+    if systemctl is-active "syncthing-${USER:-$(id -un)}.service" >/dev/null 2>&1; then
       echo "Service:  active (system)"
     else
-      echo "Service:  $(systemctl is-active "syncthing-${USER}.service" 2>/dev/null || echo inactive) (system)"
+      echo "Service:  $(systemctl is-active "syncthing-${USER:-$(id -un)}.service" 2>/dev/null || echo inactive) (system)"
     fi
   elif user_systemd_available && systemctl --user is-active syncthing.service >/dev/null 2>&1; then
     echo "Service:  active (user)"

@@ -1,6 +1,33 @@
 #!/bin/bash
 # SUDO_ASKPASS helper: asks for the sudo password in a tmux popup so agent
 # shells (Claude Code, Codex) never see it. Prints the password on stdout.
+# Not run by hand: sudo calls it as SUDO_ASKPASS (via the sudo wrapper's -A).
+# Installed by scripts/ai-agent-sudo-install.sh, which links it into ~/.local/bin.
+
+usage() {
+  cat <<'USAGE'
+Usage: tmux-askpass [PROMPT]
+
+SUDO_ASKPASS helper. Opens a tmux popup on the most recently active client,
+shows the command sudo is about to run, reads the password there, and prints it
+on stdout for sudo. The calling agent shell never sees the password.
+
+Needs: an attached tmux client. Exits 1 if the popup is denied (Ctrl-C), cannot
+open, or times out after 120 seconds.
+
+Set it up with: ./scripts/ai-agent-sudo-install.sh
+
+Options:
+  -h, --help   Show this help
+USAGE
+}
+
+case "${1:-}" in
+  -h | --help)
+    usage
+    exit 0
+    ;;
+esac
 
 # Inner mode: runs inside the popup, writes the password to the fifo.
 if [ "$1" = --popup ]; then

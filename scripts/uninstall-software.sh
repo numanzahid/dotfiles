@@ -41,7 +41,7 @@ EOF
 df_sw_list() {
   printf '%s\n' \
     lazygit gh fzf tldr tpm neovim btop gdu localsend syncthing starship fonts fetch \
-    tools deps bat fd zoxide eza kitty nvm
+    tools deps bat fd zoxide eza kitty nvm ai-sudo
 }
 
 df_sw_script_for() {
@@ -74,6 +74,7 @@ df_sw_script_for() {
     fd) printf '%s/fd-install-update.sh\n' "$SCRIPTS_DIR" ;;
     zoxide) printf '%s/zoxide-install-update.sh\n' "$SCRIPTS_DIR" ;;
     eza) printf '%s/eza-install-update.sh\n' "$SCRIPTS_DIR" ;;
+    ai-sudo) printf '%s/ai-agent-sudo-install.sh\n' "$SCRIPTS_DIR" ;;
     *) return 1 ;;
   esac
 }

@@ -10,7 +10,7 @@
 #
 # Reusable assets (statusline, skills, agents, commands, prompts) are
 # symlinked one item at a time so tool-managed siblings are never swallowed.
-# Used by install-ai-rules.sh, ai-config-install.sh, ai-agent-sudo-install.sh.
+# Used by ai-rules-install.sh, ai-config-install.sh, ai-agent-sudo-install.sh.
 # Requires: log, run, and link.sh helpers (SOURCE_DIR / DOTFILES_DIR optional).
 
 # Repo root derived from this file, for callers (uninstall.sh) that do not set
@@ -444,7 +444,56 @@ df_toml_unmerge_file() {
 # Linked assets
 # ---------------------------------------------------------------------------
 
-# Symlink each child of SRC_DIR into DEST_DIR (never the directory itself).
+# Servers get real copies (the clone may be deleted afterwards); devbox and
+# desktop get symlinks. Force with DF_AI_COPY_MODE=1 (copy) or 0 (link), which
+# the --copy / --link flags of the ai-*-install.sh scripts set.
+df_ai_copy_mode() {
+  local profile=""
+
+  if [[ -n "${DF_AI_COPY_MODE:-}" ]]; then
+    [[ "$DF_AI_COPY_MODE" == 1 ]]
+    return
+  fi
+  [[ -f "$(df_journal_dir)/profile" ]] && profile="$(cat "$(df_journal_dir)/profile")"
+  [[ "$profile" == server ]]
+}
+
+# Symlink SRC to DEST, or copy it in copy mode. Either way: backed up once,
+# tracked in managed-paths, journaled (link/copy) so uninstall can revert it.
+df_ai_place() {
+  local src="$1"
+  local dest="$2"
+
+  if ! df_ai_copy_mode; then
+    df_link_path "$src" "$dest"
+    return 0
+  fi
+
+  if [[ ! -e "$src" ]]; then
+    log "skip missing source: $src"
+    return 0
+  fi
+  mkdir -p "$(dirname "$dest")"
+  if [[ -L "$dest" ]]; then
+    log "replace symlink with copy: $dest"
+    run rm -f "$dest"
+  elif [[ -e "$dest" ]]; then
+    if [[ -f "$src" ]] && df_same_file "$src" "$dest"; then
+      log "up to date: $dest"
+      df_track_path "$dest"
+      df_journal_once copy "$dest" "$src"
+      return 0
+    fi
+    df_stash_original_if_needed "$src" "$dest"
+    [[ -e "$dest" ]] && run rm -rf "$dest"
+  fi
+  log "copy: $src -> $dest"
+  run cp -a "$src" "$dest"
+  df_track_path "$dest"
+  df_journal_once copy "$dest" "$src"
+}
+
+# Place each child of SRC_DIR into DEST_DIR (never the directory itself).
 df_ai_config_link_children() {
   local src_dir="$1"
   local dest_dir="$2"
@@ -458,7 +507,7 @@ df_ai_config_link_children() {
 
   mkdir -p "$dest_dir"
   for item in "${items[@]}"; do
-    df_link_path "$item" "$dest_dir/$(basename "$item")"
+    df_ai_place "$item" "$dest_dir/$(basename "$item")"
   done
 }
 
@@ -478,7 +527,7 @@ df_ai_config_install_claude() {
     log "skip claude settings (missing $base)"
   fi
 
-  df_link_path "$(df_ai_config_source_dir)/.claude/statusline-command.sh" "$home/.claude/statusline-command.sh"
+  df_ai_place "$(df_ai_config_source_dir)/.claude/statusline-command.sh" "$home/.claude/statusline-command.sh"
   df_ai_config_link_children "$(df_ai_config_source_dir)/.claude/skills" "$home/.claude/skills"
   df_ai_config_link_children "$(df_ai_config_source_dir)/.claude/agents" "$home/.claude/agents"
   df_ai_config_link_children "$(df_ai_config_source_dir)/.claude/commands" "$home/.claude/commands"
@@ -530,7 +579,7 @@ df_ai_config_unmerge_all() {
 # ---------------------------------------------------------------------------
 
 df_agent_sudo_src_dir() {
-  printf '%s/scripts/agent-sudo' "${DOTFILES_DIR:-$DF_AI_CONFIG_REPO_ROOT}"
+  printf '%s/scripts/ai-agent-sudo' "${DOTFILES_DIR:-$DF_AI_CONFIG_REPO_ROOT}"
 }
 
 df_agent_sudo_askpass_path() {

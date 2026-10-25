@@ -1,6 +1,8 @@
 #!/bin/bash
 # Agent shells (Claude Code, Codex) set SUDO_ASKPASS, so their password
 # prompts go to a tmux popup. Normal shells are unaffected.
+# Forwards every argument to the real sudo, so it has no --help of its own.
+# Installed by scripts/ai-agent-sudo-install.sh.
 if [ -n "$SUDO_ASKPASS" ]; then
   exec /usr/bin/sudo -A "$@"
 fi
