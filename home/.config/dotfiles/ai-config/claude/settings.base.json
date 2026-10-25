@@ -1,0 +1,13 @@
+{
+  "model": "sonnet",
+  "statusLine": {
+    "type": "command",
+    "command": "bash ~/.claude/statusline-command.sh"
+  },
+  "modelSettings": {
+    "claude-sonnet-5-5": {
+      "effortLevel": "high"
+    }
+  },
+  "theme": "dark"
+}

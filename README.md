@@ -73,10 +73,35 @@ dotfiles install lazyvim-lite
 dotfiles sync lazyvim
 dotfiles sync lazyvim-lite
 ./install-ai-rules.sh
+./scripts/ai-config-install.sh
+./scripts/ai-agent-sudo-install.sh
 ./scripts/nvm-install-update.sh
 ./scripts/alacritty-install-update.sh
 ./scripts/kitty-install-update.sh
 ```
+
+### Claude Code and Codex config
+
+`install-ai-rules.sh` (also run by `devbox.sh` / `desktop.sh`) installs the rules and
+**merges** a few keys into the config files instead of owning them. Both tools rewrite
+their config at runtime (trust entries, UI counters), so nothing is symlinked whole.
+
+| Source (`home/.config/dotfiles/ai-config/`) | Target | How |
+|---|---|---|
+| `claude/settings.base.json` | `~/.claude/settings.json` | `jq` recursive merge; repo keys win, other keys kept |
+| `codex/config.base.toml` | `~/.codex/config.toml` | line-edit per key, re-parsed with `python3` tomllib before writing |
+| `home/.claude/statusline-command.sh`, `skills/*`, `agents/*`, `commands/*` | `~/.claude/...` | symlink per item (never the parent dir) |
+| `home/.codex/prompts/*`, `skills/*` | `~/.codex/...` | symlink per item |
+
+Add a key to a base file and re-run to roll it out. Auth, history, sessions and `[projects.*]`
+trust entries are never touched. A copy of each file from before the first merge is kept
+under `~/.local/share/dotfiles/backups/ai-config/`.
+
+`./scripts/ai-agent-sudo-install.sh` is a separate, opt-in script for machines where agents should run
+unrestricted: it sets up `SUDO_ASKPASS` (tmux password popup, `scripts/agent-sudo/`), turns
+off the Claude and Codex sandboxes and approval prompts (`bypassPermissions` / `approval_policy = "never"`),
+and adds the sudo rule. `--keep-approvals` keeps the prompts, `--uninstall` reverts it,
+`--dry-run` previews.
 
 See [`SHORTCUTS.md`](SHORTCUTS.md) for shell aliases, fzf, and tmux keys.
 
@@ -130,6 +155,7 @@ Uninstall reads the journal to restore configs and remove tools. Kinds:
 | `symlink` / `opt-tree` | neovim | Remove `/opt/nvim` tree and symlinks |
 | `gsettings-key` | GNOME terminal shortcuts | Reset keybinding or default terminal |
 | `system-dropin` | avahi installer, etc. | Remove `/etc/...` drop-in we created |
+| `patch` | AI config key merges | Keys removed again by `df_strip_ai_rules` (not by the journal walk) |
 | `skip` / `locale` / `hide-clone` | skipped paths, locale, clone rename | Left alone (by design) |
 
 Not journaled (manual cleanup): LazyVim, `~/.cargo`/`~/.rustup` from Alacritty source builds, locale system config, user edits to skipped paths.

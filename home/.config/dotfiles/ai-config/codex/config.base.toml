@@ -1,0 +1,8 @@
+# Keys dotfiles owns in ~/.codex/config.toml; everything else is left alone.
+# One `key = value` per line, optionally under a [table]. Sandbox and
+# SUDO_ASKPASS live in ai-agent-sudo-install.sh. Trust entries ([projects.*]) and
+# UI counters are machine state and stay out of the repo.
+approval_policy = "on-request"
+
+[tui]
+screen_reader_detection_done = true

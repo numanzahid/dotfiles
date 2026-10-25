@@ -20,7 +20,8 @@ usage() {
   cat <<'EOF'
 Usage: ./install-ai-rules.sh [options]
 
-Install dotfiles AI agent rules for Cursor, Codex, and Claude Code.
+Install dotfiles AI agent rules for Cursor, Codex, and Claude Code, plus the
+dotfiles-owned keys of the Claude/Codex config (see ./scripts/ai-config-install.sh).
 
 Master source:
   home/.config/dotfiles/ai-rules/cursor/*.mdc
@@ -29,6 +30,10 @@ Destination:
   ~/.cursor/rules/*.mdc   symlinks to repo; add custom *.mdc here
   ~/.codex/AGENTS.md      merged from all .mdc (Codex needs one file)
   ~/.claude/rules/*.md    one file per rule (frontmatter stripped)
+
+  ~/.claude/settings.json and ~/.codex/config.toml  keys merged, not replaced
+
+Sudo askpass and unrestricted sandboxes: ./scripts/ai-agent-sudo-install.sh (separate).
 
 Also runs during ./devbox.sh and ./desktop.sh.
 

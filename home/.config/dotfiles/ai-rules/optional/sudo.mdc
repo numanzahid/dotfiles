@@ -1,0 +1,9 @@
+---
+description: How agents run root commands on this machine
+alwaysApply: true
+---
+
+Run root commands with plain `sudo`; the password prompt appears to the user as a tmux popup.
+
+- Never ask the user for their sudo password, and never try to read, pipe or echo it.
+- If sudo fails with "cancelled or timed out", the user declined or was away; report it, don't retry in a loop.

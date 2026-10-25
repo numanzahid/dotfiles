@@ -4,6 +4,9 @@
 # Codex gets one AGENTS.md (API limitation). Used by install-ai-rules.sh.
 # Requires: SOURCE_DIR, log, run, and link.sh helpers.
 
+# shellcheck source=ai-config.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/ai-config.sh"
+
 df_ai_rules_root() {
   printf '%s/.config/dotfiles/ai-rules' "$SOURCE_DIR"
 }
@@ -321,6 +324,7 @@ df_ai_rules_install_all() {
   df_ai_rules_install_cursor
   df_ai_rules_install_codex
   df_ai_rules_install_claude
+  df_ai_config_install_all
 }
 
 df_ai_rules_install_tool() {
@@ -510,4 +514,8 @@ df_strip_ai_rules() {
     df_ai_rule_strip_block "$dest" "trash-cli"
     df_ai_rule_strip_block "$dest" "git"
   done
+  df_ai_config_unmerge_all
+  if df_journal_has patch agent-sudo; then
+    df_agent_sudo_unmerge
+  fi
 }

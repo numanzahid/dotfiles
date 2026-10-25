@@ -21,6 +21,16 @@
 **/.gitconfig.local
 home/.config/opencode/
 
+# Agent runtime state (only statusline/skills/agents/commands/prompts belong in the repo)
+**/.credentials.json
+home/.claude/projects/
+home/.claude/sessions/
+home/.claude/session-env/
+home/.claude/history.jsonl
+home/.codex/sessions/
+home/.codex/history.jsonl
+home/.codex/*.sqlite*
+
 # Keep tracked templates
 !**/*.example
 !**/*.example.*

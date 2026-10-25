@@ -1,0 +1,50 @@
+#!/bin/bash
+# SUDO_ASKPASS helper: asks for the sudo password in a tmux popup so agent
+# shells (Claude Code, Codex) never see it. Prints the password on stdout.
+
+# Inner mode: runs inside the popup, writes the password to the fifo.
+if [ "$1" = --popup ]; then
+  dir=$2
+  echo $$ > "$dir/pid"
+  exec 3>"$dir/fifo"
+  trap 'printf "\n" >&3; exit 1' HUP INT TERM
+  printf '\n  An agent wants to run as root:\n\n    %s\n\n' "$(cat "$dir/cmd")"
+  IFS= read -rsp '  sudo password (Ctrl-C to deny): ' pw
+  printf '%s\n' "$pw" >&3
+  exit 0
+fi
+
+client=$(tmux list-clients -F '#{client_activity} #{client_name}' 2>/dev/null | sort -rn | awk 'NR==1 {print $2}')
+if [ -z "$client" ]; then
+  echo "tmux-askpass: no attached tmux client to ask for the sudo password" >&2
+  exit 1
+fi
+
+dir=$(mktemp -d)
+# Close the popup if we give up before the user answers.
+trap '[ -s "$dir/pid" ] && kill "$(cat "$dir/pid")" 2>/dev/null; rm -rf "$dir"' EXIT
+mkfifo -m 600 "$dir/fifo"
+# Our parent is sudo; show the user the command it is about to run.
+ps -o args= -p "$PPID" | sed -E 's#^(/usr/bin/)?sudo( -A)? ##' > "$dir/cmd"
+
+# Open read-write so neither side blocks on open; read times out instead.
+exec 4<>"$dir/fifo"
+tmux display-popup -c "$client" -E -w 90 -h 10 -T ' sudo ' \
+  "$(printf '%q ' "$(readlink -f "$0")" --popup "$dir")" >/dev/null 2>&1
+
+# tmux silently ignores a popup while another popup or menu is open.
+for _ in 1 2 3 4 5 6; do
+  [ -s "$dir/pid" ] && break
+  read -r -t 0.5 <&4 2>/dev/null
+done
+if [ ! -s "$dir/pid" ]; then
+  echo "tmux-askpass: could not open the password popup (is another tmux popup or menu open?)" >&2
+  exit 1
+fi
+
+if ! IFS= read -r -t 120 pw <&4 || [ -z "$pw" ]; then
+  echo "tmux-askpass: password prompt cancelled or timed out" >&2
+  exit 1
+fi
+rm -f "$dir/pid"
+printf '%s\n' "$pw"

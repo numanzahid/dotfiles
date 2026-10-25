@@ -1,0 +1,7 @@
+#!/bin/bash
+# Agent shells (Claude Code, Codex) set SUDO_ASKPASS, so their password
+# prompts go to a tmux popup. Normal shells are unaffected.
+if [ -n "$SUDO_ASKPASS" ]; then
+  exec /usr/bin/sudo -A "$@"
+fi
+exec /usr/bin/sudo "$@"

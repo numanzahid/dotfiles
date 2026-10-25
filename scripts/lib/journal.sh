@@ -7,7 +7,8 @@
 #   link         - restore home path from backup or remove symlink
 #   copy         - restore home path from backup or remove our copy
 #   skip         - no-op (pre-existing file left alone)
-#   patch        - reserved, no-op
+#   patch        - JSON/TOML keys merged into a tool-owned config (ai-config.sh);
+#                  uninstall removes the keys via df_strip_ai_rules, not this kind
 #   package-new  - apt/dnf remove when path names the package
 #   binary       - remove file or tree (home or system)
 #   symlink      - remove system symlink
