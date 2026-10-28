@@ -289,6 +289,37 @@ df_fetch_status_label() {
   fi
 }
 
+# What the AI config installer applied (Claude/Codex settings, rules, sandbox, sudo).
+df_ai_status_print() {
+  local home="${HOME:?}" rules="" f tool dialog=""
+
+  printf '\nAI config:\n'
+  if ! df_journal_has patch "$home/.claude/settings.json" &&
+    ! df_journal_has patch "$home/.codex/config.toml"; then
+    printf '  not installed (dotfiles install ai-config)\n'
+    return 0
+  fi
+  df_journal_has patch "$home/.claude/settings.json" && printf '  %-15s %s\n' 'Claude' 'settings merged (~/.claude/settings.json)'
+  df_journal_has patch "$home/.codex/config.toml" && printf '  %-15s %s\n' 'Codex' 'settings merged (~/.codex/config.toml)'
+  for f in "$home"/.claude/rules/*.md; do
+    [[ -f "$f" ]] && rules+="${rules:+, }$(basename "$f" .md)"
+  done
+  printf '  %-15s %s\n' 'Rules' "${rules:-none}"
+  if df_journal_has patch nosandbox || df_journal_has patch agent-sudo-no-approvals; then
+    printf '  %-15s %s\n' 'Sandbox' 'off, approvals off (dotfiles install ai-config --sandbox to restore)'
+  else
+    printf '  %-15s %s\n' 'Sandbox' 'default (dotfiles install ai-config --nosandbox to turn off)'
+  fi
+  if df_journal_has patch agent-sudo; then
+    for tool in zenity kdialog yad; do
+      command -v "$tool" >/dev/null 2>&1 && dialog="$tool" && break
+    done
+    printf '  %-15s %s\n' 'Agent sudo' "installed (tmux popup${dialog:+, $dialog dialog outside tmux})"
+  else
+    printf '  %-15s %s\n' 'Agent sudo' 'not installed (dotfiles install ai-sudo)'
+  fi
+}
+
 df_status_print() {
   local profile component live recorded ts_label
 
@@ -309,7 +340,7 @@ df_status_print() {
       continue
     fi
     live="$(df_live_version "$component")"
-    recorded="$(df_component_get_field "$component" 2)"
+    recorded="$(df_component_get_field "$component" 2 || true)"
     recorded="$(df_version_sanitize "$recorded")"
     ts_label="$(df_component_age_label "$component")"
     if [[ -z "$live" && -z "$recorded" ]]; then
@@ -326,6 +357,7 @@ df_status_print() {
     fi
     printf '\n'
   done < <(df_component_list_known "$profile")
+  df_ai_status_print
 }
 
 df_component_status_print() {

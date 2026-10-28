@@ -2,7 +2,7 @@
 
 > Dotfiles CLI for devbox, desktop, and server profiles
 
-- Show profile, tools, and versions:
+- Show profile, tools, versions, and AI config state:
 
 `dotfiles status`
 

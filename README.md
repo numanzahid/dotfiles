@@ -49,7 +49,7 @@ Registered on PATH as `dotfiles` after the first install.
 dotfiles update                 # pull repo, refresh configs, update stale software
 dotfiles update --config-only   # pull repo and refresh configs only
 dotfiles update --force         # discard repo changes, pull, full reinstall
-dotfiles status                 # profile, nvim, fetch, versions, last updated
+dotfiles status                 # profile, nvim, fetch, versions, last updated, AI config
 dotfiles install lazyvim        # optional LazyVim profile
 dotfiles install lazyvim-lite   # optional LazyVim lite
 dotfiles sync lazyvim           # apply lazy-lock.json after pull

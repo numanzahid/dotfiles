@@ -56,7 +56,8 @@ Commands:
       Re-runs automatically if the pull updates scripts/dotfiles.
 
   status (alias: info)
-      Profile, nvim, fetch, installed tools, versions, and last-updated times.
+      Profile, nvim, fetch, installed tools, versions, last-updated times,
+      and the AI config state (settings, rules, sandbox, agent sudo).
 
   install <what> [options]
       lazyvim       Full LazyVim profile
