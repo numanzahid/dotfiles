@@ -51,6 +51,7 @@ Commands:
       Always re-links configs (unless --config-only skips software only).
       Software is updated when last run was more than 30 days ago.
       Stops if the repo has local changes; prompts to discard and pull.
+      If ssh to GitHub fails, pulls over https for that run (remote unchanged).
       --force discards tracked repo changes, pulls, and reinstalls all
       software (full install, ignores the 30-day skip).
       Re-runs automatically if the pull updates scripts/dotfiles.
@@ -167,6 +168,27 @@ dotfiles_maybe_reexec_cli() {
   fi
 }
 
+# Pull without ssh prompts or long stalls. If origin is a GitHub ssh URL and ssh
+# cannot reach it (broken keys), pull over https for this run only; the remote
+# config is left as it is.
+dotfiles_git_pull() {
+  local url
+  local -a https=()
+  export GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-ssh} -o BatchMode=yes -o ConnectTimeout=10"
+
+  url="$(git remote get-url origin 2>/dev/null || true)"
+  case "$url" in
+    git@github.com:* | ssh://git@github.com/*)
+      if ! git ls-remote -q origin HEAD >/dev/null 2>&1; then
+        log "ssh to github failed; pulling over https this time (remote unchanged)"
+        https=(-c 'url.https://github.com/.insteadOf=git@github.com:'
+          -c 'url.https://github.com/.insteadOf=ssh://git@github.com/')
+      fi
+      ;;
+  esac
+  git "${https[@]}" pull --ff-only
+}
+
 dotfiles_repo_sync() {
   local force="$1"
   local old_head=""
@@ -202,10 +224,10 @@ dotfiles_repo_sync() {
 
   log "pulling latest dotfiles"
   if [[ "$DRY_RUN" -eq 1 ]]; then
-    log "would run: git pull --ff-only"
+    log "would run: git pull --ff-only (https if ssh fails)"
   else
     old_head="$(git rev-parse HEAD)"
-    git pull --ff-only
+    dotfiles_git_pull
     dotfiles_maybe_reexec_cli "$old_head"
     df_component_touch repo "$(df_component_detect_version repo)"
   fi

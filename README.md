@@ -15,7 +15,7 @@ Requires GNU coreutils/sed/date (Fedora and Debian/Ubuntu both ship these by def
 | `./server.sh` | Server, VPS, VM, or container (copies real files; safe to delete the clone after) |
 
 ```bash
-git clone git@github.com:numanzahid/dotfiles.git ~/.dotfiles
+git clone https://github.com/numanzahid/dotfiles.git ~/.dotfiles
 cd ~/.dotfiles
 
 ./devbox.sh      # Debian/Ubuntu full install
@@ -46,7 +46,7 @@ Single-tool upgrades: `./scripts/<tool>-install-update.sh`
 Registered on PATH as `dotfiles` after the first install.
 
 ```bash
-dotfiles update                 # pull repo, refresh configs, update stale software
+dotfiles update                 # pull repo (https if ssh fails), refresh configs, update stale software
 dotfiles update --config-only   # pull repo and refresh configs only
 dotfiles update --force         # discard repo changes, pull, full reinstall
 dotfiles status                 # profile, nvim, fetch, versions, last updated, AI config

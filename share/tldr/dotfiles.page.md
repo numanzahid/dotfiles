@@ -6,7 +6,7 @@
 
 `dotfiles status`
 
-- Pull repo and refresh configs (software if older than 30 days):
+- Pull repo (falls back to https if ssh fails) and refresh configs (software if older than 30 days):
 
 `dotfiles update`
 
