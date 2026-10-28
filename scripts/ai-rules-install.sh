@@ -2,7 +2,7 @@
 # Install dotfiles AI agent rules (cursor, codex, claude) and the dotfiles-owned
 # Claude/Codex settings keys (see scripts/ai-config-install.sh).
 # Also run automatically by ./devbox.sh and ./desktop.sh (not by ./server.sh).
-# Sudo askpass + unrestricted agents: scripts/ai-agent-sudo-install.sh (opt-in).
+# Sudo askpass (opt-in): scripts/ai-agent-sudo-install.sh.
 set -euo pipefail
 
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -35,13 +35,17 @@ Destination:
 
   ~/.claude/settings.json and ~/.codex/config.toml  keys merged, not replaced
 
-Sudo askpass and unrestricted sandboxes: ./scripts/ai-agent-sudo-install.sh (separate).
+Sudo askpass is a separate opt-in script: ./scripts/ai-agent-sudo-install.sh.
 
 Runs automatically during ./devbox.sh, ./desktop.sh and dotfiles update.
 ./server.sh does not run it; on a server use `dotfiles install ai-config`
 (this script, with copies instead of links).
 
 Options:
+  --nosandbox Turn the Claude/Codex sandboxes and approval prompts off. Remembered, so
+              dotfiles update keeps it. Claude: sandbox off + bypassPermissions;
+              Codex: danger-full-access + approval_policy "never"
+  --sandbox   Put the sandboxes and approvals back (no flag leaves them as they are)
   --copy      Copy files instead of linking (default on a server profile)
   --link      Link files into the clone (default elsewhere)
   --dry-run   Print actions without changing anything
@@ -70,6 +74,8 @@ while [[ $# -gt 0 ]]; do
       exit 0
       ;;
     --dry-run) DRY_RUN=1 ;;
+    --nosandbox) export DF_AI_SANDBOX_ACTION=off ;;
+    --sandbox) export DF_AI_SANDBOX_ACTION=on ;;
     --copy) export DF_AI_COPY_MODE=1 ;;
     --link) export DF_AI_COPY_MODE=0 ;;
     *)

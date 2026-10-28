@@ -72,7 +72,8 @@ dotfiles install lazyvim
 dotfiles install lazyvim-lite
 dotfiles sync lazyvim
 dotfiles sync lazyvim-lite
-dotfiles install ai-sudo          # agent sudo + unrestricted agents (opt-in)
+dotfiles install ai-sudo          # agent sudo through a tmux popup (opt-in)
+dotfiles install ai-config --nosandbox   # agent sandboxes + approvals off (opt-in)
 dotfiles install ai-config        # servers only; devbox/desktop get it from update
 ./scripts/nvm-install-update.sh
 ./scripts/alacritty-install-update.sh
@@ -99,12 +100,19 @@ Add a key to a base file and re-run to roll it out. Auth, history, sessions and 
 trust entries are never touched. A copy of each file from before the first merge is kept
 under `~/.local/share/dotfiles/backups/ai-config/`.
 
-`dotfiles install ai-sudo` (`./scripts/ai-agent-sudo-install.sh`) is a separate, opt-in setup for machines
-where agents should run unrestricted. It also applies the base settings first, so it works alone: it sets up `SUDO_ASKPASS` (tmux password popup, `scripts/ai-agent-sudo/`), turns
-off the Claude and Codex sandboxes and approval prompts (`bypassPermissions` / `approval_policy = "never"`),
-and adds the sudo rule. `--keep-approvals` keeps the prompts, `--uninstall` (or
-`dotfiles uninstall ai-sudo`) reverts it, `--dry-run` previews. Run it once per machine; later
-`dotfiles update` runs keep the result.
+**Sandboxes and approvals** are opt-in and independent of sudo:
+`dotfiles install ai-config --nosandbox` turns off the Claude sandbox and sets
+`bypassPermissions`, and sets Codex `sandbox_mode = "danger-full-access"` and
+`approval_policy = "never"`. It is remembered, so plain `dotfiles update` keeps it.
+`dotfiles install ai-config --sandbox` puts both back. Without either flag the current
+state is left alone. These flags belong to `ai-config` only, so turning the sandbox off is
+always an explicit step; `ai-sudo` never changes them.
+
+**Agent sudo:** `dotfiles install ai-sudo` (`./scripts/ai-agent-sudo-install.sh`) is a separate,
+opt-in setup. It sets `SUDO_ASKPASS` for Claude and Codex (tmux password popup,
+`scripts/ai-agent-sudo/`) and adds the sudo rule, and applies the base settings first, so it works
+alone. The popup needs agents running inside tmux. `dotfiles uninstall ai-sudo` removes it
+(sandbox settings are not touched). Run it once per machine; later `dotfiles update` runs keep the result.
 
 Rules for working on this repo itself live in `.cursor/rules/*.mdc` (masters) and
 `.claude/rules/*.md` (generated, committed). After editing an `.mdc`, run

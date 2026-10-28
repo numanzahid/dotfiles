@@ -34,13 +34,17 @@
 
 `dotfiles install ai-config`
 
-- Let agents use sudo via a tmux password popup, sandbox and approvals off (opt-in per machine):
+- Turn Claude/Codex sandboxes and approval prompts off (remembered across updates):
+
+`dotfiles install ai-config --nosandbox`
+
+- Put the sandboxes and approvals back:
+
+`dotfiles install ai-config --sandbox`
+
+- Let agents use sudo through a tmux password popup (opt-in per machine):
 
 `dotfiles install ai-sudo`
-
-- Same, but keep approval prompts:
-
-`dotfiles install ai-sudo --keep-approvals`
 
 - Remove agent sudo setup:
 

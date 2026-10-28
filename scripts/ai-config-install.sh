@@ -34,10 +34,14 @@ Linked one item at a time, copied on a server (parent dirs are never replaced):
   home/.codex/{prompts,skills}/*           -> ~/.codex/<kind>/*
 
 Settings only; ./scripts/ai-rules-install.sh does these plus the rules, and runs
-in devbox.sh, desktop.sh and dotfiles update. Sudo askpass and unrestricted
-sandboxes are a separate opt-in script: ./scripts/ai-agent-sudo-install.sh
+in devbox.sh, desktop.sh and dotfiles update. Sudo askpass is a separate
+opt-in script: ./scripts/ai-agent-sudo-install.sh
 
 Options:
+  --nosandbox  Turn the Claude/Codex sandboxes and approval prompts off. Remembered, so
+               dotfiles update keeps it. Claude: sandbox off + bypassPermissions;
+               Codex: danger-full-access + approval_policy "never"
+  --sandbox    Put the sandboxes and approvals back (no flag leaves them as they are)
   --uninstall  Remove the merged keys again (links are reverted by uninstall.sh)
   --copy       Copy files instead of linking (default on a server profile)
   --link       Link files into the clone (default elsewhere)
@@ -67,6 +71,8 @@ while [[ $# -gt 0 ]]; do
       exit 0
       ;;
     --dry-run) DRY_RUN=1 ;;
+    --nosandbox) export DF_AI_SANDBOX_ACTION=off ;;
+    --sandbox) export DF_AI_SANDBOX_ACTION=on ;;
     --copy) export DF_AI_COPY_MODE=1 ;;
     --link) export DF_AI_COPY_MODE=0 ;;
     --uninstall) UNINSTALL=1 ;;

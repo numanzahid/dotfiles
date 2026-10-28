@@ -35,7 +35,7 @@ This machine may be devbox, desktop, or server. Never assume which profile to us
 - Prefer the profile they name; do not run `server.sh` on devbox or `devbox.sh` on server
 - For uninstall, confirm uninstall vs purge if they did not say
 - Do not chain install after uninstall unless they ask
-- `ai-agent-sudo-install.sh` is opt-in per machine and unrestricted by default; say what it will change before running it
+- `dotfiles install ai-config --nosandbox` (or `ai-rules-install.sh --nosandbox`) turns off agent sandboxes and approvals; say what it will change before running it. `ai-agent-sudo-install.sh` is opt-in per machine and never touches sandbox settings
 
 ## Mistakes to avoid
 

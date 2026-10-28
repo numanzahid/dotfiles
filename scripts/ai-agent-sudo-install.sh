@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Let Claude Code and Codex run sudo through a tmux password popup, and drop
-# their sandboxes and approval prompts. Opt-in per machine: devbox.sh, desktop.sh
-# and dotfiles update never run it. Also applies the base Claude/Codex settings.
+# Let Claude Code and Codex run sudo through a tmux password popup (SUDO_ASKPASS).
+# Opt-in per machine: devbox.sh, desktop.sh and dotfiles update never run it.
+# Also applies the base Claude/Codex settings. It never changes sandbox or
+# approval settings; those are explicit: `dotfiles install ai-config --nosandbox`.
 # Run as ./scripts/ai-agent-sudo-install.sh or `dotfiles install ai-sudo`.
 set -euo pipefail
 
@@ -11,7 +12,8 @@ SCRIPTS_DIR="$DOTFILES_DIR/scripts"
 TARGET_HOME="${HOME:?}"
 DRY_RUN=0
 UNINSTALL=0
-NO_APPROVALS=1
+# Sandbox choice is explicit and belongs to ai-config; ignore any inherited value.
+unset DF_AI_SANDBOX_ACTION
 
 # shellcheck source=scripts/lib/platform.sh
 source "$SCRIPTS_DIR/lib/platform.sh"
@@ -24,7 +26,7 @@ usage() {
   cat <<'EOF'
 Usage: ./scripts/ai-agent-sudo-install.sh [options]
 
-Agent sudo setup for Claude Code and Codex, with agent restrictions removed.
+Agent sudo setup for Claude Code and Codex.
 
 What it does:
   base settings               first applies the dotfiles Claude/Codex settings
@@ -35,25 +37,21 @@ What it does:
   ~/.local/bin/sudo           link (copy on a server); wrapper that adds -A when
                               SUDO_ASKPASS is set (agent shells only; normal
                               shells unchanged)
-  Claude settings.json        env.SUDO_ASKPASS, sandbox.enabled=false,
-                              permissions.defaultMode=bypassPermissions,
-                              skipDangerousModePermissionPrompt=true
-  Codex config.toml           sandbox_mode="danger-full-access",
-                              approval_policy="never",
-                              shell_environment_policy.set.SUDO_ASKPASS
+  Claude settings.json        env.SUDO_ASKPASS
+  Codex config.toml           shell_environment_policy.set.SUDO_ASKPASS
   ~/.cursor/rules/sudo.mdc    "how to run root commands" rule, merged into
                               ~/.claude/rules/sudo.md and ~/.codex/AGENTS.md
 
+Sandboxes and approval prompts are not part of this: use
+`dotfiles install ai-config --nosandbox` (or --sandbox to put them back).
 Only those keys are touched; the rest of each config file is left alone.
 The sudo password is never read, stored, or passed through this script.
 Needs: tmux (agents must run inside it), jq, python3 >= 3.11, ~/.local/bin
 before /usr/bin on PATH. Restart running Claude Code / Codex sessions after.
 
 Options:
-  --keep-approvals  Keep approval prompts: skip bypassPermissions (Claude) and
-                    approval_policy="never" (Codex); the sandbox is still
-                    removed. Also reverts an earlier unrestricted run.
-  --uninstall       Remove what this script added (keys, links, sudo rule)
+  --uninstall       Remove the sudo setup (SUDO_ASKPASS keys, links, sudo
+                    rule). Sandbox settings are never touched here
   --copy            Copy files instead of linking (default on a server profile)
   --link            Link files into the clone (default elsewhere)
   --yes, -y         Accepted for `dotfiles uninstall ai-sudo`; there are no prompts
@@ -84,7 +82,6 @@ while [[ $# -gt 0 ]]; do
       ;;
     --dry-run) DRY_RUN=1 ;;
     --uninstall) UNINSTALL=1 ;;
-    --keep-approvals) NO_APPROVALS=0 ;;
     --copy) export DF_AI_COPY_MODE=1 ;;
     --link) export DF_AI_COPY_MODE=0 ;;
     --yes | -y) ;;
@@ -132,16 +129,13 @@ install_agent_sudo() {
   df_ai_place "$src/tmux-askpass" "$bin/tmux-askpass"
   df_ai_place "$src/sudo" "$bin/sudo"
 
-  df_agent_sudo_merge "$NO_APPROVALS"
+  df_agent_sudo_merge
 
   mkdir -p "$(dirname "$rule_dest")"
   df_ai_place "$rule_src" "$rule_dest"
   refresh_generated_rules
 
   df_journal_once patch agent-sudo "ai-agent-sudo-install.sh"
-  if [[ "$NO_APPROVALS" -eq 1 ]]; then
-    df_journal_once patch agent-sudo-no-approvals "ai-agent-sudo-install.sh"
-  fi
   log "done. Restart running Claude Code / Codex sessions to pick up the new settings."
 }
 

@@ -540,8 +540,8 @@ df_ai_config_install_codex() {
   dest="$(df_ai_config_codex_config)"
 
   if [[ -f "$base" ]]; then
-    if df_journal_has patch agent-sudo-no-approvals; then
-      # ai-agent-sudo-install.sh owns approval_policy while approvals are disabled.
+    if df_ai_config_nosandbox_on; then
+      # --nosandbox owns approval_policy while it is in effect.
       filtered="$(mktemp)"
       grep -v '^[[:space:]]*approval_policy[[:space:]]*=' "$base" >"$filtered" || true
       df_toml_merge_file "$dest" "$filtered"
@@ -557,15 +557,82 @@ df_ai_config_install_codex() {
   df_ai_config_link_children "$(df_ai_config_source_dir)/.codex/skills" "$home/.codex/skills"
 }
 
+# ---------------------------------------------------------------------------
+# Sandbox and approvals: --nosandbox / --sandbox. Independent of sudo.
+#   --nosandbox  Claude sandbox off + bypassPermissions, Codex full access +
+#                approval_policy "never". Remembered (journal patch nosandbox),
+#                so later runs without a flag, e.g. dotfiles update, keep it.
+#   --sandbox    Put both back. No flag leaves the current state alone.
+# ---------------------------------------------------------------------------
+
+# True while --nosandbox is in effect. agent-sudo-no-approvals is the marker
+# that older ai-sudo runs left behind.
+df_ai_config_nosandbox_on() {
+  df_journal_has patch nosandbox || df_journal_has patch agent-sudo-no-approvals
+}
+
+df_ai_config_nosandbox_claude_fragment() {
+  printf '%s' '{"sandbox":{"enabled":false},"permissions":{"defaultMode":"bypassPermissions"},"skipDangerousModePermissionPrompt":true}'
+}
+
+df_ai_config_nosandbox_apply() {
+  local claude codex
+  claude="$(df_ai_config_claude_settings)"
+  codex="$(df_ai_config_codex_config)"
+
+  if command -v jq >/dev/null 2>&1; then
+    df_json_merge "$claude" "$(df_ai_config_nosandbox_claude_fragment)"
+  else
+    log "skip $claude (jq missing)"
+  fi
+  df_toml_set "$codex" "" sandbox_mode '"danger-full-access"'
+  df_toml_set "$codex" "" approval_policy '"never"'
+  df_journal_once patch nosandbox "ai-config --nosandbox"
+}
+
+# Remove the keys --nosandbox set and forget the marker (no base re-merge).
+df_ai_config_sandbox_unset() {
+  local claude codex
+  claude="$(df_ai_config_claude_settings)"
+  codex="$(df_ai_config_codex_config)"
+
+  if command -v jq >/dev/null 2>&1; then
+    df_json_unmerge "$claude" "$(df_ai_config_nosandbox_claude_fragment)"
+  fi
+  df_toml_unset "$codex" "" sandbox_mode
+  df_toml_unset "$codex" "" approval_policy
+  df_journal_remove_kind_path patch nosandbox
+  df_journal_remove_kind_path patch agent-sudo-no-approvals
+}
+
+df_ai_config_sandbox_restore() {
+  df_ai_config_sandbox_unset
+  # The base file's approval_policy comes back.
+  df_ai_config_install_codex
+}
+
+# DF_AI_SANDBOX_ACTION is set by --nosandbox (off) / --sandbox (on); unset = leave as is.
+df_ai_config_apply_sandbox_choice() {
+  case "${DF_AI_SANDBOX_ACTION:-}" in
+    off) df_ai_config_nosandbox_apply ;;
+    on) df_ai_config_sandbox_restore ;;
+  esac
+  return 0
+}
+
 df_ai_config_install_all() {
   df_ai_config_install_claude
   df_ai_config_install_codex
+  df_ai_config_apply_sandbox_choice
 }
 
 # Uninstall: drop the keys we merged (links are reverted from the journal).
 df_ai_config_unmerge_all() {
   local base
 
+  if df_ai_config_nosandbox_on; then
+    df_ai_config_sandbox_unset
+  fi
   base="$(df_ai_config_root)/claude/settings.base.json"
   [[ -f "$base" ]] && df_json_unmerge "$(df_ai_config_claude_settings)" "$(cat "$base")"
   base="$(df_ai_config_root)/codex/config.base.toml"
@@ -574,8 +641,9 @@ df_ai_config_unmerge_all() {
 }
 
 # ---------------------------------------------------------------------------
-# Agent sudo: SUDO_ASKPASS via tmux popup + unrestricted agent sandboxes.
-# Driven by ai-agent-sudo-install.sh; kept here so uninstall.sh can revert it.
+# Agent sudo: SUDO_ASKPASS via a tmux password popup (sudo only; the sandbox
+# is --nosandbox above). Driven by ai-agent-sudo-install.sh; kept here so
+# uninstall.sh can revert it.
 # ---------------------------------------------------------------------------
 
 df_agent_sudo_src_dir() {
@@ -587,39 +655,20 @@ df_agent_sudo_askpass_path() {
 }
 
 df_agent_sudo_claude_fragment() {
-  local no_approvals="$1"
-  jq -n -c --arg askpass "$(df_agent_sudo_askpass_path)" --argjson noappr "$no_approvals" '
-    {env: {SUDO_ASKPASS: $askpass}, sandbox: {enabled: false}}
-    + (if $noappr == 1
-       then {permissions: {defaultMode: "bypassPermissions"}, skipDangerousModePermissionPrompt: true}
-       else {} end)'
+  jq -n -c --arg askpass "$(df_agent_sudo_askpass_path)" '{env: {SUDO_ASKPASS: $askpass}}'
 }
 
 df_agent_sudo_merge() {
-  local no_approvals="$1"
   local claude codex
   claude="$(df_ai_config_claude_settings)"
   codex="$(df_ai_config_codex_config)"
 
   if command -v jq >/dev/null 2>&1; then
-    df_json_merge "$claude" "$(df_agent_sudo_claude_fragment "$no_approvals")"
+    df_json_merge "$claude" "$(df_agent_sudo_claude_fragment)"
   else
     log "skip $claude (jq missing)"
   fi
-
-  df_toml_set "$codex" "" sandbox_mode '"danger-full-access"'
   df_toml_env_set "$codex" shell_environment_policy set SUDO_ASKPASS "$(df_agent_sudo_askpass_path)"
-  if [[ "$no_approvals" -eq 1 ]]; then
-    df_toml_set "$codex" "" approval_policy '"never"'
-  elif df_journal_has patch agent-sudo-no-approvals; then
-    # --keep-approvals after an earlier unrestricted run: hand approvals back.
-    df_journal_remove_kind_path patch agent-sudo-no-approvals
-    if command -v jq >/dev/null 2>&1; then
-      df_json_unmerge "$claude" '{"permissions":{"defaultMode":"bypassPermissions"},"skipDangerousModePermissionPrompt":true}'
-    fi
-    df_toml_unset "$codex" "" approval_policy
-    df_ai_config_install_codex
-  fi
 }
 
 df_agent_sudo_unmerge() {
@@ -628,15 +677,8 @@ df_agent_sudo_unmerge() {
   codex="$(df_ai_config_codex_config)"
 
   if command -v jq >/dev/null 2>&1; then
-    df_json_unmerge "$claude" "$(df_agent_sudo_claude_fragment 1)"
+    df_json_unmerge "$claude" "$(df_agent_sudo_claude_fragment)"
   fi
-
-  df_toml_unset "$codex" "" sandbox_mode
   df_toml_env_unset "$codex" shell_environment_policy set SUDO_ASKPASS
-  if df_journal_has patch agent-sudo-no-approvals; then
-    # Back to the base-file value.
-    df_toml_unset "$codex" "" approval_policy
-  fi
   df_journal_remove_kind_path patch agent-sudo
-  df_journal_remove_kind_path patch agent-sudo-no-approvals
 }

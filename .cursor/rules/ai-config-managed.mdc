@@ -14,10 +14,11 @@ alwaysApply: false
 | Claude settings | `home/.config/dotfiles/ai-config/claude/settings.base.json` | `~/.claude/settings.json` | `jq` recursive merge, repo keys win |
 | Codex settings | `home/.config/dotfiles/ai-config/codex/config.base.toml` | `~/.codex/config.toml` | per-key line edit, re-parsed with `tomllib` before writing |
 | Statusline, skills, agents, commands, prompts | `home/.claude/`, `home/.codex/` | `~/.claude/`, `~/.codex/` | symlink per item (copy on server), never the parent dir |
-| Sudo askpass + unrestricted agents | `scripts/ai-agent-sudo/`, `ai-rules/optional/sudo.mdc` | `~/.local/bin`, Claude/Codex settings, `~/.cursor/rules/sudo.mdc` | `scripts/ai-agent-sudo-install.sh`, opt-in, not run by devbox/desktop/update; applies the base settings first |
+| Sudo askpass | `scripts/ai-agent-sudo/`, `ai-rules/optional/sudo.mdc` | `~/.local/bin`, `SUDO_ASKPASS` in Claude/Codex settings, `~/.cursor/rules/sudo.mdc` | `scripts/ai-agent-sudo-install.sh`, opt-in, not run by devbox/desktop/update; applies the base settings first |
+| Sandbox + approvals off | keys in `scripts/lib/ai-config.sh` (`df_ai_config_nosandbox_*`) | Claude `sandbox`/`permissions`, Codex `sandbox_mode`/`approval_policy` | `--nosandbox` / `--sandbox` on `ai-config` / `ai-rules-install.sh` only (never on `ai-sudo`); always explicit |
 
-CLI: `dotfiles install ai-config` (runs `ai-rules-install.sh`; meant for servers, since `server.sh`
-does not run it), `dotfiles install ai-sudo`, `dotfiles uninstall ai-sudo`. There is no `ai-config`
+CLI: `dotfiles install ai-config [--nosandbox|--sandbox]` (runs `ai-rules-install.sh`; plain form is for
+servers, since `server.sh` does not run it), `dotfiles install ai-sudo`, `dotfiles uninstall ai-sudo`. There is no `ai-config`
 step to run by hand on devbox/desktop: `dotfiles update` already does it.
 
 All logic lives in `scripts/lib/ai-config.sh` (merge helpers, agent sudo) and `scripts/lib/ai-rules.sh` (rules).
@@ -29,9 +30,11 @@ All logic lives in `scripts/lib/ai-config.sh` (merge helpers, agent sudo) and `s
 - Machine state stays out of the repo: `auth.json`, `.credentials.json`, history, sessions,
   sqlite, `[projects.*]` trust, `[tui.model_availability_nux]`.
 - To roll out a setting, add the key to the base file. Single-line TOML values only.
-- Sandbox, approvals and `SUDO_ASKPASS` belong to `ai-agent-sudo-install.sh`, not the base
-  files. It is unrestricted by default; `--keep-approvals` keeps prompts. While approvals
-  are disabled (journal `patch agent-sudo-no-approvals`) the base merge skips `approval_policy`.
+- Sandbox and approvals are not in the base files. `--nosandbox` / `--sandbox` set and revert them;
+  no flag leaves the state alone. `--nosandbox` is remembered (journal `patch nosandbox`), and
+  while it is set the base merge skips `approval_policy`, so `dotfiles update` never undoes it.
+- `SUDO_ASKPASS` belongs to `ai-agent-sudo-install.sh`. That script never sets or reverts sandbox
+  settings (it clears `DF_AI_SANDBOX_ACTION`), so turning the sandbox off is always an explicit `ai-config --nosandbox`.
 - Servers get real copies, not symlinks (the clone may be deleted). Use `df_ai_place`, never `df_link_path`,
   for anything the AI scripts install; it copies when `df_ai_copy_mode` is true (server profile, or `--copy`).
 - Keep merges idempotent and journaled (`patch`); every write is validated and a pre-merge
