@@ -22,7 +22,7 @@ paths:
 | Claude settings | `home/.config/dotfiles/ai-config/claude/settings.base.json` | `~/.claude/settings.json` | `jq` recursive merge, repo keys win |
 | Codex settings | `home/.config/dotfiles/ai-config/codex/config.base.toml` | `~/.codex/config.toml` | per-key line edit, re-parsed with `tomllib` before writing |
 | Statusline, skills, agents, commands, prompts | `home/.claude/`, `home/.codex/` | `~/.claude/`, `~/.codex/` | symlink per item (copy on server), never the parent dir |
-| Sudo askpass | `scripts/ai-agent-sudo/`, `ai-rules/optional/sudo.mdc` | `~/.local/bin`, `SUDO_ASKPASS` in Claude/Codex settings, `~/.cursor/rules/sudo.mdc` | `scripts/ai-agent-sudo-install.sh`, opt-in, not run by devbox/desktop/update; applies the base settings first |
+| Sudo askpass | `scripts/ai-agent-sudo/`, `ai-rules/optional/sudo.mdc` | `~/.local/bin`, `SUDO_ASKPASS` in Claude/Codex settings, `~/.cursor/rules/sudo.mdc` (`ai-askpass`: tmux popup inside tmux, else zenity/kdialog/yad) | `scripts/ai-agent-sudo-install.sh`, opt-in, not run by devbox/desktop/update; applies the base settings first |
 | Sandbox + approvals off | keys in `scripts/lib/ai-config.sh` (`df_ai_config_nosandbox_*`) | Claude `sandbox`/`permissions`, Codex `sandbox_mode`/`approval_policy` | `--nosandbox` / `--sandbox` on `ai-config` / `ai-rules-install.sh` only (never on `ai-sudo`); always explicit |
 
 CLI: `dotfiles install ai-config [--nosandbox|--sandbox]` (runs `ai-rules-install.sh`; plain form is for

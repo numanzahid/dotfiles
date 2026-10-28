@@ -82,39 +82,26 @@ dotfiles install ai-config        # servers only; devbox/desktop get it from upd
 
 ### Claude Code and Codex config
 
-The AI rules and settings are part of the main install: `devbox.sh`, `desktop.sh` and
-`dotfiles update` run `scripts/ai-rules-install.sh`, which installs the rules and
-**merges** a few keys into the config files instead of owning them. Both tools rewrite
-their config at runtime (trust entries, UI counters), so nothing is symlinked whole.
-`server.sh` does not run it (servers rarely run agents); on a server use
-`dotfiles install ai-config`, which copies files instead of linking so the clone can be deleted.
+`devbox.sh`, `desktop.sh` and `dotfiles update` install the AI rules and **merge** a few keys
+into `~/.claude/settings.json` and `~/.codex/config.toml` (both tools rewrite their config, so
+nothing is symlinked whole). Servers: `dotfiles install ai-config` (copies instead of links).
 
 | Source (`home/.config/dotfiles/ai-config/`) | Target | How |
 |---|---|---|
-| `claude/settings.base.json` | `~/.claude/settings.json` | `jq` recursive merge; repo keys win, other keys kept |
-| `codex/config.base.toml` | `~/.codex/config.toml` | line-edit per key, re-parsed with `python3` tomllib before writing |
-| `home/.claude/statusline-command.sh`, `skills/*`, `agents/*`, `commands/*` | `~/.claude/...` | symlink per item (copy on server; never the parent dir) |
-| `home/.codex/prompts/*`, `skills/*` | `~/.codex/...` | symlink per item (copy on server) |
+| `claude/settings.base.json` | `~/.claude/settings.json` | `jq` merge; repo keys win |
+| `codex/config.base.toml` | `~/.codex/config.toml` | per-key edit, validated with `tomllib` |
+| `home/.claude/`, `home/.codex/` skills, agents, commands, prompts | `~/.claude/`, `~/.codex/` | symlink per item (copy on server) |
 
-Add a key to a base file and re-run to roll it out. Auth, history, sessions and `[projects.*]`
-trust entries are never touched. A copy of each file from before the first merge is kept
-under `~/.local/share/dotfiles/backups/ai-config/`.
+Add a key to a base file and re-run to roll it out. Auth, history and project trust are never
+touched; a pre-merge backup is kept in `~/.local/share/dotfiles/backups/ai-config/`.
 
-**Sandboxes and approvals** are opt-in and independent of sudo:
-`dotfiles install ai-config --nosandbox` turns off the Claude sandbox and sets
-`bypassPermissions`, and sets Codex `sandbox_mode = "danger-full-access"` and
-`approval_policy = "never"`. It is remembered, so plain `dotfiles update` keeps it.
-`dotfiles install ai-config --sandbox` puts both back. Without either flag the current
-state is left alone. These flags belong to `ai-config` only, so turning the sandbox off is
-always an explicit step; `ai-sudo` never changes them.
+**Sandboxes and approvals** are opt-in: `dotfiles install ai-config --nosandbox` turns them off
+for both tools (remembered, `update` keeps it); `--sandbox` puts them back.
 
-**Agent sudo:** `dotfiles install ai-sudo` (`./scripts/ai-agent-sudo-install.sh`) is a separate,
-opt-in setup. It sets `SUDO_ASKPASS` for Claude and Codex (`scripts/ai-agent-sudo/ai-askpass`)
-and adds the sudo rule, and applies the base settings first, so it works alone. The password
-prompt is a tmux popup when the agent runs inside tmux, otherwise a desktop dialog (`zenity`,
-`kdialog` or `yad`; on Fedora `dnf install zenity`) when a display is available, and as a last
-resort a popup on any attached tmux client. `dotfiles uninstall ai-sudo` removes it
-(sandbox settings are not touched). Run it once per machine; later `dotfiles update` runs keep the result.
+**Agent sudo:** `dotfiles install ai-sudo` lets agents run `sudo` with a password prompt you
+answer: a tmux popup when the agent runs in tmux, otherwise a desktop dialog (`zenity`,
+`kdialog` or `yad`; Fedora: `dnf install zenity`). Opt-in per machine, never touches sandbox
+settings. Remove with `dotfiles uninstall ai-sudo`.
 
 Rules for working on this repo itself live in `.cursor/rules/*.mdc` (masters) and
 `.claude/rules/*.md` (generated, committed). After editing an `.mdc`, run
