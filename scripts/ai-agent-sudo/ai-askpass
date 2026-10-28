@@ -1,0 +1,164 @@
+#!/bin/bash
+# SUDO_ASKPASS helper: asks for the sudo password in a tmux popup (inside tmux)
+# or a desktop dialog (outside tmux) so agent shells (Claude Code, Codex) never
+# see it. Prints the password on stdout.
+# Not run by hand: sudo calls it as SUDO_ASKPASS (via the sudo wrapper's -A).
+# Installed by scripts/ai-agent-sudo-install.sh, which links it into ~/.local/bin.
+
+usage() {
+  cat <<'USAGE'
+Usage: ai-askpass [PROMPT]
+
+SUDO_ASKPASS helper. Shows the command sudo is about to run, reads the password
+in a separate prompt, and prints it on stdout for sudo. The calling agent shell
+never sees the password.
+
+Where the prompt appears, first match wins:
+  1. tmux popup      when the agent runs inside tmux ($TMUX set) and a client is
+                     attached; shown on the most recently active client.
+  2. desktop dialog  when DISPLAY or WAYLAND_DISPLAY is set: zenity, else
+                     kdialog, else yad.
+  3. tmux popup      on any attached client of the default tmux server (agent
+                     started outside tmux, no display, e.g. over ssh).
+
+Exits 1 if the prompt is denied (Ctrl-C / Cancel), cannot open, times out after
+120 seconds, or none of the above is available.
+
+Set it up with: ./scripts/ai-agent-sudo-install.sh
+
+Options:
+  -h, --help   Show this help
+USAGE
+}
+
+case "${1:-}" in
+  -h | --help)
+    usage
+    exit 0
+    ;;
+esac
+
+# Inner mode: runs inside the tmux popup, writes the password to the fifo.
+if [ "${1:-}" = --popup ]; then
+  dir=$2
+  echo $$ > "$dir/pid"
+  exec 3>"$dir/fifo"
+  trap 'printf "\n" >&3; exit 1' HUP INT TERM
+  printf '\n  An agent wants to run as root:\n\n    %s\n\n' "$(cat "$dir/cmd")"
+  IFS= read -rsp '  sudo password (Ctrl-C to deny): ' pw
+  printf '%s\n' "$pw" >&3
+  exit 0
+fi
+
+# Our parent is sudo; the command it is about to run.
+sudo_cmd() {
+  ps -o args= -p "$PPID" | sed -E 's#^(/usr/bin/)?sudo( -A)? ##'
+}
+
+# Most recently active client of the tmux server we can reach (empty if none).
+tmux_client() {
+  tmux list-clients -F '#{client_activity} #{client_name}' 2>/dev/null | sort -rn | awk 'NR==1 {print $2}'
+}
+
+# Escape for the markup that kdialog and yad render.
+markup_escape() {
+  sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g'
+}
+
+have_display() {
+  [ -n "${WAYLAND_DISPLAY:-}${DISPLAY:-}" ]
+}
+
+gui_tool() {
+  local t
+  for t in zenity kdialog yad; do
+    if command -v "$t" >/dev/null 2>&1; then
+      printf '%s' "$t"
+      return 0
+    fi
+  done
+  return 1
+}
+
+# Desktop dialog. Prints the password, or exits 1 when cancelled or timed out.
+ask_gui() {
+  local tool=$1 cmd esc pw
+  cmd=$(sudo_cmd)
+  esc=$(printf '%s' "$cmd" | markup_escape)
+  case "$tool" in
+    zenity)
+      pw=$(timeout 120 zenity --password --title="sudo: an agent wants to run: $cmd" 2>/dev/null)
+      ;;
+    kdialog)
+      pw=$(timeout 120 kdialog --title sudo --password "An agent wants to run as root:<br><br>$esc" 2>/dev/null)
+      ;;
+    yad)
+      pw=$(timeout 120 yad --title sudo --entry --hide-text --text="An agent wants to run as root:\n\n$esc" 2>/dev/null)
+      ;;
+  esac
+  if [ -z "$pw" ]; then
+    echo "ai-askpass: password prompt cancelled or timed out" >&2
+    exit 1
+  fi
+  printf '%s\n' "$pw"
+}
+
+# tmux popup on the given client. Prints the password, or exits 1.
+ask_tmux() {
+  local client=$1
+  dir=$(mktemp -d)
+  # Close the popup if we give up before the user answers.
+  trap '[ -s "$dir/pid" ] && kill "$(cat "$dir/pid")" 2>/dev/null; rm -rf "$dir"' EXIT
+  mkfifo -m 600 "$dir/fifo"
+  sudo_cmd > "$dir/cmd"
+
+  # Open read-write so neither side blocks on open; read times out instead.
+  exec 4<>"$dir/fifo"
+  tmux display-popup -c "$client" -E -w 90 -h 10 -T ' sudo ' \
+    "$(printf '%q ' "$(readlink -f "$0")" --popup "$dir")" >/dev/null 2>&1
+
+  # tmux silently ignores a popup while another popup or menu is open.
+  for _ in 1 2 3 4 5 6; do
+    [ -s "$dir/pid" ] && break
+    read -r -t 0.5 <&4 2>/dev/null
+  done
+  if [ ! -s "$dir/pid" ]; then
+    echo "ai-askpass: could not open the password popup (is another tmux popup or menu open?)" >&2
+    exit 1
+  fi
+
+  if ! IFS= read -r -t 120 pw <&4 || [ -z "$pw" ]; then
+    echo "ai-askpass: password prompt cancelled or timed out" >&2
+    exit 1
+  fi
+  rm -f "$dir/pid"
+  printf '%s\n' "$pw"
+}
+
+# 1. Inside tmux: always the tmux popup, never a desktop dialog.
+client=
+[ -n "${TMUX:-}" ] && client=$(tmux_client)
+if [ -n "$client" ]; then
+  ask_tmux "$client"
+  exit 0
+fi
+
+# 2. Outside tmux on a desktop.
+if have_display && tool=$(gui_tool); then
+  ask_gui "$tool"
+  exit 0
+fi
+
+# 3. No display: any attached tmux client.
+client=$(tmux_client)
+if [ -n "$client" ]; then
+  ask_tmux "$client"
+  exit 0
+fi
+
+if have_display; then
+  echo "ai-askpass: no zenity, kdialog or yad found to ask for the sudo password (install zenity)" >&2
+else
+  echo "ai-askpass: no attached tmux client and no display to ask for the sudo password" >&2
+fi
+exit 1

@@ -651,7 +651,7 @@ df_agent_sudo_src_dir() {
 }
 
 df_agent_sudo_askpass_path() {
-  printf '%s/.local/bin/tmux-askpass' "$(df_ai_config_home)"
+  printf '%s/.local/bin/ai-askpass' "$(df_ai_config_home)"
 }
 
 df_agent_sudo_claude_fragment() {
@@ -678,6 +678,8 @@ df_agent_sudo_unmerge() {
 
   if command -v jq >/dev/null 2>&1; then
     df_json_unmerge "$claude" "$(df_agent_sudo_claude_fragment)"
+    # Value written before tmux-askpass became ai-askpass.
+    df_json_unmerge "$claude" "$(jq -n -c --arg a "$(df_ai_config_home)/.local/bin/tmux-askpass" '{env: {SUDO_ASKPASS: $a}}')"
   fi
   df_toml_env_unset "$codex" shell_environment_policy set SUDO_ASKPASS
   df_journal_remove_kind_path patch agent-sudo

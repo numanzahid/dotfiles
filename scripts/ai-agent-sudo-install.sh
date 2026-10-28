@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Let Claude Code and Codex run sudo through a tmux password popup (SUDO_ASKPASS).
+# Let Claude Code and Codex run sudo through a password popup (SUDO_ASKPASS):
+# tmux popup inside tmux, desktop dialog (zenity/kdialog/yad) outside it.
 # Opt-in per machine: devbox.sh, desktop.sh and dotfiles update never run it.
 # Also applies the base Claude/Codex settings. It never changes sandbox or
 # approval settings; those are explicit: `dotfiles install ai-config --nosandbox`.
@@ -31,9 +32,10 @@ Agent sudo setup for Claude Code and Codex.
 What it does:
   base settings               first applies the dotfiles Claude/Codex settings
                               (same as ./scripts/ai-config-install.sh)
-  ~/.local/bin/tmux-askpass   link (copy on a server); asks for the sudo
-                              password in a tmux popup so agent shells never
-                              see it
+  ~/.local/bin/ai-askpass     link (copy on a server); asks for the sudo
+                              password so agent shells never see it: in a tmux
+                              popup when the agent runs inside tmux, else in a
+                              desktop dialog (zenity, kdialog or yad)
   ~/.local/bin/sudo           link (copy on a server); wrapper that adds -A when
                               SUDO_ASKPASS is set (agent shells only; normal
                               shells unchanged)
@@ -46,7 +48,7 @@ Sandboxes and approval prompts are not part of this: use
 `dotfiles install ai-config --nosandbox` (or --sandbox to put them back).
 Only those keys are touched; the rest of each config file is left alone.
 The sudo password is never read, stored, or passed through this script.
-Needs: tmux (agents must run inside it), jq, python3 >= 3.11, ~/.local/bin
+Needs: tmux or a desktop with zenity/kdialog/yad, jq, python3 >= 3.11, ~/.local/bin
 before /usr/bin on PATH. Restart running Claude Code / Codex sessions after.
 
 Options:
@@ -102,7 +104,13 @@ refresh_generated_rules() {
 }
 
 preflight() {
-  command -v tmux >/dev/null 2>&1 || log "WARN: tmux not found; the sudo popup needs it (agents must run inside tmux)"
+  if ! command -v tmux >/dev/null 2>&1 && ! command -v zenity >/dev/null 2>&1 \
+    && ! command -v kdialog >/dev/null 2>&1 && ! command -v yad >/dev/null 2>&1; then
+    log "WARN: no tmux and no zenity/kdialog/yad found; there is nothing to show the sudo prompt (e.g. dnf install zenity)"
+  elif [[ -n "${WAYLAND_DISPLAY:-}${DISPLAY:-}" ]] && ! command -v zenity >/dev/null 2>&1 \
+    && ! command -v kdialog >/dev/null 2>&1 && ! command -v yad >/dev/null 2>&1; then
+    log "note: no zenity/kdialog/yad found; outside tmux there will be no sudo dialog (e.g. dnf install zenity)"
+  fi
   command -v jq >/dev/null 2>&1 || log "WARN: jq not found; Claude settings will be skipped"
   df_toml_can_edit || log "WARN: python3 >= 3.11 not found; Codex config will be skipped"
   case ":$PATH:" in
@@ -125,11 +133,12 @@ install_agent_sudo() {
   df_ai_config_install_all
 
   mkdir -p "$bin"
-  run chmod +x "$src/tmux-askpass" "$src/sudo"
-  df_ai_place "$src/tmux-askpass" "$bin/tmux-askpass"
+  run chmod +x "$src/ai-askpass" "$src/sudo"
+  df_ai_place "$src/ai-askpass" "$bin/ai-askpass"
   df_ai_place "$src/sudo" "$bin/sudo"
 
   df_agent_sudo_merge
+  unlink_ours "$bin/tmux-askpass" # name before the rename
 
   mkdir -p "$(dirname "$rule_dest")"
   df_ai_place "$rule_src" "$rule_dest"
@@ -160,7 +169,8 @@ uninstall_agent_sudo() {
   claude_rule="$(df_ai_rules_claude_rules_dir)/sudo.md"
 
   df_agent_sudo_unmerge
-  unlink_ours "$TARGET_HOME/.local/bin/tmux-askpass"
+  unlink_ours "$TARGET_HOME/.local/bin/ai-askpass"
+  unlink_ours "$TARGET_HOME/.local/bin/tmux-askpass" # name before the rename
   unlink_ours "$TARGET_HOME/.local/bin/sudo"
   unlink_ours "$(df_ai_rules_cursor_dest_dir)/sudo.mdc"
 

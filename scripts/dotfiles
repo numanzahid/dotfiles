@@ -69,7 +69,7 @@ Commands:
                                  (remembered, update keeps it)
                     --sandbox    put them back
                     --dry-run
-      ai-sudo       Opt-in: agent sudo through a tmux password popup
+      ai-sudo       Opt-in: agent sudo through a tmux popup or desktop dialog
                     (SUDO_ASKPASS). Also applies ai-config. Never changes
                     sandbox settings. Options: --uninstall, --dry-run
 
@@ -335,7 +335,7 @@ Usage: dotfiles uninstall [target] [options]
       Remove LazyVim/lite plugin data; switch nvim to nvim-plain.
 
   dotfiles uninstall ai-sudo [--dry-run]
-      Remove agent sudo (tmux popup helper, sudo wrapper, SUDO_ASKPASS keys).
+      Remove agent sudo (askpass helper, sudo wrapper, SUDO_ASKPASS keys).
       Sandbox and approval settings stay; see: dotfiles install ai-config --sandbox
 
   dotfiles uninstall <software> [--dry-run] [--yes]

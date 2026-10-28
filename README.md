@@ -72,7 +72,7 @@ dotfiles install lazyvim
 dotfiles install lazyvim-lite
 dotfiles sync lazyvim
 dotfiles sync lazyvim-lite
-dotfiles install ai-sudo          # agent sudo through a tmux popup (opt-in)
+dotfiles install ai-sudo          # agent sudo through a tmux popup or desktop dialog (opt-in)
 dotfiles install ai-config --nosandbox   # agent sandboxes + approvals off (opt-in)
 dotfiles install ai-config        # servers only; devbox/desktop get it from update
 ./scripts/nvm-install-update.sh
@@ -109,9 +109,11 @@ state is left alone. These flags belong to `ai-config` only, so turning the sand
 always an explicit step; `ai-sudo` never changes them.
 
 **Agent sudo:** `dotfiles install ai-sudo` (`./scripts/ai-agent-sudo-install.sh`) is a separate,
-opt-in setup. It sets `SUDO_ASKPASS` for Claude and Codex (tmux password popup,
-`scripts/ai-agent-sudo/`) and adds the sudo rule, and applies the base settings first, so it works
-alone. The popup needs agents running inside tmux. `dotfiles uninstall ai-sudo` removes it
+opt-in setup. It sets `SUDO_ASKPASS` for Claude and Codex (`scripts/ai-agent-sudo/ai-askpass`)
+and adds the sudo rule, and applies the base settings first, so it works alone. The password
+prompt is a tmux popup when the agent runs inside tmux, otherwise a desktop dialog (`zenity`,
+`kdialog` or `yad`; on Fedora `dnf install zenity`) when a display is available, and as a last
+resort a popup on any attached tmux client. `dotfiles uninstall ai-sudo` removes it
 (sandbox settings are not touched). Run it once per machine; later `dotfiles update` runs keep the result.
 
 Rules for working on this repo itself live in `.cursor/rules/*.mdc` (masters) and

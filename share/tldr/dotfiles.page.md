@@ -42,7 +42,7 @@
 
 `dotfiles install ai-config --sandbox`
 
-- Let agents use sudo through a tmux password popup (opt-in per machine):
+- Let agents use sudo through a tmux popup or desktop dialog (opt-in per machine):
 
 `dotfiles install ai-sudo`
 
