@@ -31,11 +31,6 @@ if [ -f "$HOME/.config/dotfiles/locale.sh" ]; then
   . "$HOME/.config/dotfiles/locale.sh"
 fi
 
-# Proton Pass SSH agent socket when daemon is running (see proton-pass-cli-setup.sh).
-if [ -f "$HOME/.config/dotfiles/proton-pass-env.sh" ]; then
-  . "$HOME/.config/dotfiles/proton-pass-env.sh"
-fi
-
 # Stop here for non-interactive shells (scp/rsync/sftp/ssh host 'cmd').
 case $- in
 *i*) ;;

@@ -137,6 +137,7 @@ install_dotfiles() {
 
   remove_old_fedora_dropin
   remove_legacy_fetch_selector
+  df_cleanup_stale_files "$TARGET_HOME" "$DOTFILES_DIR"
 
   link_bashrc_managed "$SOURCE_DIR/.bashrc" "$TARGET_HOME/.bashrc"
   link_path "$SOURCE_DIR/.shell_aliases_interactive.sh" "$TARGET_HOME/.shell_aliases_interactive.sh"
@@ -145,7 +146,6 @@ install_dotfiles() {
   link_path "$SOURCE_DIR/.tmux.conf" "$TARGET_HOME/.tmux.conf"
   link_prompt_default
   link_path "$SOURCE_DIR/.config/dotfiles/locale.sh" "$TARGET_HOME/.config/dotfiles/locale.sh"
-  link_path "$SOURCE_DIR/.config/dotfiles/proton-pass-env.sh" "$TARGET_HOME/.config/dotfiles/proton-pass-env.sh"
 
   link_plain_nvim
   link_path "$SOURCE_DIR/.config/fastfetch" "$TARGET_HOME/.config/fastfetch"

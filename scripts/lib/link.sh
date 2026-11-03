@@ -171,3 +171,68 @@ df_link_path() {
   df_track_path "$dest"
   df_journal_once link "$dest" "$src"
 }
+
+# Remove a tracked path from managed-paths (counterpart of df_track_path).
+df_untrack_path() {
+  local dest="$1"
+  local file tmp
+  file="$(df_managed_paths_file)"
+  [[ "${DRY_RUN:-0}" -eq 1 ]] && return 0
+  [[ -f "$file" ]] || return 0
+  tmp="$(mktemp)"
+  grep -Fxv -- "$dest" "$file" >"$tmp" || true
+  cp -f "$tmp" "$file"
+  rm -f "$tmp"
+}
+
+# Files dotfiles used to install and no longer does, relative to $HOME.
+# Add a path here when a file leaves the repo so update cleans it up everywhere.
+DF_RETIRED_HOME_FILES=(
+  .config/dotfiles/proton-pass-env.sh
+)
+
+df_remove_stale_path() {
+  local dest="$1"
+  log "remove stale: $dest"
+  if [[ -L "$dest" ]]; then
+    run rm -f "$dest"
+  elif command -v trash-put >/dev/null 2>&1; then
+    run trash-put "$dest"
+  else
+    run rm -f "$dest"
+  fi
+  if [[ "${DRY_RUN:-0}" -eq 0 ]]; then
+    df_journal_remove_path "$dest"
+    df_untrack_path "$dest"
+  fi
+}
+
+# Update-time cleanup, run by devbox.sh, desktop.sh and server/install.sh:
+#  1. retired files (above): our dangling link, or our tracked copy on a server
+#  2. any journaled link whose source left the repo (dangling symlink)
+# A file we never installed (not a link into the clone, not tracked) is left alone.
+df_cleanup_stale_files() {
+  local home="${1:-$HOME}" clone="${2:-${DOTFILES_DIR:-}}"
+  local rel dest target journal
+
+  for rel in "${DF_RETIRED_HOME_FILES[@]}"; do
+    dest="$home/$rel"
+    if [[ -L "$dest" ]]; then
+      target="$(readlink "$dest")"
+      if [[ ! -e "$dest" || ( -n "$clone" && "$target" == "$clone/"* ) ]]; then
+        df_remove_stale_path "$dest"
+      fi
+    elif [[ -f "$dest" ]] && df_path_is_tracked "$dest"; then
+      df_remove_stale_path "$dest"
+    fi
+  done
+
+  journal="$(df_journal_file)"
+  [[ -f "$journal" ]] || return 0
+  while IFS= read -r dest; do
+    [[ -n "$dest" && -L "$dest" && ! -e "$dest" ]] || continue
+    target="$(readlink "$dest")"
+    [[ -n "$clone" && "$target" == "$clone/"* ]] || continue
+    df_remove_stale_path "$dest"
+  done < <(awk -F '\t' '$2 == "link" { print $3 }' "$journal" | sort -u)
+}

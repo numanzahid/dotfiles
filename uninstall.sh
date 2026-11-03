@@ -393,7 +393,6 @@ seed_home_configs() {
     .gitconfig \
     .config/dotfiles/prompt.sh \
     .config/dotfiles/locale.sh \
-    .config/dotfiles/proton-pass-env.sh \
     .config/nvim \
     .config/fastfetch \
     .config/tmux/tmux-logo.txt \

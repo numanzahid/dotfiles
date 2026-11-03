@@ -41,6 +41,7 @@ Format: `timestamp<TAB>kind<TAB>path<TAB>extra`
 - Do not use `declare -F df_journal_once` to skip journaling; source the journal lib instead.
 - If uninstall should revert it, it must be journaled. See `scripts/lib/journal.sh` for kind behavior.
 - Never symlink or template a config file the tool rewrites at runtime; merge only the keys we own (see the `ai-config-managed` rule).
+- When a file we install leaves the repo, add its `$HOME`-relative path to `DF_RETIRED_HOME_FILES` in `scripts/lib/link.sh`. `df_cleanup_stale_files` (run by devbox, desktop and server installs, so by `dotfiles update`) then removes our dangling link or tracked copy; dangling journaled links are pruned automatically.
 - After adding a new journal kind, add an uninstall handler in `uninstall.sh` and document it in `README.md`.
 
 ## Examples
