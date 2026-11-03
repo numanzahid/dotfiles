@@ -71,12 +71,12 @@ jobs:
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - name: Install git and sudo (container images are minimal)
+      - name: Install git, sudo and su (container images are minimal)
         run: |
           if command -v apt-get >/dev/null 2>&1; then
             apt-get update && apt-get install -y git sudo
           elif command -v dnf >/dev/null 2>&1; then
-            dnf install -y git sudo
+            dnf install -y git sudo util-linux
           fi
 
       - uses: actions/checkout@v4
