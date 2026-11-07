@@ -17,7 +17,7 @@ vim.opt.smartcase = true
 vim.opt.splitbelow = true
 vim.opt.splitright = true
 vim.opt.termguicolors = true
-vim.opt.mouse = ""
+vim.opt.mouse = "a"
 
 require("config.options")
 require("config.keymaps")
