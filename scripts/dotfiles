@@ -49,12 +49,12 @@ Commands:
   update [--force] [--config-only] [--dry-run]
       Pull the dotfiles repo and refresh this machine.
       Always re-links configs (unless --config-only skips software only).
-      Software is updated when last run was more than 30 days ago.
+      Software is updated when last run was more than 15 days ago.
       Stops if the repo has local changes; prompts to discard and pull.
       If ssh to GitHub fails, pulls over https for that run (remote unchanged).
       Also removes files dotfiles no longer installs (dangling links, retired copies).
       --force discards tracked repo changes, pulls, and reinstalls all
-      software (full install, ignores the 30-day skip).
+      software (full install, ignores the 15-day skip).
       Re-runs automatically if the pull updates scripts/dotfiles.
 
   status (alias: info)

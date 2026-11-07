@@ -58,7 +58,7 @@ dotfiles install fetch          # fastfetch banner (interactive art picker)
 
 Run `tldr` (no args) to fuzzy-pick a page, or `tldr dotfiles` for the dotfiles cheat sheet (`share/tldr/`).
 
-**update** always re-links configs. Software is skipped when updated within the last 30 days (except `--force`).
+**update** always re-links configs. Software is skipped when updated within the last 15 days (except `--force`).
 
 If the repo has local changes, **update** shows a diff and asks before discarding.
 

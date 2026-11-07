@@ -6,11 +6,11 @@
 
 `dotfiles status`
 
-- Pull repo (falls back to https if ssh fails) and refresh configs (software if older than 30 days):
+- Pull repo (falls back to https if ssh fails) and refresh configs (software if older than 15 days):
 
 `dotfiles update`
 
-- Full reinstall (discards repo changes, ignores 30-day skip):
+- Full reinstall (discards repo changes, ignores 15-day skip):
 
 `dotfiles update --force`
 

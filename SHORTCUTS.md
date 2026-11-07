@@ -12,7 +12,7 @@ Available after the first install as `dotfiles` (`~/.local/bin/dotfiles`).
 
 | Command | What it does |
 |---------|----------------|
-| `dotfiles update` | Pull repo, refresh configs, update software older than 30 days |
+| `dotfiles update` | Pull repo, refresh configs, update software older than 15 days |
 | `dotfiles update --config-only` | Pull repo and refresh configs only |
 | `dotfiles update --force` | Discard repo changes, pull, full reinstall |
 | `dotfiles status` | Profile, nvim, fetch, versions, last updated |

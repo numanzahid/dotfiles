@@ -36,7 +36,7 @@ Options:
   -h, --help       Show this help
 
 Environment (used by dotfiles update):
-  DOTFILES_RESPECT_COMPONENT_AGE=1   Skip software updated within 30 days
+  DOTFILES_RESPECT_COMPONENT_AGE=1   Skip software updated within 15 days
 
 Single-tool installs: ./scripts/<tool>-install-update.sh
 

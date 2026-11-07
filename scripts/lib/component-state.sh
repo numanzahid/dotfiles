@@ -5,7 +5,7 @@
 # updated_at: UTC ISO-8601 (same style as install-journal.tsv)
 # Freshness: dotfiles update skips software reinstall when age < DOTFILES_UPDATE_SKIP_DAYS.
 
-DOTFILES_UPDATE_SKIP_DAYS="${DOTFILES_UPDATE_SKIP_DAYS:-30}"
+DOTFILES_UPDATE_SKIP_DAYS="${DOTFILES_UPDATE_SKIP_DAYS:-15}"
 
 # shellcheck source=journal.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/journal.sh"
