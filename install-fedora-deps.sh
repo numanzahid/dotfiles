@@ -17,7 +17,7 @@ ripgrep tar tmux trash-cli wget unzip fontconfig.
 Needs sudo. Official Fedora repos only (no COPR).
 
 CLI tools that may come from GitHub are chosen by ./desktop.sh
-(zoxide, lazygit, starship, fonts, fastfetch).
+(zoxide, lazygit, starship, fastfetch).
 
 On Debian/Ubuntu use ./install-deps.sh.
 

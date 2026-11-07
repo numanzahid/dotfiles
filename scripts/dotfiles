@@ -53,6 +53,7 @@ Commands:
       Stops if the repo has local changes; prompts to discard and pull.
       If ssh to GitHub fails, pulls over https for that run (remote unchanged).
       Also removes files dotfiles no longer installs (dangling links, retired copies).
+      Ends with a software summary: one line per tool, old -> new version.
       --force discards tracked repo changes, pulls, and reinstalls all
       software (full install, ignores the 15-day skip).
       Re-runs automatically if the pull updates scripts/dotfiles.
@@ -65,6 +66,9 @@ Commands:
       lazyvim       Full LazyVim profile
       lazyvim-lite  Editor-only LazyVim
       fetch         Fastfetch banner (interactive art picker)
+      fonts         Nerd fonts (Cascadia Code, JetBrains Mono) into ~/.local/share/fonts.
+                    Opt-in, not in the default install; re-run to upgrade.
+                    Remove with: dotfiles uninstall fonts
       ai-config     AI agent rules plus Claude/Codex settings. devbox and
                     desktop already get this from update; use it on a server
                     (copies files instead of linking).
@@ -85,6 +89,7 @@ Commands:
       lazyvim: remove LazyVim/lite data; switch nvim back to nvim-plain.
       ai-sudo: remove the agent sudo setup (sandbox settings are not
                touched; use install ai-config --sandbox for those).
+      fonts:   remove the Nerd fonts installed by `install fonts`.
       <software>: remove one dotfiles-managed tool (see --list).
 
 First-time setup (before dotfiles is on PATH):
@@ -272,14 +277,57 @@ dotfiles_run_profile_installer() {
   fi
 }
 
+# Software whose version the update summary compares (before vs after).
+DOTFILES_SUMMARY_SOFTWARE=(bat fd eza zoxide lazygit gh fzf tldr neovim btop gdu starship)
+
+# Print "name<TAB>version" for each installed summary software.
+dotfiles_software_versions() {
+  local name v
+  for name in "${DOTFILES_SUMMARY_SOFTWARE[@]}"; do
+    v="$(df_live_version "$name" 2>/dev/null || true)"
+    [[ -n "$v" ]] && printf '%s\t%s\n' "$name" "$v"
+  done
+  return 0
+}
+
+# One line per upgraded or newly installed tool: "name  old -> new".
+dotfiles_print_software_summary() {
+  local before_file="$1"
+  local name old new changed=0
+  local -a same=()
+
+  while IFS=$'\t' read -r name new; do
+    old="$(awk -F '\t' -v n="$name" '$1 == n { print $2 }' "$before_file")"
+    if [[ -z "$old" ]]; then
+      printf '  %-10s (new) -> %s\n' "$name" "$new"
+      changed=1
+    elif [[ "$old" != "$new" ]]; then
+      printf '  %-10s %s -> %s\n' "$name" "$old" "$new"
+      changed=1
+    else
+      same+=("$name $new")
+    fi
+  done < <(dotfiles_software_versions)
+
+  [[ "$changed" -eq 1 ]] || printf '  no software versions changed\n'
+  if ((${#same[@]} > 0)); then
+    printf '  unchanged: %s\n' "$(printf '%s, ' "${same[@]}" | sed 's/, $//')"
+  fi
+}
+
 dotfiles_cmd_update() {
-  local profile
+  local profile before=""
 
   require_dotfiles_dir
   profile="$(df_profile_detect)"
   log "profile: $profile"
 
   dotfiles_repo_sync "$FORCE"
+
+  if [[ "$CONFIG_ONLY" -eq 0 && "$DRY_RUN" -eq 0 ]]; then
+    before="$(mktemp)"
+    dotfiles_software_versions >"$before"
+  fi
 
   if [[ "$CONFIG_ONLY" -eq 1 ]]; then
     dotfiles_run_profile_installer configs
@@ -290,6 +338,11 @@ dotfiles_cmd_update() {
     dotfiles_run_profile_installer software-stale
   fi
 
+  if [[ -n "$before" ]]; then
+    log "software:"
+    dotfiles_print_software_summary "$before"
+    rm -f "$before"
+  fi
   log "update finished"
 }
 
@@ -382,7 +435,7 @@ dotfiles_cmd_install() {
   extra=("$@")
 
   require_dotfiles_dir
-  [[ -n "$what" ]] || die "install requires: lazyvim, lazyvim-lite, fetch, ai-config, or ai-sudo"
+  [[ -n "$what" ]] || die "install requires: lazyvim, lazyvim-lite, fetch, fonts, ai-config, or ai-sudo"
 
   case "$what" in
     lazyvim)
@@ -397,6 +450,16 @@ dotfiles_cmd_install() {
       run_installer bash "$DOTFILES_DIR/install-fetch.sh"
       [[ "$DRY_RUN" -eq 1 ]] || df_component_touch fetch ""
       ;;
+    fonts)
+      # Runs for real even with --dry-run: the script has its own dry-run.
+      local dry="$DRY_RUN" arg
+      for arg in "${extra[@]}"; do
+        [[ "$arg" == --dry-run ]] && dry=1
+      done
+      [[ "$DRY_RUN" -eq 1 ]] && extra+=(--dry-run)
+      bash "$DOTFILES_DIR/scripts/cascadia-nerd-font-install-update.sh" "${extra[@]}"
+      [[ "$dry" -eq 1 ]] || df_component_touch fonts ""
+      ;;
     ai-config)
       # Runs for real even with --dry-run: the script has its own dry-run.
       [[ "$DRY_RUN" -eq 1 ]] && extra+=(--dry-run)
@@ -407,7 +470,7 @@ dotfiles_cmd_install() {
       bash "$DOTFILES_DIR/scripts/ai-agent-sudo-install.sh" "${extra[@]}"
       ;;
     *)
-      die "unknown install target: $what (try: lazyvim, lazyvim-lite, fetch, ai-config, ai-sudo)"
+      die "unknown install target: $what (try: lazyvim, lazyvim-lite, fetch, fonts, ai-config, ai-sudo)"
       ;;
   esac
 }

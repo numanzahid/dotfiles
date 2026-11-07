@@ -336,7 +336,7 @@ df_status_print() {
 
   while IFS= read -r component; do
     [[ -n "$component" ]] || continue
-    if [[ "$component" == fetch ]] && ! df_component_get_field fetch 1 >/dev/null 2>&1; then
+    if [[ "$component" == fetch || "$component" == fonts ]] && [[ -z "$(df_component_get_field "$component" 1 2>/dev/null)" ]]; then
       continue
     fi
     live="$(df_live_version "$component")"

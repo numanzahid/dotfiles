@@ -6,7 +6,7 @@
 
 `dotfiles status`
 
-- Pull repo (falls back to https if ssh fails) and refresh configs (software if older than 15 days):
+- Pull repo (falls back to https if ssh fails) and refresh configs (software if older than 15 days), then list version changes:
 
 `dotfiles update`
 
@@ -61,6 +61,14 @@
 - Remove LazyVim data; switch nvim to plain config:
 
 `dotfiles uninstall lazyvim`
+
+- Install Nerd fonts (opt-in; re-run to upgrade):
+
+`dotfiles install fonts`
+
+- Remove the Nerd fonts:
+
+`dotfiles uninstall fonts`
 
 - Remove one managed tool:
 

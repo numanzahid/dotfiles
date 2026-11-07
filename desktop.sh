@@ -26,9 +26,10 @@ usage() {
 Usage: ./desktop.sh [options]
 
 Full workstation install on Fedora or Debian/Ubuntu: link configs,
-packages, CLI tools, fonts, tmux TPM, starship prompt, and AI agent
+packages, CLI tools, tmux TPM, starship prompt, and AI agent
 rules. Detects the distro; bat/fd/eza/gh/fzf/neovim/btop come from dnf
-on Fedora, GitHub releases everywhere else.
+on Fedora, GitHub releases everywhere else. Nerd fonts are opt-in:
+dotfiles install fonts.
 
 Options:
   --configs-only   Link configs and AI rules only (no software)
@@ -182,7 +183,6 @@ install_dotfiles() {
 
 install_software_desktop() {
   install_software_workstation
-  install_fonts_desktop
 
   if ! df_skip_software_component starship; then
     log "starship from GitHub"

@@ -25,9 +25,9 @@ cd ~/.dotfiles
 
 Each script does a **full install** by default: configs, packages, CLI tools, tmux TPM, and AI agent rules (devbox/desktop). No `--all` flag.
 
-**devbox/desktop** includes: bat, fd, zoxide, eza, lazygit, gh, neovim, btop, gdu, fzf, tldr, TPM. **desktop** also installs nerd fonts by default (headless/VM use is the common case for devbox, so it doesn't); run `./scripts/cascadia-nerd-font-install-update.sh` by hand on a devbox that wants them too.
+**devbox/desktop** includes: bat, fd, zoxide, eza, lazygit, gh, neovim, btop, gdu, fzf, tldr, TPM (desktop adds starship). Nerd fonts are opt-in: `dotfiles install fonts`.
 
-**server** is slimmer: copied configs (including `.gitconfig` and `btop`), base OS packages (apt or dnf), neovim, btop, gdu (no fzf, zoxide, lazygit, gh, tldr, TPM, fonts).
+**server** is slimmer: copied configs (including `.gitconfig` and `btop`), base OS packages (apt or dnf), neovim, btop, gdu (no fzf, zoxide, lazygit, gh, tldr, TPM).
 
 Installer options (all profiles):
 
@@ -58,7 +58,7 @@ dotfiles install fetch          # fastfetch banner (interactive art picker)
 
 Run `tldr` (no args) to fuzzy-pick a page, or `tldr dotfiles` for the dotfiles cheat sheet (`share/tldr/`).
 
-**update** always re-links configs. Software is skipped when updated within the last 15 days (except `--force`).
+**update** always re-links configs. Software is skipped when updated within the last 15 days (except `--force`). It ends with one line per tool, old -> new version.
 
 If the repo has local changes, **update** shows a diff and asks before discarding.
 
@@ -68,6 +68,7 @@ Not part of the main install scripts:
 
 ```bash
 dotfiles install fetch
+dotfiles install fonts            # Nerd fonts (re-run to upgrade); dotfiles uninstall fonts
 dotfiles install lazyvim
 dotfiles install lazyvim-lite
 dotfiles sync lazyvim

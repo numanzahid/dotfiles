@@ -293,7 +293,7 @@ df_skip_software_component() {
 # versions and this keeps them under normal system updates); everywhere
 # else they come from the same checksummed GitHub-release scripts. zoxide
 # is always GitHub (Fedora's dnf zoxide lags upstream). lazygit, tldr,
-# tpm, gdu, and fonts are always GitHub on both -- no distro packages
+# tpm and gdu are always GitHub on both -- no distro packages
 # ever covered those well, so there's nothing to branch.
 install_software_workstation() {
   local os_family
@@ -390,23 +390,6 @@ install_software_workstation() {
   # silently aborts the whole script with no error message. Caught by
   # running a full (non---configs-only) --dry-run and actually checking the
   # exit code, which nothing had done before.
-  return 0
-}
-
-# Desktop-only by default: a workstation with a terminal that renders Nerd
-# Font glyphs is the case fonts are for. devbox.sh skips this (headless/VM
-# use is the common case there); run scripts/cascadia-nerd-font-install-update.sh
-# by hand on a devbox that wants them too.
-install_fonts_desktop() {
-  if ! df_skip_software_component fonts; then
-    log "Nerd fonts: Cascadia Code + JetBrains Mono (user fonts + fc-cache)"
-    run_github_step "cascadia-nerd-font" bash "$SCRIPTS_DIR/cascadia-nerd-font-install-update.sh"
-    [[ "$DRY_RUN" -eq 0 ]] && df_component_touch fonts ""
-  fi
-
-  # Deliberate: see the matching comment at the end of
-  # install_software_workstation -- same short-circuit-under-dry-run trap,
-  # now that this guard is a function's own last statement again.
   return 0
 }
 

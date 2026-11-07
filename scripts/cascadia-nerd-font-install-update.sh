@@ -6,8 +6,9 @@ set -euo pipefail
 #   JetBrainsMono.zip -> JetBrainsMono
 # Re-run to upgrade. Same pattern as the other *-install-update.sh scripts.
 #
-# Invoked by: ./devbox.sh --all and ./desktop.sh --all
-# Re-run:     ./scripts/cascadia-nerd-font-install-update.sh
+# Opt-in, not part of devbox/desktop/server installs.
+# Run:        dotfiles install fonts   (re-run to upgrade)
+# Remove:     dotfiles uninstall fonts
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -19,8 +20,8 @@ Install Cascadia Code and JetBrains Mono nerd fonts into user fonts
 (~/.local/share/fonts/dotfiles-*). Latest GitHub nerd-fonts release.
 Runs fc-cache. No sudo.
 
-Invoked by ./devbox.sh --all and ./desktop.sh --all.
-Not part of copy-install (light hosts skip fonts).
+Opt-in: not part of devbox, desktop or server installs. Normally run as
+`dotfiles install fonts` (re-run to upgrade); remove with `dotfiles uninstall fonts`.
 
 Options:
   --uninstall  Remove dotfiles font dirs, version stamp, and journal entries
@@ -50,6 +51,12 @@ case "$_df_entry" in
   2) usage; exit 0 ;;
   3) usage >&2; exit 1 ;;
 esac
+
+if [[ "${DF_INSTALL_DRY_RUN:-0}" -eq 1 ]]; then
+  echo "+ download the latest Nerd Fonts CascadiaCode and JetBrainsMono zips"
+  echo "+ install them under ${XDG_DATA_HOME:-$HOME/.local/share}/fonts/dotfiles-* and run fc-cache"
+  exit 0
+fi
 
 # shellcheck source=lib/github-release.sh
 source "$SCRIPT_DIR/lib/github-release.sh"
