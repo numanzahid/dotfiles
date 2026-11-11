@@ -403,6 +403,7 @@ seed_home_configs() {
     .config/alacritty \
     .config/kitty \
     .terminfo/x/xterm-kitty \
+    .terminfo/x/xterm-ghostty \
     .local/bin/dotfiles; do
     seed_home_path_if_managed "$rel"
   done

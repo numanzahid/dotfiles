@@ -367,16 +367,17 @@ copy_btop_conf() {
   copy_file "$src" "$dest_dir/btop.conf"
 }
 
-copy_kitty_terminfo() {
-  local src="$SCRIPTS_DIR/data/terminfo/x/xterm-kitty"
-  local dest="$TARGET_HOME/.terminfo/x/xterm-kitty"
-
-  if [[ ! -f "$src" ]]; then
-    log "skip missing kitty terminfo: $src"
-    return 0
-  fi
-
-  copy_file "$src" "$dest"
+copy_terminfo() {
+  local name src dest
+  for name in xterm-kitty xterm-ghostty; do
+    src="$SCRIPTS_DIR/data/terminfo/x/$name"
+    dest="$TARGET_HOME/.terminfo/x/$name"
+    if [[ ! -f "$src" ]]; then
+      log "skip missing terminfo: $src"
+      continue
+    fi
+    copy_file "$src" "$dest"
+  done
 }
 
 copy_fastfetch_banner() {
@@ -468,6 +469,7 @@ install_configs() {
       "$TARGET_HOME/.profile" \
       "$TARGET_HOME/.tmux.conf" \
       "$TARGET_HOME/.terminfo/x/xterm-kitty" \
+      "$TARGET_HOME/.terminfo/x/xterm-ghostty" \
       "$TARGET_HOME/.config/nvim" \
       "$TARGET_HOME/.config/fastfetch/config.jsonc"; do
       if [[ -e "$dest" && ! -L "$dest" ]]; then
@@ -485,7 +487,7 @@ install_configs() {
   copy_if_missing "$SOURCE_DIR/.gitconfig" "$TARGET_HOME/.gitconfig"
   copy_file "$SOURCE_DIR/.profile" "$TARGET_HOME/.profile"
   copy_file "$SERVER_DIR/tmux.conf" "$TARGET_HOME/.tmux.conf"
-  copy_kitty_terminfo
+  copy_terminfo
   copy_btop_conf
 
   copy_nvim_plain

@@ -81,6 +81,9 @@ dotfiles install ai-config        # servers only; devbox/desktop get it from upd
 ./scripts/kitty-install-update.sh
 ```
 
+SSH from Kitty or Ghostty: every profile ships the `xterm-kitty` and `xterm-ghostty` terminfo
+(the shell also installs it on first login), so tmux starts without "missing or unsuitable terminal".
+
 ### Claude Code and Codex config
 
 `devbox.sh`, `desktop.sh` and `dotfiles update` install the AI rules and **merge** a few keys

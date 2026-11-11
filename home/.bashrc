@@ -119,17 +119,23 @@ fi
 
 ##### tmux autostart ####################################################
 
-# Kitty SSH: install xterm-kitty terminfo on hosts that lack it (tmux autostart).
-if [[ "${TERM:-}" == xterm-kitty ]] && ! infocmp xterm-kitty >/dev/null 2>&1; then
-  _df_kti="${XDG_DATA_HOME:-$HOME/.local/share}/dotfiles/terminfo/x/xterm-kitty"
-  if [[ -f "$_df_kti" ]]; then
-    mkdir -p "$HOME/.terminfo/x"
-    cp -f "$_df_kti" "$HOME/.terminfo/x/xterm-kitty"
-  elif [[ -x "$HOME/.dotfiles/scripts/kitty-terminfo-install-update.sh" ]]; then
-    "$HOME/.dotfiles/scripts/kitty-terminfo-install-update.sh" >/dev/null 2>&1 || true
-  fi
-  unset _df_kti
-fi
+# Kitty/Ghostty over SSH: install the matching terminfo on hosts that lack it,
+# otherwise tmux fails with "missing or unsuitable terminal".
+case "${TERM:-}" in
+  xterm-kitty | xterm-ghostty)
+    if ! infocmp "$TERM" >/dev/null 2>&1; then
+      _df_ti="${XDG_DATA_HOME:-$HOME/.local/share}/dotfiles/terminfo/x/$TERM"
+      _df_tool="$HOME/.dotfiles/scripts/${TERM#xterm-}-terminfo-install-update.sh"
+      if [[ -f "$_df_ti" ]]; then
+        mkdir -p "$HOME/.terminfo/x"
+        cp -f "$_df_ti" "$HOME/.terminfo/x/$TERM"
+      elif [[ -x "$_df_tool" ]]; then
+        "$_df_tool" >/dev/null 2>&1 || true
+      fi
+      unset _df_ti _df_tool
+    fi
+    ;;
+esac
 
 # Autostart tmux over SSH unless disabled.
 # Disable temporarily with: NO_TMUX=1 ssh host

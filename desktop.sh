@@ -173,7 +173,12 @@ install_dotfiles() {
 
   if [[ -x "$DOTFILES_DIR/scripts/kitty-terminfo-install-update.sh" ]]; then
     log "kitty terminfo (xterm-kitty for SSH/tmux from Kitty)"
-    bash "$DOTFILES_DIR/scripts/kitty-terminfo-install-update.sh"
+    run bash "$DOTFILES_DIR/scripts/kitty-terminfo-install-update.sh"
+  fi
+
+  if [[ -x "$DOTFILES_DIR/scripts/ghostty-terminfo-install-update.sh" ]]; then
+    log "ghostty terminfo (xterm-ghostty for SSH/tmux from Ghostty)"
+    run bash "$DOTFILES_DIR/scripts/ghostty-terminfo-install-update.sh"
   fi
 
   df_relocate_stray_clone_backups
