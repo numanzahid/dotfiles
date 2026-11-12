@@ -1,0 +1,29 @@
+# Edit this repo file; devbox.sh/desktop.sh (and dotfiles update) copy it to
+# ~/.config/ghostty/config. Copied, not linked, so DMS or another tool rewriting the
+# file never touches the repo; the next update restores this version.
+# Colors: themes/dotfiles (fixed; DMS writes themes/dankcolors, which is not selected).
+# Same look as the Kitty and Alacritty configs.
+
+font-family = CaskaydiaCove Nerd Font Mono
+font-size = 13
+
+window-padding-x = 14
+window-padding-y = 14
+background-opacity = 0.95
+background-blur-radius = 32
+confirm-close-surface = false
+
+cursor-style = block
+cursor-style-blink = false
+
+mouse-hide-while-typing = true
+copy-on-select = false
+
+# ssh-terminfo copies xterm-ghostty to hosts that lack it; ssh-env falls back to
+# TERM=xterm-256color. Needs Ghostty 1.2+ (older versions warn and ignore it).
+shell-integration-features = ssh-terminfo,ssh-env
+
+# Shift+Enter inserts a newline (multi-line prompts in Claude Code and Codex).
+keybind = shift+enter=text:\n
+
+theme = dotfiles

@@ -84,6 +84,10 @@ dotfiles install ai-config        # servers only; devbox/desktop get it from upd
 SSH from Kitty or Ghostty: every profile ships the `xterm-kitty` and `xterm-ghostty` terminfo
 (the shell also installs it on first login), so tmux starts without "missing or unsuitable terminal".
 
+Alacritty, Kitty and Ghostty configs (with a fixed color theme) are **copied** to `~/.config`, not
+linked, so DMS or another tool rewriting them cannot dirty the repo or block `dotfiles update`; each
+update restores the repo version. Edit them in `home/.config/{alacritty,kitty,ghostty}/`.
+
 ### Claude Code and Codex config
 
 `devbox.sh`, `desktop.sh` and `dotfiles update` install the AI rules and **merge** a few keys

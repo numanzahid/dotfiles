@@ -1,7 +1,11 @@
-# Edit this repo file; workstation installers symlink it.
+# Edit this repo file; devbox.sh/desktop.sh (and dotfiles update) copy it to
+# ~/.config/alacritty. Copied, not linked, so DMS or another tool rewriting the
+# file never touches the repo; the next update restores this version.
+# Colors: dotfiles-theme.toml (fixed; DMS writes dank-theme.toml, which is not imported).
 
 [general]
 live_config_reload = true
+import = ["~/.config/alacritty/dotfiles-theme.toml"]
 
 # xterm-256color everywhere (local + SSH). Fine for tmux-heavy workflow; no remote alacritty terminfo.
 [env]
@@ -32,10 +36,6 @@ decorations = "Buttonless"
 opacity = 1
 blur = true
 
-[window.dimensions]
-columns = 220
-lines = 55
-
 # Cursor styling
 [cursor.style]
 shape = "Block"
@@ -44,3 +44,15 @@ blinking = "Off"
 # Alacritty multiplier is lines per notch (default 3).
 [scrolling]
 multiplier = 3
+
+[mouse]
+hide_when_typing = true
+
+[bell]
+duration = 0
+
+# Shift+Enter inserts a newline (multi-line prompts in Claude Code and Codex).
+[keyboard]
+bindings = [
+  { key = "Enter", mods = "Shift", chars = "\n" },
+]

@@ -92,6 +92,35 @@ copy_if_missing() {
   df_journal_once copy "$dest" "$src"
 }
 
+# Alacritty, Kitty and Ghostty configs and their fixed theme files. Copied, not
+# linked: DMS rewrites these files, and through a link it would dirty the clone.
+install_terminal_configs() {
+  local app rel dir target
+  local -a files=(
+    alacritty/alacritty.toml alacritty/dotfiles-theme.toml
+    kitty/kitty.conf kitty/dotfiles-theme.conf
+    ghostty/config ghostty/themes/dotfiles
+  )
+
+  # Older installs linked the whole directory into the clone.
+  for app in alacritty kitty ghostty; do
+    dir="$TARGET_HOME/.config/$app"
+    [[ -L "$dir" ]] || continue
+    target="$(readlink -f "$dir" 2>/dev/null || true)"
+    [[ "$target" == "$DOTFILES_DIR"/* ]] || continue
+    log "replace $app config dir symlink with a directory"
+    run rm -f "$dir"
+    if [[ "${DRY_RUN:-0}" -eq 0 ]]; then
+      df_journal_remove_path "$dir"
+      df_untrack_path "$dir"
+    fi
+  done
+
+  for rel in "${files[@]}"; do
+    df_copy_managed "$SOURCE_DIR/.config/$rel" "$TARGET_HOME/.config/$rel"
+  done
+}
+
 link_btop_conf() {
   local dest_dir="$TARGET_HOME/.config/btop"
   local src="$SOURCE_DIR/.config/btop/btop.conf"

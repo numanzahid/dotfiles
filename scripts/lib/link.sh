@@ -172,6 +172,38 @@ df_link_path() {
   df_journal_once link "$dest" "$src"
 }
 
+# Copy src to dest as a real file we own (journal kind copy, tracked). Use it for
+# configs another tool rewrites (DMS rewrites the terminal configs): a link would
+# let it write into the clone and block git pull. A symlink at dest is replaced,
+# a foreign original is stashed once, and every run restores our version.
+# Requires: log, run, DRY_RUN
+df_copy_managed() {
+  local src="$1"
+  local dest="$2"
+
+  if [[ ! -f "$src" ]]; then
+    log "skip missing source: $src"
+    return 0
+  fi
+
+  run mkdir -p "$(dirname "$dest")"
+  if [[ -L "$dest" ]]; then
+    log "replace symlink with file: $dest"
+    run rm -f "$dest"
+  else
+    df_stash_original_if_needed "$src" "$dest"
+  fi
+
+  if df_same_file "$src" "$dest"; then
+    log "already current: $dest"
+  else
+    run cp -f "$src" "$dest"
+    log "copied: $dest"
+  fi
+  df_track_path "$dest"
+  df_journal_once copy "$dest" "$src"
+}
+
 # Remove a tracked path from managed-paths (counterpart of df_track_path).
 df_untrack_path() {
   local dest="$1"

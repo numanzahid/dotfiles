@@ -400,8 +400,12 @@ seed_home_configs() {
     .config/btop/btop.conf \
     .config/lazygit/config.yml \
     .config/starship.toml \
-    .config/alacritty \
-    .config/kitty \
+    .config/alacritty/alacritty.toml \
+    .config/alacritty/dotfiles-theme.toml \
+    .config/kitty/kitty.conf \
+    .config/kitty/dotfiles-theme.conf \
+    .config/ghostty/config \
+    .config/ghostty/themes/dotfiles \
     .terminfo/x/xterm-kitty \
     .terminfo/x/xterm-ghostty \
     .local/bin/dotfiles; do
