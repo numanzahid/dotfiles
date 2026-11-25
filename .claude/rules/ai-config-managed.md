@@ -18,7 +18,7 @@ paths:
 
 | What | Source in repo | Target | How |
 |---|---|---|---|
-| Rules (git, trash-cli) | `home/.config/dotfiles/ai-rules/cursor/*.mdc` (masters) | `~/.cursor/rules` (symlinks; copies on server), `~/.codex/AGENTS.md` (merged), `~/.claude/rules/*.md` | `scripts/lib/ai-rules.sh` via `scripts/ai-rules-install.sh`; runs in `devbox.sh`, `desktop.sh` and `dotfiles update` |
+| Rules (git, trash-cli) | `home/.config/dotfiles/ai-rules/cursor/*.mdc` (masters) | `~/.cursor/rules` (symlinks; copies on server), `~/.codex/AGENTS.md` and `~/.config/opencode/AGENTS.md` (merged), `~/.claude/rules/*.md` | `scripts/lib/ai-rules.sh` via `scripts/ai-rules-install.sh`; runs in `devbox.sh`, `desktop.sh` and `dotfiles update` |
 | Claude settings | `home/.config/dotfiles/ai-config/claude/settings.base.json` | `~/.claude/settings.json` | `jq` recursive merge, repo keys win |
 | Codex settings | `home/.config/dotfiles/ai-config/codex/config.base.toml` | `~/.codex/config.toml` | per-key line edit, re-parsed with `tomllib` before writing |
 | Statusline, skills, agents, commands, prompts | `home/.claude/`, `home/.codex/` | `~/.claude/`, `~/.codex/` | symlink per item (copy on server), never the parent dir |
@@ -47,7 +47,7 @@ All logic lives in `scripts/lib/ai-config.sh` (merge helpers, agent sudo) and `s
   for anything the AI scripts install; it copies when `df_ai_copy_mode` is true (server profile, or `--copy`).
 - Keep merges idempotent and journaled (`patch`); every write is validated and a pre-merge
   copy goes to `~/.local/share/dotfiles/backups/ai-config/`.
-- Keep Cursor, Codex and Claude rule content identical: the `.mdc` is the master.
+- Keep Cursor, Codex, opencode and Claude rule content identical: the `.mdc` is the master.
 
 ## This repo's own rules
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Install dotfiles AI agent rules.
 # Cursor .mdc files are the master source (linked, or copied on a server). Claude gets one .md per rule.
-# Codex gets one AGENTS.md (API limitation). Used by ai-rules-install.sh.
+# Codex and opencode each get one AGENTS.md (merged from all rules). Used by ai-rules-install.sh.
 # Requires: SOURCE_DIR, log, run, and link.sh helpers.
 
 # shellcheck source=ai-config.sh
@@ -33,6 +33,11 @@ df_ai_rules_claude_dest() {
 df_ai_rules_codex_dest() {
   local home="${TARGET_HOME:-$HOME}"
   printf '%s/.codex/AGENTS.md' "$home"
+}
+
+df_ai_rules_opencode_dest() {
+  local home="${TARGET_HOME:-$HOME}"
+  printf '%s/.config/opencode/AGENTS.md' "$home"
 }
 
 df_ai_rules_basename_list() {
@@ -274,12 +279,14 @@ df_ai_rules_build_codex_file() {
   return 0
 }
 
-df_ai_rules_install_codex() {
-  local dest tmp
+# Write the merged AGENTS.md (all rules in one file) to DEST. Usage: ... DEST LABEL
+df_ai_rules_install_merged() {
+  local dest="$1"
+  local label="$2"
+  local tmp
 
   df_ai_rules_migrate_legacy
   df_ai_rules_ensure_cursor_links
-  dest="$(df_ai_rules_codex_dest)"
   mkdir -p "$(dirname "$dest")"
   tmp="$(mktemp)"
 
@@ -289,7 +296,7 @@ df_ai_rules_install_codex() {
   fi
 
   if [[ "${DRY_RUN:-0}" -eq 1 ]]; then
-    log "would write codex rules to $dest"
+    log "would write $label rules to $dest"
     rm -f "$tmp"
     return 0
   fi
@@ -305,6 +312,15 @@ df_ai_rules_install_codex() {
   df_track_path "$dest"
   df_journal_once copy "$dest" "generated-from-cursor-mdc"
   log "wrote: $dest"
+}
+
+df_ai_rules_install_codex() {
+  df_ai_rules_install_merged "$(df_ai_rules_codex_dest)" codex
+}
+
+# opencode reads ~/.config/opencode/AGENTS.md (it does not read ~/.claude/rules/).
+df_ai_rules_install_opencode() {
+  df_ai_rules_install_merged "$(df_ai_rules_opencode_dest)" opencode
 }
 
 df_ai_rules_install_claude() {
@@ -376,6 +392,7 @@ df_ai_rules_install_cursor() {
 df_ai_rules_install_all() {
   df_ai_rules_install_cursor
   df_ai_rules_install_codex
+  df_ai_rules_install_opencode
   df_ai_rules_install_claude
   df_ai_config_install_all
 }
@@ -384,6 +401,7 @@ df_ai_rules_install_tool() {
   case "$1" in
     cursor) df_ai_rules_install_cursor ;;
     codex) df_ai_rules_install_codex ;;
+    opencode) df_ai_rules_install_opencode ;;
     claude) df_ai_rules_install_claude ;;
     *)
       log "unknown AI rules tool: $1"
@@ -412,6 +430,7 @@ df_ai_rules_list_repo() {
     printf '  cursor  master: %s\n' "$(df_ai_rules_basename_list "${files[@]}")"
   fi
   printf '  codex   one file: ~/.codex/AGENTS.md (merged from all .mdc)\n'
+  printf '  opencode one file: ~/.config/opencode/AGENTS.md (merged from all .mdc)\n'
   printf '  claude  one file per rule: ~/.claude/rules/*.md\n'
 }
 
@@ -447,6 +466,13 @@ df_ai_rules_dest_status() {
     printf '  %-7s %s\n' "codex" "$dest"
   else
     printf '  %-7s missing %s\n' "codex" "$dest"
+  fi
+
+  dest="$(df_ai_rules_opencode_dest)"
+  if [[ -f "$dest" ]]; then
+    printf '  %-7s %s\n' "opencode" "$dest"
+  else
+    printf '  %-7s missing %s\n' "opencode" "$dest"
   fi
 
   rules_dir="$(df_ai_rules_claude_rules_dir)"

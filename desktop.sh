@@ -167,7 +167,7 @@ install_dotfiles() {
   run chmod 600 "$TARGET_HOME/.ssh/config" 2>/dev/null || true
   run chmod 600 "$TARGET_HOME/.ssh/authorized_keys" 2>/dev/null || true
 
-  log "AI agent rules (cursor, codex, claude)"
+  log "AI agent rules (cursor, codex, opencode, claude)"
   df_ai_rules_install_all
 
   if [[ -x "$DOTFILES_DIR/scripts/kitty-terminfo-install-update.sh" ]]; then

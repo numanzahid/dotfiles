@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install dotfiles AI agent rules (cursor, codex, claude) and the dotfiles-owned
+# Install dotfiles AI agent rules (cursor, codex, opencode, claude) and the dotfiles-owned
 # Claude/Codex settings keys (see scripts/ai-config-install.sh).
 # Also run automatically by ./devbox.sh and ./desktop.sh (not by ./server.sh).
 # Sudo askpass (opt-in): scripts/ai-agent-sudo-install.sh.
@@ -22,7 +22,7 @@ usage() {
   cat <<'EOF'
 Usage: ./scripts/ai-rules-install.sh [options]
 
-Install dotfiles AI agent rules for Cursor, Codex, and Claude Code, plus the
+Install dotfiles AI agent rules for Cursor, Codex, opencode, and Claude Code, plus the
 dotfiles-owned keys of the Claude/Codex config (see ./scripts/ai-config-install.sh).
 
 Master source:
@@ -31,6 +31,7 @@ Master source:
 Destination:
   ~/.cursor/rules/*.mdc   symlinks to repo (copies on a server); add custom *.mdc here
   ~/.codex/AGENTS.md      merged from all .mdc (Codex needs one file)
+  ~/.config/opencode/AGENTS.md  same merged file for opencode
   ~/.claude/rules/*.md    one file per rule (frontmatter stripped)
 
   ~/.claude/settings.json and ~/.codex/config.toml  keys merged, not replaced

@@ -42,7 +42,8 @@ What it does:
   Claude settings.json        env.SUDO_ASKPASS
   Codex config.toml           shell_environment_policy.set.SUDO_ASKPASS
   ~/.cursor/rules/sudo.mdc    "how to run root commands" rule, merged into
-                              ~/.claude/rules/sudo.md and ~/.codex/AGENTS.md
+                              ~/.claude/rules/sudo.md, ~/.codex/AGENTS.md
+                              and ~/.config/opencode/AGENTS.md
 
 Sandboxes and approval prompts are not part of this: use
 `dotfiles install ai-config --nosandbox` (or --sandbox to put them back).
@@ -96,10 +97,11 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
-# Regenerate ~/.claude/rules/*.md and ~/.codex/AGENTS.md from the cursor rules
+# Regenerate ~/.claude/rules/*.md, ~/.codex/AGENTS.md and opencode AGENTS.md from the cursor rules
 # (ai-rules.sh also merges custom ~/.cursor/rules/*.mdc such as sudo.mdc).
 refresh_generated_rules() {
   df_ai_rules_install_codex
+  df_ai_rules_install_opencode
   df_ai_rules_install_claude
 }
 

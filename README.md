@@ -99,6 +99,7 @@ nothing is symlinked whole). Servers: `dotfiles install ai-config` (copies inste
 | `claude/settings.base.json` | `~/.claude/settings.json` | `jq` merge; repo keys win |
 | `codex/config.base.toml` | `~/.codex/config.toml` | per-key edit, validated with `tomllib` |
 | `home/.claude/`, `home/.codex/` skills, agents, commands, prompts | `~/.claude/`, `~/.codex/` | symlink per item (copy on server) |
+| `home/.config/dotfiles/ai-rules/cursor/*.mdc` | `~/.cursor/rules/`, `~/.claude/rules/*.md`, `~/.codex/AGENTS.md`, `~/.config/opencode/AGENTS.md` | master `.mdc`; Codex and opencode get one merged file |
 
 Add a key to a base file and re-run to roll it out. Auth, history and project trust are never
 touched; a pre-merge backup is kept in `~/.local/share/dotfiles/backups/ai-config/`.
