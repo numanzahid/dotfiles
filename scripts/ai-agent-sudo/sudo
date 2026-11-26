@@ -1,10 +1,70 @@
 #!/bin/bash
 # Agent shells (Claude Code, Codex) set SUDO_ASKPASS, so their password
-# prompts go to ai-askpass (tmux popup or desktop dialog). Normal shells are
-# unaffected.
-# Forwards every argument to the real sudo, so it has no --help of its own.
+# prompts never touch the agent: on a DMS desktop (outside tmux) a plain
+# `sudo CMD ARGS` goes through polkit, so DMS shows its own "Authentication
+# Required" window; everything else goes to ai-askpass (tmux popup or desktop
+# dialog). Normal shells are unaffected.
+#
+# polkit path (run0, else pkexec --keep-cwd) is used only when ALL hold:
+#   - SUDO_ASKPASS is set (agent shell) and the command is plain: no sudo flags
+#   - a graphical session (XDG_SESSION_TYPE wayland/x11) with `dms run` running
+#   - not inside a tmux session that has an attached client (that gets the popup)
+#   - run0 or pkexec is installed
+# If run0 cannot set up its unit (error before any dialog), it falls back to ai-askpass.
+# AI_SUDO_PROMPT overrides the choice: `polkit` (skip the DMS and tmux checks),
+# `askpass` (never use polkit), `auto` (default).
+# run0/pkexec start the command with a clean environment, unlike sudo -A.
+# Forwards every argument to the real sudo otherwise, so it has no --help of its own.
 # Installed by scripts/ai-agent-sudo-install.sh.
+
+use_polkit() {
+  local mode=${AI_SUDO_PROMPT:-auto}
+  [ "$mode" = askpass ] && return 1
+  case "${1:-}" in
+    "" | -*) return 1 ;;
+  esac
+  command -v run0 >/dev/null 2>&1 || command -v pkexec >/dev/null 2>&1 || return 1
+  [ "$mode" = polkit ] && return 0
+  case "${XDG_SESSION_TYPE:-}" in
+    wayland | x11) ;;
+    *) return 1 ;;
+  esac
+  if [ -n "${TMUX:-}" ] && tmux list-clients 2>/dev/null | grep -q .; then
+    return 1
+  fi
+  pgrep -u "$(id -u)" -f '(^|/)dms run' >/dev/null 2>&1
+}
+
+# Run the command through polkit and return its exit status. Sets fallback=1 when
+# run0 could not even set up the unit ("Bad message", seen before any dialog
+# opens), so the caller can use ai-askpass without asking twice. stderr is shown live.
+fallback=0
+polkit_run() {
+  local err rc=0
+  err=$(mktemp) || { fallback=1; return 1; }
+  if command -v run0 >/dev/null 2>&1; then
+    run0 --background= --chdir="$PWD" "$@" 2> >(tee "$err" >&2) || rc=$?
+  else
+    pkexec --keep-cwd "$@" 2> >(tee "$err" >&2) || rc=$?
+  fi
+  wait $! 2>/dev/null
+  if [ "$rc" -ne 0 ] && grep -q 'Failed to set unit properties' "$err"; then
+    fallback=1
+  fi
+  rm -f "$err"
+  return "$rc"
+}
+
 if [ -n "$SUDO_ASKPASS" ]; then
+  if use_polkit "$@"; then
+    # The polkit window does not show the command, so say it in a notification.
+    if command -v notify-send >/dev/null 2>&1; then
+      notify-send -a sudo -t 10000 'An agent wants to run as root' "$*" >/dev/null 2>&1 || true
+    fi
+    polkit_run "$@"
+    rc=$?
+    [ "$fallback" -eq 0 ] && exit "$rc"
+  fi
   exec /usr/bin/sudo -A "$@"
 fi
 exec /usr/bin/sudo "$@"

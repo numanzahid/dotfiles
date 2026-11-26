@@ -109,8 +109,11 @@ for both tools (remembered, `update` keeps it); `--sandbox` puts them back.
 
 **Agent sudo:** `dotfiles install ai-sudo` lets agents run `sudo` with a password prompt you
 answer: a tmux popup when the agent runs in tmux, otherwise a desktop dialog (`zenity`,
-`kdialog` or `yad`; Fedora: `dnf install zenity`). Opt-in per machine, never touches sandbox
-settings. Remove with `dotfiles uninstall ai-sudo`.
+`kdialog` or `yad`; Fedora: `dnf install zenity`). On a DMS desktop (outside tmux) a plain
+`sudo cmd args` goes through polkit instead (`run0`, else `pkexec`), so DMS shows its own
+"Authentication Required" window; that path starts the command with a clean environment, and
+sudo flags (`-u`, `-E`, ...) keep the `ai-askpass` prompt. Set `AI_SUDO_PROMPT=polkit` or
+`AI_SUDO_PROMPT=askpass` to force one. Opt-in per machine, never touches sandbox settings. Remove with `dotfiles uninstall ai-sudo`.
 
 Rules for working on this repo itself live in `.cursor/rules/*.mdc` (masters) and
 `.claude/rules/*.md` (generated, committed). After editing an `.mdc`, run

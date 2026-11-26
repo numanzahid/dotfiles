@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Let Claude Code and Codex run sudo through a password popup (SUDO_ASKPASS):
-# tmux popup inside tmux, desktop dialog (zenity/kdialog/yad) outside it.
+# tmux popup inside tmux, outside it the DMS polkit window (DMS desktops) or a
+# desktop dialog (zenity/kdialog/yad).
 # Opt-in per machine: devbox.sh, desktop.sh and dotfiles update never run it.
 # Also applies the base Claude/Codex settings. It never changes sandbox or
 # approval settings; those are explicit: `dotfiles install ai-config --nosandbox`.
@@ -38,7 +39,12 @@ What it does:
                               desktop dialog (zenity, kdialog or yad)
   ~/.local/bin/sudo           link (copy on a server); wrapper that adds -A when
                               SUDO_ASKPASS is set (agent shells only; normal
-                              shells unchanged)
+                              shells unchanged). On a DMS desktop, outside tmux,
+                              a plain `sudo CMD ARGS` runs through polkit (run0,
+                              else pkexec) so DMS shows its own password window;
+                              the command is sent as a notification. Sudo flags
+                              (-u, -E, ...) still use ai-askpass. Force with
+                              AI_SUDO_PROMPT=polkit or AI_SUDO_PROMPT=askpass.
   Claude settings.json        env.SUDO_ASKPASS
   Codex config.toml           shell_environment_policy.set.SUDO_ASKPASS
   ~/.cursor/rules/sudo.mdc    "how to run root commands" rule, merged into

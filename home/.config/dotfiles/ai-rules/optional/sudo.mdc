@@ -3,7 +3,7 @@ description: How agents run root commands on this machine
 alwaysApply: true
 ---
 
-Run root commands with plain `sudo`; the password prompt appears to the user as a popup (tmux popup or desktop dialog).
+Run root commands with plain `sudo`; the password prompt appears to the user as a popup (tmux popup, DMS polkit window or desktop dialog).
 
 - Call `sudo` by name, without `-n` and not as `/usr/bin/sudo`; those skip the wrapper that shows the password prompt and fail with "a password is required".
 - Never ask the user for their sudo password, and never try to read, pipe or echo it.
