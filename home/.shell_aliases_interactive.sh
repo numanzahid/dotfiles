@@ -148,6 +148,8 @@ if command -v zoxide >/dev/null 2>&1; then
 fi
 
 ##### fetch banner (fastfetch) ##########################################
+# Use `type -P fastfetch` (the binary) to test for it: `command -v fastfetch` is always
+# true here because the fastfetch() function below shadows it.
 
 _dotfiles_ff_banner() {
   local sh="${XDG_CONFIG_HOME:-$HOME}/.config/tmux/fastfetch-banner.sh"
@@ -171,14 +173,14 @@ _dotfiles_show_fetch_banner() {
   [[ -n "${DOTFILES_FETCH_SHOWN:-}" || -n "${NO_FETCH:-}" ]] && return 0
   [[ -n "${TMUX:-}" ]] && return 0
 
-  if command -v fastfetch >/dev/null 2>&1; then
+  if type -P fastfetch >/dev/null 2>&1; then
     _dotfiles_ff_banner
     DOTFILES_FETCH_SHOWN=1
   fi
 }
 
 fetch() {
-  if command -v fastfetch >/dev/null 2>&1; then
+  if type -P fastfetch >/dev/null 2>&1; then
     _dotfiles_ff_banner
   else
     echo "fastfetch not installed. Run: ~/.dotfiles/install-fetch.sh"
